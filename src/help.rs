@@ -1,6 +1,6 @@
 extern crate textwrap;
 
-use textwrap::{fill,indent,wrap};
+use textwrap::{fill,indent};
 
 pub fn print_help(help_arg: &str) {
     println!("Usage: factorio_rust [OPTIONS ...]");
