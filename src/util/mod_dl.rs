@@ -1,4 +1,5 @@
 use std::thread::JoinHandle;
+use std::io::stdin;
 use std::fs::{read,File, OpenOptions};
 use serde::{Deserialize};
 
@@ -12,14 +13,15 @@ use crate::util::{
 const MOD_PORTAL_URL: &str = "https://mods.factorio.com";
 const MOD_PORTAL_API_URL: &str = "https://mods.factorio.com/api/mods/";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 struct ModMetaInfoHolder {
-    releases: Vec<ModReleaseHolder>,
+    releases: Vec<ModPortalReleaseHolder>,
 }
 
-#[derive(Debug, Deserialize)]
-struct ModReleaseHolder {
-    download_url: String,
+#[derive(Debug, Deserialize, Clone)]
+struct ModPortalReleaseHolder {
+    #[serde(skip)]
+    download_link: String,
     file_name: String,
     version: String,
     sha1: String,
@@ -53,6 +55,7 @@ pub fn fetch_mod_deps_parallel(mod_groups: Vec<ModSet>, handles: &mut Vec::<Join
     }
 
     let mut unique_mods: Vec<Mod> = Vec::new();
+    //Only attempt to download unique mods from the sets. Skip base mod as it's special for vanilla.
     for mod_set in mod_groups {
         for indiv_mod in mod_set.mods {
             if indiv_mod.name != "base" && !unique_mods.contains(&indiv_mod) {
@@ -91,7 +94,7 @@ pub fn fetch_mod_deps_parallel(mod_groups: Vec<ModSet>, handles: &mut Vec::<Join
                         }
                         for release in meta_info_response.releases {
                             if release.version == m.version {
-                                let dl_req = format!("{}{}?username={}&token={}",MOD_PORTAL_URL,release.download_url, username, token);
+                                let dl_req = format!("{}{}?username={}&token={}",MOD_PORTAL_URL,release.download_link, username, token);
 
                                 let mut resp = match reqwest::get(&dl_req) {
                                     Ok(r) => r,
@@ -174,4 +177,93 @@ fn convert_version_str_to_vec(version: &str) -> Vec<u32> {
         vers = vec!(0,0,0);
     }
     vers
+}
+
+fn get_latest_mod_version(meta_info: ModMetaInfoHolder) -> String {
+    let mut latest = "0.0.0".to_string();
+    for release in &meta_info.releases {
+        latest = compare_version_str(&release.version, &latest);
+    }
+    latest
+}
+
+pub fn prompt_for_mods() -> Vec<ModSet> {
+    let mut input = String::new();
+    let mut mod_sets: Vec<ModSet> = Vec::new();
+    println!("Creating a new set of mods.");
+    println!("Each mod set defines a list of mods that will be tested together.");
+    println!("Add a set of mods containing only vanilla? [y/N]");
+    if let Ok(_m) = stdin().read_line(&mut input) {
+        input.pop();
+        if input.to_lowercase() == "y" {
+            mod_sets.push(ModSet{mods: vec!(Mod::new("base", "", ""))});
+            println!("Added the vanilla mod set");
+        }
+    }
+    input.clear();
+    let mut add_sets = true;
+    while add_sets {
+        println!("Starting a new ModSet");
+        let mut current_working_mod_set = ModSet{mods: Vec::new()};
+        let mut set_finished = false;
+        while !set_finished {
+            println!("Enter the name of a mod to add to this set. Provide an empty response to stop adding mods to this set.");
+            println!("The special response \"__CURRENT__\" will attempt to fill this ModSet with the currently enabled mods from your mod-list.json file.");
+            if let Ok(_m) = stdin().read_line(&mut input) {
+                input.pop();
+                if input.is_empty() {
+                    set_finished = true;
+                }
+                if input == "__CURRENT__" {
+                    //TODO
+                    println!("__CURRENT__ is not yet implemented");
+                } else if !input.is_empty() {
+                    if let Some(m) = test_input_valid_for_mod(&mut input) {
+                        current_working_mod_set.mods.push(m);
+                    }
+                }
+            }
+            input.clear();
+        }
+        println!("Add another set of mods? [y/N]");
+        if let Ok(_m) = stdin().read_line(&mut input) {
+            if input.to_lowercase() != "y" {
+                add_sets = false;
+            }
+        }
+    }
+    Vec::new()
+}
+
+fn test_input_valid_for_mod(mut input: &mut String) -> Option<Mod> {
+    let mod_url = format!("{}{}", MOD_PORTAL_API_URL, input);
+    if let Ok(mut resp) = reqwest::get(&mod_url) {
+        if resp.status() == 200 {
+            println!("Found mod: {}", input);
+            input.clear();
+            println!("Enter the version you wish to use. Leave empty to save the latest version.");
+            stdin().read_line(&mut input);
+            input.pop();
+
+            if let Ok(meta_info_response) = resp.json::<ModMetaInfoHolder>() {
+                if input.is_empty() {
+                    println!("Getting latest version...");
+                    *input = get_latest_mod_version(meta_info_response.clone());
+                }
+                for release in meta_info_response.releases {
+                    if release.version == *input {
+                        println!("Succesfully found mod {}", release.file_name);
+                        return Some(Mod{name: release.file_name, sha1: release.sha1, version: release.version})
+                    }
+                }
+            }
+        } else if resp.status() == 404 {
+            println!("The mod {} was not found", input);
+            return None
+        } else {
+            println!("An unexpected response was recieved. Http code: {}", resp.status());
+            return None
+        }
+    }
+    None
 }

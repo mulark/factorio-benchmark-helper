@@ -1,12 +1,28 @@
-
+use reqwest;
 use sha2::{Digest};
 use std::fs::{read,OpenOptions};
 use std::thread::JoinHandle;
+use serde::{Deserialize};
 use crate::util::{
     fbh_save_dl_dir,
+    fbh_read_configuration_setting,
     Map,
     get_saves_directory,
 };
+
+#[derive(Debug,Deserialize)]
+struct DriveFolderListing {
+    files: Vec<DriveFile>,
+}
+
+#[derive(Debug,Deserialize)]
+struct DriveFile {
+    kind: String,
+    id: String,
+    name: String,
+    #[serde(rename(deserialize = "webContentLink"))]
+    download_link: String,
+}
 
 pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec::<JoinHandle<()>>) {
     for map in maps {
@@ -63,6 +79,44 @@ pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec::<JoinHandle<()
                 }
             }
         ));
+    }
+}
+
+pub fn get_download_link_from_google_drive_by_filename(filename: &str, drive_folder_url: &str) -> Option<String> {
+    let client = reqwest::Client::new();
+    let folder_id = drive_folder_url
+        .replace("https://drive.google.com/drive/folders/", "")
+        .replace("https://drive.google.com/open?id=","")
+        .replace("/view?usp=sharing", "");
+    if folder_id.is_empty() || drive_folder_url.is_empty() || folder_id == drive_folder_url {
+        panic!("You provided empty drive folder url");
+    }
+    match fbh_read_configuration_setting("google-drive-api-key") {
+        Some(api_key) => {
+            let req_url = format!("{}{}{}{}{}{}{}{}{}",
+                "https://www.googleapis.com/drive/v3/files?",
+                "fields=files/kind,files/id,files/name,files/webContentLink",
+                "&q=%27",
+                folder_id,
+                "%27",
+                "%20in%20parents",
+                "%20and%20mimeType=%22application/zip%22", //Only .zip files
+                "&key=",
+                api_key,
+            );
+            let mut resp = client.get(&req_url).send().unwrap();
+            println!("{:?}", resp);
+            let json: DriveFolderListing = resp.json().unwrap();
+            for drive_file in json.files {
+                if drive_file.name == filename {
+                    return Some(drive_file.download_link)
+                }
+            }
+            None
+        },
+        _ => {
+            panic!("To fetch a file listing of files in a shared folder, you must generate a google drive API key.");
+        },
     }
 }
 

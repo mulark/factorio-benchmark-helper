@@ -1,11 +1,18 @@
 extern crate regex;
 
+use std::fmt::Display;
 use regex::Regex;
+use std::fs::{File, OpenOptions};
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::{Instant};
-use super::database::{self, DatabaseUpload};
-use crate::util;
+use super::database::{self, BenchmarkResults};
+use crate::util::{
+    FACTORIO_VERSION,
+    fbh_mod_use_dir,
+    get_executable_path,
+};
 
 static NUMBER_ERROR_CHECKING_TICKS: u32 = 300;
 static NUMBER_ERROR_CHECKING_RUNS: u32 = 3;
@@ -18,9 +25,6 @@ lazy_static! {
     static ref PER_TICK_TIME_PATTERN: Regex = Regex::new("avg: [0-9]*.* ms").unwrap();
     //Regexes include ; and : which are not user inputtable via a map.
     static ref MAP_VERSION_MATCH_PATTERN: Regex = Regex::new(r": Map version \d{1,2}\.\d{2,3}\.\d{2,3}").unwrap();
-    static ref FACTORIO_EXECUTABLE_VERSION_LINE: Regex = Regex::new(r"; Factorio \d{1,2}\.\d{2,3}\.\d{2,3}").unwrap();
-    //If Factorio ever goes to 3/4/4 digits for their versioning, this will break.
-    static ref VERSION_REGEXER: Regex = Regex::new(r"\d{1,2}\.\d{2,3}\.\d{2,3}").unwrap();
     static ref VERBOSE_COLUMN_HEADER_MATCH_PATTERN: Regex = Regex::new("tick,.*,*\n").unwrap();
     static ref VERBOSE_DATA_ROW_MATCH_PATTERN: Regex = Regex::new("^t[0-9]*[0-9],[0-9]").unwrap();
 }
@@ -31,6 +35,16 @@ pub struct BenchmarkParams {
     pub ticks: u32,
     pub runs: u32,
     pub maps: Vec<PathBuf>,
+}
+
+impl BenchmarkParams {
+    pub fn print_maps(&self) {
+        let mut maps_found = 0;
+        for m in &self.maps {
+            maps_found += 1;
+            println!("{}: {:?}", maps_found, m.file_name().expect(""));
+        }
+    }
 }
 
 impl Default for BenchmarkParams {
@@ -92,13 +106,10 @@ fn validate_benchmark_params(params: &BenchmarkParams) {
 }
 
 fn parse_stdout_for_errors(stdout: &str) {
-    match GENERIC_FACTORIO_ERROR_MATCH_PATTERN.captures(stdout) {
-        Some(e) => {
-            eprintln!("An error was detected when trying to run Factorio");
-            eprintln!("{:?}",e);
-            std::process::exit(1);
-        },
-        _ => (),
+    if let Some(e) = GENERIC_FACTORIO_ERROR_MATCH_PATTERN.captures(stdout) {
+        eprintln!("An error was detected when trying to run Factorio");
+        eprintln!("{:?}",&e[0]);
+        std::process::exit(1);
     }
 }
 
@@ -119,12 +130,12 @@ fn parse_stdout_for_benchmark_time_breakdown(bench_data_stdout: &str, ticks: u32
 }
 
 pub fn run_benchmarks_multiple_maps(params: &BenchmarkParams) {
-    let executable_path = util::get_executable_path();
+    let executable_path = get_executable_path();
     validate_benchmark_params(params);
     let mut map_durations: Vec<BenchmarkDuration> = Vec::new();
     for map in &params.maps {
         println!("Checking errors for map: {}", map.to_string_lossy());
-        let this_duration = run_benchmark_single_map(&map, NUMBER_ERROR_CHECKING_TICKS, NUMBER_ERROR_CHECKING_RUNS, &executable_path, false);
+        let this_duration = run_benchmark_single_map(&map, NUMBER_ERROR_CHECKING_TICKS, NUMBER_ERROR_CHECKING_RUNS, &executable_path, false, None);
         if let Some(duration) = this_duration {
             map_durations.push(duration)
         }
@@ -140,15 +151,22 @@ pub fn run_benchmarks_multiple_maps(params: &BenchmarkParams) {
     }
     let expected_total_duration = expected_total_tick_time + expected_total_game_initialization_time + expected_total_benchmarking_run_overhead;
     let now = Instant::now();
-    println!("Expecting benchmarks to take: {:.*}s", 3, expected_total_duration);
-    println!("Overhead: ticks {:.*}s, runs {:.*}s, initialization {:.*}s", 3, expected_total_tick_time, 3, expected_total_benchmarking_run_overhead, 3, expected_total_game_initialization_time);
+    let hrs = (expected_total_duration / 3600.0) as u64;
+    let mins = ((expected_total_duration % 3600.0) / 60.0) as u64;
+    let secs = (expected_total_duration % 3600.0) % 60.0;
+    println!("Expecting benchmarks to take: {}:{}:{:.*}", hrs, mins, 3, secs);
+    println!("Measured overhead: ticks {:.*}s ({:.*}%), runs {:.*}s, initialization {:.*}s",
+        3, expected_total_tick_time,
+        3, (expected_total_tick_time/expected_total_duration)*100.0,
+        3, expected_total_benchmarking_run_overhead,
+        3, expected_total_game_initialization_time);
     for map in &params.maps {
-        run_benchmark_single_map(&map, params.ticks, params.runs, &executable_path, true);
+        run_benchmark_single_map(&map, params.ticks, params.runs, &executable_path, true, Some(&params));
     }
-    println!("Took {}s to get here.", now.elapsed().as_secs_f64());
+    println!("Took {:.*}s to run benchmarks.", 3, now.elapsed().as_secs_f64());
 }
 
-fn run_benchmark_single_map(map: &PathBuf, ticks: u32, runs: u32, executable_path: &PathBuf, upload_result: bool) -> Option::<BenchmarkDuration> {
+fn run_benchmark_single_map(map: &PathBuf, ticks: u32, runs: u32, executable_path: &PathBuf, upload_result: bool, params: Option<&BenchmarkParams>) -> Option::<BenchmarkDuration> {
     //tick is implied in timings dump
     let verbose_timings = "wholeUpdate,gameUpdate,circuitNetworkUpdate,transportLinesUpdate,\
         fluidsUpdate,entityUpdate,mapGenerator,electricNetworkUpdate,logisticManagerUpdate,\
@@ -163,13 +181,19 @@ fn run_benchmark_single_map(map: &PathBuf, ticks: u32, runs: u32, executable_pat
         .arg(runs.to_string())
         .arg("--benchmark-verbose")
         .arg(verbose_timings)
+        .arg("--mod-directory")
+        .arg(fbh_mod_use_dir().to_str().unwrap())
         .output()
         .expect("");
     let bench_data_stdout_raw = String::from_utf8_lossy(&run_bench_cmd.stdout);
-    let ignore_user_supplied_data_line = &Regex::new(map.file_name().unwrap().to_str().unwrap()).unwrap().captures(&bench_data_stdout_raw).unwrap()[0];
-    let bench_data_stdout = bench_data_stdout_raw.replace(ignore_user_supplied_data_line, "\n");
-
+    let regex = &Regex::new(map.file_name().unwrap().to_str().unwrap()).unwrap();
+    let captures = regex.captures(&bench_data_stdout_raw);
+    let bench_data_stdout = match captures {
+        Some(m) => bench_data_stdout_raw.replace(&m[0], "\n"),
+        _ => bench_data_stdout_raw.to_string(),
+    };
     parse_stdout_for_errors(&bench_data_stdout);
+
     let benchmark_times = parse_stdout_for_benchmark_time_breakdown(&bench_data_stdout, ticks, runs);
 
     let mut run_index = 0;
@@ -186,16 +210,21 @@ fn run_benchmark_single_map(map: &PathBuf, ticks: u32, runs: u32, executable_pat
             if line_index % 1000 == 0 {
                 run_index += 1;
             }
-            line.push_str(&format!("{},",run_index));
+            line.push_str(&format!("{},\n",run_index));
             verbose_data.push(line.to_string());
             line_index += 1;
             assert!(run_index > 0);
         }
     }
     if upload_result {
+        //We should have as many lines as ticks have been performed
         assert_eq!((ticks * runs) as usize, verbose_data.len());
-        let db_input = DatabaseUpload{table_name:String::from("benchmark_verbose"), table_columns:column_headers, data_rows:verbose_data};
-        database::put_data_to_db(db_input);
+        if let Some(p) = params {
+            let mut db_input = BenchmarkResults::new();
+            db_input.collection_data = format!("{},{}", p.match_pattern, *FACTORIO_VERSION);
+            db_input.verbose_data = verbose_data;
+            database::put_data_to_db(db_input);
+        }
     }
     return benchmark_times;
 }
