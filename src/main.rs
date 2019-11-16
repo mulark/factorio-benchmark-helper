@@ -2,42 +2,42 @@
 #[macro_use]
 extern crate lazy_static;
 
-extern crate regex;
 extern crate directories;
 extern crate getopts;
 extern crate glob;
+extern crate regex;
 extern crate reqwest;
-extern crate sha2;
 extern crate serde;
 extern crate serde_json;
+extern crate sha2;
 
-use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
-use std::fs::read;
-use sha2::Digest;
-use std::io::{Read,BufReader};
+use benchmark_runner::{run_benchmarks_multiple_maps, BenchmarkParams};
+use getopts::Matches;
 use reqwest::Response;
-use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
+use sha2::Digest;
+use std::collections::HashMap;
 use std::env;
-use std::io::{BufRead, stdin};
+use std::fs::read;
 use std::fs::File;
-use benchmark_runner::{BenchmarkParams, run_benchmarks_multiple_maps};
+use std::io::{stdin, BufRead};
+use std::io::{BufReader, Read};
+use std::path::PathBuf;
 
-mod procedure_file;
 mod benchmark_runner;
-mod help;
 mod database;
+mod help;
+mod procedure_file;
 use database::BenchmarkResults;
 mod util;
 use util::{
-    Mod,
-    ModSet,
+    fbh_read_configuration_setting,
+    //prompt_for_mods,
+    get_download_links_from_google_drive_by_filelist,
+    get_saves_directory,
     BenchmarkSet,
     Map,
-    fbh_read_configuration_setting,
-    get_saves_directory,
-    prompt_for_mods,
-    get_download_links_from_google_drive_by_filelist,
+    Mod,
 };
 
 const FACTORIO_BENCHMARK_HELPER_VERSION: &str = "0.0.1";
@@ -47,22 +47,37 @@ struct UserSuppliedArgs {
     ticks: Option<u32>,
     runs: Option<u32>,
     pattern: Option<String>,
+    help_target: Option<String>,
 }
 
 impl Default for UserSuppliedArgs {
     fn default() -> UserSuppliedArgs {
-        UserSuppliedArgs{
+        UserSuppliedArgs {
             new_benchmark_set_name: None,
             ticks: None,
             runs: None,
             pattern: None,
+            help_target: None,
         }
     }
 }
 
-#[derive(Debug,Serialize,Deserialize)]
-struct Simple {
-    oof: HashMap<String, String>
+fn fetch_user_supplied_optargs(options: &Matches, user_args: &mut UserSuppliedArgs) {
+    if let Ok(new_set_name) = options.opt_get::<String>("create-benchmark-procedure") {
+        user_args.new_benchmark_set_name = new_set_name;
+    }
+    if let Ok(ticks) = options.opt_get::<u32>("ticks") {
+        user_args.ticks = ticks;
+    }
+    if let Ok(runs) = options.opt_get::<u32>("runs") {
+        user_args.runs = runs;
+    }
+    if let Ok(pattern) = options.opt_get::<String>("pattern") {
+        user_args.pattern = pattern;
+    }
+    if let Ok(help_target) = options.opt_get::<String>("help") {
+        user_args.help_target = help_target;
+    }
 }
 
 fn main() {
@@ -71,30 +86,22 @@ fn main() {
         Err(e) => {
             println!("Failed to initialize Factorio Benchmark Helper");
             panic!(e);
-        },
-    }/*
-    let mut test = HashMap::new();
-    test.insert("foo".to_string(), "bar".to_string());
-    test.insert("baz".to_string(), "uhh".to_string());
-    let simp = Simple{oof: test};
-    let test2 = serde_json::to_string_pretty(&simp).unwrap();
-    println!("{}", test2);
-    let deser: Simple = serde_json::from_str(&test2).unwrap();
-    println!("{:?}", deser);*/
+        }
+    }
     util::create_procedure_interactively();
     panic!();
     //database::put_data_to_db(BenchmarkResults::new())
-/*
-    let m = Mod::new("creative-world-plus", "0.0.9", "e90da651af3eac017210b85dab5a09c15cf5aca8");
-    let m4 = Mod::new("creative-world-plus", "0.0.9", "e90da651af3eac017210b85dab5a09c15cf5aca8");
-    //let m2 = Mod::new("warptorio2_expansion", "0.0.35", "fc4e77dd57953bcf79570b38698bd5c2ea07af2b");
-    //let m3 = Mod::new("warptorio2_expansion", "", "");
-    let ms = ModSet {mods: vec!(m, m4)};
-    let ma = Map::new("foobar.zip", "89e807c58e547f99915e184baac32cbf3e22b7191110580430e48f90a25be657", "https://forums.factorio.com/download/file.php?id=54562", 100, 100);
-    let maps = vec!(ma);
-    let bs = BenchmarkSet {maps, mod_groups: vec!(ms), name: "test".to_string(), pattern: "".to_string()};
-    util::fetch_benchmark_deps_parallel(bs);
-*/
+    /*
+        let m = Mod::new("creative-world-plus", "0.0.9", "e90da651af3eac017210b85dab5a09c15cf5aca8");
+        let m4 = Mod::new("creative-world-plus", "0.0.9", "e90da651af3eac017210b85dab5a09c15cf5aca8");
+        //let m2 = Mod::new("warptorio2_expansion", "0.0.35", "fc4e77dd57953bcf79570b38698bd5c2ea07af2b");
+        //let m3 = Mod::new("warptorio2_expansion", "", "");
+        let ms = ModSet {mods: vec!(m, m4)};
+        let ma = Map::new("foobar.zip", "89e807c58e547f99915e184baac32cbf3e22b7191110580430e48f90a25be657", "https://forums.factorio.com/download/file.php?id=54562", 100, 100);
+        let maps = vec!(ma);
+        let bs = BenchmarkSet {maps, mod_groups: vec!(ms), name: "test".to_string(), pattern: "".to_string()};
+        util::fetch_benchmark_deps_parallel(bs);
+    */
 
     //procedure_file::set_json();
     let mut params = UserSuppliedArgs::default();
@@ -124,38 +131,67 @@ fn main() {
 --run-meta-benchmark META_NAME
 */
 
-fn parse_args(user_args: &mut UserSuppliedArgs) {
+fn parse_args(mut user_args: &mut UserSuppliedArgs) {
     let args: Vec<String> = env::args().collect();
     let mut options = getopts::Options::new();
     options.parsing_style(getopts::ParsingStyle::FloatingFrees);
-    options.opt("h","help","Prints general help, or help about OPTION if supplied","OPTION",getopts::HasArg::Maybe,getopts::Occur::Optional);
+    options.opt(
+        "h",
+        "help",
+        "Prints general help, or help about OPTION if supplied",
+        "OPTION",
+        getopts::HasArg::Maybe,
+        getopts::Occur::Optional,
+    );
     options.optflag("v", "version", "Print program version, then exits");
-    options.optflag("i", "interactive", "Runs program interactively");
-    options.opt("p","pattern","Limit benchmarks to maps that match PATTERN","PATTERN",getopts::HasArg::Yes,getopts::Occur::Optional);
-    options.optopt("t", "ticks", "Runs benchmarks for TICKS duration per run", "TICKS");
-    options.optopt("r", "runs", "How many times should each map be benchmarked?", "TIMES");
-    options.optflag("a", "auto-analysis", "Runs program in auto-analysis mode");
-    options.optflag("", "set-executable-path", "Sets the path of the Factorio executable, and writes it to the config file");
-    options.opt("", "create-benchmark-procedure", "Create a benchmark procedure named NAME","NAME",getopts::HasArg::Yes, getopts::Occur::Optional);
+    options.optflag("", "interactive", "Runs program interactively");
+    options.opt(
+        "",
+        "pattern",
+        "Limit benchmarks to maps that match PATTERN",
+        "PATTERN",
+        getopts::HasArg::Yes,
+        getopts::Occur::Optional,
+    );
+    options.optopt(
+        "",
+        "ticks",
+        "Runs benchmarks for TICKS duration per run",
+        "TICKS",
+    );
+    options.optopt(
+        "",
+        "runs",
+        "How many times should each map be benchmarked?",
+        "TIMES",
+    );
+    options.opt(
+        "",
+        "create-benchmark-procedure",
+        "Create a benchmark procedure named NAME",
+        "NAME",
+        getopts::HasArg::Yes,
+        getopts::Occur::Optional,
+    );
     if args.len() == 1 {
         println!("No arguments supplied!");
         println!("{}", options.short_usage("factorio_rust"));
         std::process::exit(0);
     }
     let matched_options = match options.parse(&args[1..]) {
-        Ok (m) => { m }
-        Err (e) => {
+        Ok(m) => m,
+        Err(e) => {
             println!("{}", options.short_usage("factorio_rust"));
-            eprintln!("{}",e);
+            eprintln!("{}", e);
             std::process::exit(0);
         }
     };
+    fetch_user_supplied_optargs(&matched_options, &mut user_args);
     if matched_options.opt_present("help") {
-        let help_arg = matched_options.opt_get_default::<String>("help","help".to_string()).unwrap();
-        if help_arg == "help" {
-            println!("{}", options.usage("factorio_rust"));
-        } else {
+        if let Some(help_arg) = &user_args.help_target {
             help::print_help(&help_arg);
+        } else {
+            println!("{}", options.usage("factorio_rust"));
         }
         std::process::exit(0);
     }
@@ -163,81 +199,51 @@ fn parse_args(user_args: &mut UserSuppliedArgs) {
         print_version();
         std::process::exit(0);
     }
-    if matched_options.opt_present("pattern") {
-        if let Some(matching_string) = matched_options.opt_str("pattern") {
-            user_args.pattern = Some(matching_string);
-        }
-    }
-    if matched_options.opt_present("ticks") {
-        if let Some(matching_string) = matched_options.opt_str("ticks") {
-            match matching_string.parse::<u32>() {
-                Ok(uint) => {
-                    if uint != 0 {
-                        user_args.ticks = Some(uint);
-                    } else {
-                        println!("Ticks must be greater than 0!");
-                    }
-                },
-                Err(e) => {
-                    println!("Could not parse ticks as a u32! Value supplied was: {:?}", matching_string);
-                    panic!("{}",e.to_string());
-                },
-            }
-        }
-    }
-    if matched_options.opt_present("runs") {
-        if let Some(matching_string) = matched_options.opt_str("runs") {
-            match matching_string.parse::<u32>() {
-                Ok(uint) => {
-                    if uint != 0 {
-                        user_args.runs = Some(uint);
-                    } else {
-                        println!("Runs must be greater than 0!");
-                    }
-                },
-                Err(e) => {
-                    println!("Could not parse runs as a u32! Value supplied was: {:?}", matching_string);
-                    panic!("{}",e.to_string());
-                },
-            }
-        }
-    }
-    if matched_options.opt_present("interactive") && !matched_options.opt_present("auto-analysis") {
-        let mut input = String::new();
-        let mut cont = true;
-        println!("Create a new benchmark procedure, or run a benchmark? [c/b]");
-        while cont {
-            match input.as_str() {
-                "b" => {
-                    cont = false;
-                    println!("Running a benchmark");
-                },
-                "c" => {
-                    cont = false;
-                    println!("Creating a benchmark interactively");
-                    create_benchmark_interactive(user_args);
-                }
-                _ => {
-                    input.clear();
-                    stdin().read_line(&mut input).expect("");
-                    input.pop();
-                }
-            }
-        }
-    }
     if matched_options.opt_present("create-benchmark-procedure") {
-        if let Some(matching_string) = matched_options.opt_str("create-benchmark-procedure") {
-            user_args.new_benchmark_set_name = Some(matching_string);
+        if matched_options.opt_present("interactive") {
+            create_benchmark_procedure_interactive(&mut user_args);
+        } else {
+            create_benchmark_procedure(&user_args);
         }
     }
 }
 
 fn print_version() {
-    println!("factorio_rust {}",FACTORIO_BENCHMARK_HELPER_VERSION);
+    println!("factorio_rust {}", FACTORIO_BENCHMARK_HELPER_VERSION);
     std::process::exit(0);
 }
 
-fn create_benchmark_interactive(user_args: &mut UserSuppliedArgs) {
+fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
+    let mut benchmark_builder = BenchmarkSet::default();
+    if let Some(p) = &user_args.pattern {
+        let current_map_paths = get_map_paths_from_pattern(&p);
+        if current_map_paths.is_empty() {
+            eprintln!("Supplied pattern found no maps!");
+            std::process::exit(1);
+        }
+        let mut sha256;
+        for a_map in current_map_paths {
+            sha256 = format!("{:x}", sha2::Sha256::digest(&read(&a_map).unwrap()));
+            Map::new(a_map.file_name().unwrap().to_str().unwrap(), &sha256, "");
+        }
+    }
+    if let Some(t) = &user_args.ticks {
+        if *t == 0 {
+            eprintln!("Ticks aren't allowed to be 0!");
+            std::process::exit(1);
+        }
+        benchmark_builder.ticks = *t;
+    }
+    if let Some(r) = &user_args.runs {
+        if *r == 0 {
+            eprintln!("Runs aren't allowed to be 0!");
+            std::process::exit(1);
+        }
+        benchmark_builder.runs = *r;
+    }
+}
+
+fn create_benchmark_procedure_interactive(user_args: &mut UserSuppliedArgs) {
     let mut benchmark_builder = BenchmarkSet::default();
     let mut pattern = String::new();
     if let Some(p) = &user_args.pattern {
@@ -250,14 +256,20 @@ fn create_benchmark_interactive(user_args: &mut UserSuppliedArgs) {
         prompt_for_nonzero_u32(&mut benchmark_builder.ticks, 1000);
     } else {
         benchmark_builder.ticks = user_args.ticks.unwrap();
-        println!("Ticks supplied from arguments... {}", benchmark_builder.ticks);
+        println!(
+            "Ticks supplied from arguments... {}",
+            benchmark_builder.ticks
+        );
     }
     if user_args.runs.is_none() {
         println!("Enter the number of times to benchmark each map... [1]");
         prompt_for_nonzero_u32(&mut benchmark_builder.runs, 1);
     } else {
         benchmark_builder.ticks = user_args.ticks.unwrap();
-        println!("Runs supplied from arguments... {}", benchmark_builder.ticks);
+        println!(
+            "Runs supplied from arguments... {}",
+            benchmark_builder.ticks
+        );
     }
     println!("Benchmark with mods? [y/N]");
     println!("If you do not specify any mod sets, vanilla is implied.");
@@ -265,7 +277,7 @@ fn create_benchmark_interactive(user_args: &mut UserSuppliedArgs) {
     if let Ok(_m) = stdin().read_line(&mut input) {
         input.pop();
         if input.to_lowercase() == "y" {
-            benchmark_builder.mod_groups = prompt_for_mods();
+            //            benchmark_builder.mods = prompt_for_mods();
         }
     }
     /*input.clear();
@@ -297,7 +309,6 @@ fn create_benchmark_interactive(user_args: &mut UserSuppliedArgs) {
             ));
         }
     }
-
 }
 
 fn prompt_dl_link_indiv_map(name: &str) -> String {
@@ -345,8 +356,6 @@ fn retrieve_pattern(pattern: &mut String) {
     }
 }
 
-
-
 fn prompt_for_nonzero_u32(numeric_field: &mut u32, default: u32) {
     let mut input = "".to_string();
     while *numeric_field == 0 {
@@ -355,13 +364,13 @@ fn prompt_for_nonzero_u32(numeric_field: &mut u32, default: u32) {
         if input.is_empty() {
             *numeric_field = default;
         } else {
-            match input.parse::<u32>(){
+            match input.parse::<u32>() {
                 // 0 is allowed but due to while looping it won't be used.
                 Ok(p) => *numeric_field = p,
                 _ => {
                     println!("{:?} is not a valid parameter", input);
                     input.clear();
-                },
+                }
             }
         }
     }
@@ -378,7 +387,7 @@ fn get_map_paths_from_pattern(initial_input: &str) -> Vec<PathBuf> {
     if !input.is_empty() {
         input.push_str("*");
     }
-    let combined_pattern = &format!("{}*{}",save_directory.to_string_lossy(), input);
+    let combined_pattern = &format!("{}*{}", save_directory.to_string_lossy(), input);
     let try_pattern = glob::glob(combined_pattern);
     if let Ok(m) = try_pattern {
         for item in m.filter_map(Result::ok) {

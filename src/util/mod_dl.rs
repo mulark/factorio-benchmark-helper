@@ -1,14 +1,9 @@
-use std::thread::JoinHandle;
+use serde::Deserialize;
+use std::fs::{read, File, OpenOptions};
 use std::io::stdin;
-use std::fs::{read,File, OpenOptions};
-use serde::{Deserialize};
+use std::thread::JoinHandle;
 
-use crate::util::{
-    get_factorio_rw_directory,
-    fbh_mod_dl_dir,
-    Mod,
-    ModSet,
-};
+use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory, Mod};
 
 const MOD_PORTAL_URL: &str = "https://mods.factorio.com";
 const MOD_PORTAL_API_URL: &str = "https://mods.factorio.com/api/mods/";
@@ -37,11 +32,15 @@ struct User {
 
 impl User {
     fn default() -> User {
-        User {username: "".to_string(), token: "".to_string()}
+        User {
+            username: "".to_string(),
+            token: "".to_string(),
+        }
     }
 }
 
-pub fn fetch_mod_deps_parallel(mod_groups: Vec<ModSet>, handles: &mut Vec::<JoinHandle<()>>) {
+//TODO make work with same mod but 2 diff versions
+pub fn fetch_mod_deps_parallel(mods: Vec<Mod>, handles: &mut Vec<JoinHandle<()>>) {
     let mut user_data: User = User::default();
     let maybe_playerdata_json_file = get_factorio_rw_directory().join("player-data.json");
     if maybe_playerdata_json_file.is_file() {
@@ -56,16 +55,15 @@ pub fn fetch_mod_deps_parallel(mod_groups: Vec<ModSet>, handles: &mut Vec::<Join
 
     let mut unique_mods: Vec<Mod> = Vec::new();
     //Only attempt to download unique mods from the sets. Skip base mod as it's special for vanilla.
-    for mod_set in mod_groups {
-        for indiv_mod in mod_set.mods {
-            if indiv_mod.name != "base" && !unique_mods.contains(&indiv_mod) {
-                unique_mods.push(indiv_mod);
-            }
+    for indiv_mod in mods {
+        if indiv_mod.name != "base" && !unique_mods.contains(&indiv_mod) {
+            unique_mods.push(indiv_mod);
         }
     }
     let mut filename;
     for mut m in unique_mods {
-        filename = format!("{}_{}.zip",
+        filename = format!(
+            "{}_{}.zip",
             m.name,
             if m.version.is_empty() {
                 r"{latest}"
@@ -75,7 +73,11 @@ pub fn fetch_mod_deps_parallel(mod_groups: Vec<ModSet>, handles: &mut Vec::<Join
         );
         let maybe_already_dl_mod = fbh_mod_dl_dir().join(&filename);
         let computed_sha1 = if maybe_already_dl_mod.is_file() {
-            sha1::Sha1::from(&read(&maybe_already_dl_mod).unwrap()).digest().to_string() } else { "".to_string()
+            sha1::Sha1::from(&read(&maybe_already_dl_mod).unwrap())
+                .digest()
+                .to_string()
+        } else {
+            "".to_string()
         };
         if computed_sha1 != m.sha1 || computed_sha1 == "" {
             if !user_data.token.is_empty() && !user_data.username.is_empty() {
@@ -151,7 +153,7 @@ pub fn compare_version_str(vers1: &str, vers2: &str) -> String {
     let vers_cmp1 = convert_version_str_to_vec(&vers1);
     let vers_cmp2 = convert_version_str_to_vec(&vers2);
     if vers_cmp1 > vers_cmp2 {
-        format!("{}.{}.{}", vers_cmp1[0],vers_cmp1[1],vers_cmp1[2])
+        format!("{}.{}.{}", vers_cmp1[0], vers_cmp1[1], vers_cmp1[2])
     } else {
         format!("{}.{}.{}", vers_cmp2[0], vers_cmp2[1], vers_cmp2[2])
     }
@@ -174,7 +176,7 @@ fn convert_version_str_to_vec(version: &str) -> Vec<u32> {
         std::process::exit(1);
     }
     if vers.is_empty() {
-        vers = vec!(0,0,0);
+        vers = vec![0, 0, 0];
     }
     vers
 }
@@ -186,7 +188,7 @@ fn get_latest_mod_version(meta_info: ModMetaInfoHolder) -> String {
     }
     latest
 }
-
+/*
 pub fn prompt_for_mods() -> Vec<ModSet> {
     let mut input = String::new();
     let mut mod_sets: Vec<ModSet> = Vec::new();
@@ -204,7 +206,7 @@ pub fn prompt_for_mods() -> Vec<ModSet> {
     let mut add_sets = true;
     while add_sets {
         println!("Starting a new ModSet");
-        let mut current_working_mod_set = ModSet{mods: Vec::new()};
+        let mut current_working_mod_set = Vec::new();
         let mut set_finished = false;
         while !set_finished {
             println!("Enter the name of a mod to add to this set. Provide an empty response to stop adding mods to this set.");
@@ -233,7 +235,7 @@ pub fn prompt_for_mods() -> Vec<ModSet> {
         }
     }
     Vec::new()
-}
+}*/
 
 fn get_mod_info(mut input: &mut String) -> Option<Mod> {
     let mod_url = format!("{}{}", MOD_PORTAL_API_URL, input);
@@ -253,16 +255,23 @@ fn get_mod_info(mut input: &mut String) -> Option<Mod> {
                 for release in meta_info_response.releases {
                     if release.version == *input {
                         println!("Succesfully found mod {}", release.file_name);
-                        return Some(Mod{name: release.file_name, sha1: release.sha1, version: release.version})
+                        return Some(Mod {
+                            name: release.file_name,
+                            sha1: release.sha1,
+                            version: release.version,
+                        });
                     }
                 }
             }
         } else if resp.status() == 404 {
             println!("The mod {} was not found", input);
-            return None
+            return None;
         } else {
-            println!("An unexpected response was recieved. Http code: {}", resp.status());
-            return None
+            println!(
+                "An unexpected response was recieved. Http code: {}",
+                resp.status()
+            );
+            return None;
         }
     }
     None

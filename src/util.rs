@@ -1,40 +1,31 @@
-
 extern crate directories;
 extern crate ini;
+extern crate regex;
 extern crate reqwest;
 extern crate sha1;
 extern crate sha2;
-extern crate regex;
 
 mod fbh_paths;
+pub use fbh_paths::{
+    fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir, fbh_mod_use_dir,
+    fbh_procedure_json_local_file, fbh_procedure_json_master_file, fbh_read_configuration_setting,
+    fbh_results_database, fbh_save_dl_dir, initialize,
+};
 use reqwest::Response;
 use std::thread::JoinHandle;
-pub use fbh_paths::{
-    initialize,
-    fbh_data_path,
-    fbh_config_file,
-    fbh_cache_path,
-    fbh_mod_dl_dir,
-    fbh_mod_use_dir,
-    fbh_read_configuration_setting,
-    fbh_save_dl_dir,
-    fbh_results_database,
-    fbh_procedure_json_local_file,
-    fbh_procedure_json_master_file,
-};
 
-pub use crate::procedure_file::{BenchmarkSet,ModSet,create_procedure_interactively};
-use serde::{Deserialize, Serialize};
+pub use crate::procedure_file::{create_procedure_interactively, BenchmarkSet};
+use directories::{BaseDirs, ProjectDirs};
 use ini::Ini;
-use std::path::PathBuf;
-use directories::{ProjectDirs, BaseDirs};
 use regex::Regex;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 mod mod_dl;
-pub use mod_dl::{fetch_mod_deps_parallel, prompt_for_mods};
+pub use mod_dl::fetch_mod_deps_parallel;
 mod map_dl;
 pub use map_dl::{fetch_map_deps_parallel, get_download_links_from_google_drive_by_filelist};
 
-lazy_static!{
+lazy_static! {
     #[derive(Debug)]
     pub static ref FACTORIO_VERSION: String = get_factorio_version().replace("Version: ","");
     static ref FACTORIO_EXECUTABLE_VERSION_LINE: Regex = Regex::new(r"Version: \d{1,2}\.\d{2,3}\.\d{2,3}").unwrap();
@@ -72,22 +63,21 @@ impl Map {
             name: name.to_string(),
             sha256: sha256.to_string(),
             download_link: download_link.to_string(),
-        }
+        };
     }
 }
-
 
 pub fn fetch_benchmark_deps_parallel(set: BenchmarkSet) {
     //TODO println!("Fetching benchmark dependencies for this benchmark set: {}", set.name);
     let mut handles = Vec::new();
-    fetch_mod_deps_parallel(set.mod_groups, &mut handles);
+    fetch_mod_deps_parallel(set.mods, &mut handles);
     fetch_map_deps_parallel(set.maps, &mut handles);
     for handle in handles {
         handle.join().expect("");
     }
 }
 
-pub fn generic_read_configuration_setting(file: PathBuf,key: &str) -> Option::<String> {
+pub fn generic_read_configuration_setting(file: PathBuf, key: &str) -> Option<String> {
     match Ini::load_from_file(file) {
         Ok(i) => return i.get_from(None::<String>, key).map(String::from),
         Err(_e) => return None,
@@ -95,7 +85,10 @@ pub fn generic_read_configuration_setting(file: PathBuf,key: &str) -> Option::<S
 }
 
 fn get_factorio_path() -> PathBuf {
-    let use_steam_dir: bool = fbh_read_configuration_setting("use-steam-version").unwrap_or_default().parse::<bool>().unwrap_or(true);
+    let use_steam_dir: bool = fbh_read_configuration_setting("use-steam-version")
+        .unwrap_or_default()
+        .parse::<bool>()
+        .unwrap_or(true);
     if use_steam_dir {
         let base_dir = BaseDirs::new().unwrap();
         let probable_steam_path = if cfg!(Windows) {
@@ -107,7 +100,8 @@ fn get_factorio_path() -> PathBuf {
                 .join("Factorio")
                 .join("")
         } else {
-            base_dir.home_dir()
+            base_dir
+                .home_dir()
                 .join(".local")
                 .join("share")
                 .join("Steam")
@@ -126,18 +120,19 @@ fn get_factorio_path() -> PathBuf {
                     eprintln!("Could not resolve path from config file to a valid directory of a Factorio install");
                     std::process::exit(1);
                 }
-            },
+            }
             Err(_e) => {
                 eprintln!("Could not resolve path from config file to a valid directory of a Factorio install");
                 std::process::exit(1);
-            },
+            }
         }
     }
 }
 
 pub fn get_executable_path() -> PathBuf {
     if cfg!(Windows) {
-        return get_factorio_path().join("bin")
+        return get_factorio_path()
+            .join("bin")
             .join("x64")
             .join("factorio.exe");
     } else {
@@ -149,14 +144,26 @@ pub fn get_executable_path() -> PathBuf {
 
 fn get_factorio_rw_directory() -> PathBuf {
     let ini_path = get_factorio_path().join("config-path.cfg");
-    let use_system_rw_directories: bool = generic_read_configuration_setting(ini_path, "use-system-read-write-directories").unwrap_or_default().parse::<bool>().unwrap_or(true);
+    let use_system_rw_directories: bool =
+        generic_read_configuration_setting(ini_path, "use-system-read-write-directories")
+            .unwrap_or_default()
+            .parse::<bool>()
+            .unwrap_or(true);
     if use_system_rw_directories {
         if cfg!(Windows) {
             // %appdata%\Roaming\
-            return BaseDirs::new().unwrap().data_dir().join("Factorio").join("");
+            return BaseDirs::new()
+                .unwrap()
+                .data_dir()
+                .join("Factorio")
+                .join("");
         } else {
             // ~/.factorio/
-            return BaseDirs::new().unwrap().home_dir().join(".factorio").join("");
+            return BaseDirs::new()
+                .unwrap()
+                .home_dir()
+                .join(".factorio")
+                .join("");
         }
     } else {
         return get_factorio_path();

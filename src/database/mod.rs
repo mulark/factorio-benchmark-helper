@@ -1,12 +1,12 @@
 extern crate rusqlite;
 
 use crate::util::fbh_results_database;
-use rusqlite::{Connection,NO_PARAMS};
+use rusqlite::{Connection, NO_PARAMS};
 #[macro_use]
 use rusqlite::params;
-use std::path::PathBuf;
-use std::fs::OpenOptions;
 use std::fs;
+use std::fs::OpenOptions;
+use std::path::PathBuf;
 mod create_sql;
 
 #[derive(Debug)]
@@ -18,7 +18,11 @@ pub struct BenchmarkResults {
 
 impl BenchmarkResults {
     pub fn new() -> BenchmarkResults {
-        BenchmarkResults {collection_data: String::new(), benchmark_data: Vec::new(), verbose_data: Vec::new()}
+        BenchmarkResults {
+            collection_data: String::new(),
+            benchmark_data: Vec::new(),
+            verbose_data: Vec::new(),
+        }
     }
 }
 
@@ -28,7 +32,8 @@ pub fn setup_database(create_new_db: bool) -> Connection {
         OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(fbh_results_database()).ok();
+            .open(fbh_results_database())
+            .ok();
     }
     let database = rusqlite::Connection::open(fbh_results_database()).unwrap();
     create_tables_in_db(&database);
@@ -54,7 +59,6 @@ pub fn put_data_to_db(data_upload: BenchmarkResults) {
     //let abc = String::from("INSERT INTO {}");
     //database.
     //database.execute_named(&abc, &[(":db_upload.table_columns", db_upload.data_rows)]);
-
 }
 
 fn create_tables_in_db(database: &Connection) {

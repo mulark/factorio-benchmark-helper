@@ -1,36 +1,31 @@
-use std::path::PathBuf;
+use crate::util::{fbh_read_configuration_setting, fbh_save_dl_dir, get_saves_directory, Map};
 use reqwest;
-use sha2::{Digest};
-use std::fs::{read,OpenOptions};
+use serde::Deserialize;
+use sha2::Digest;
+use std::fs::{read, OpenOptions};
+use std::path::PathBuf;
 use std::thread::JoinHandle;
-use serde::{Deserialize};
-use crate::util::{
-    fbh_save_dl_dir,
-    fbh_read_configuration_setting,
-    Map,
-    get_saves_directory,
-};
 
-lazy_static!{
+lazy_static! {
     static ref WHITELISTED_DOMAINS: Vec<String> = vec!(
         String::from("drive.google.com"),
         String::from("forums.factorio.com"),
     );
 }
 
-#[derive(Debug,Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct DriveFolderListing {
     files: Vec<DriveFile>,
 }
 
-#[derive(Debug,Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct DriveFile {
     name: String,
     #[serde(rename(deserialize = "webContentLink"))]
     download_link: String,
 }
 
-pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec::<JoinHandle<()>>) {
+pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec<JoinHandle<()>>) {
     for map in maps {
         handles.push(std::thread::spawn(move ||
             {
@@ -91,15 +86,16 @@ pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec::<JoinHandle<()
 fn download_shared_folder_file_listing_and_parse(drive_folder_url: &str) -> Option<DriveFolderListing> {
     if !drive_folder_url.contains("drive.google.com") || drive_folder_url.is_empty() {
         println!("You provided a link that isn't part of the drive.google.com domain");
-        return None
+        return None;
     }
     let client = reqwest::Client::new();
     let folder_id = drive_folder_url
         .replace("https://drive.google.com/drive/folders/", "")
-        .replace("https://drive.google.com/open?id=","")
+        .replace("https://drive.google.com/open?id=", "")
         .replace("/view?usp=sharing", "");
     if let Some(api_key) = fbh_read_configuration_setting("google-drive-api-key") {
-        let req_url = format!("{}{}{}{}{}{}{}{}{}",
+        let req_url = format!(
+            "{}{}{}{}{}{}{}{}{}",
             "https://www.googleapis.com/drive/v3/files?",
             "fields=files/name,files/webContentLink",
             "&q=%27",
@@ -113,7 +109,7 @@ fn download_shared_folder_file_listing_and_parse(drive_folder_url: &str) -> Opti
         if let Ok(mut resp) = client.get(&req_url).send() {
             if resp.status() == 200 {
                 if let Ok(parsed_file_list) = resp.json::<DriveFolderListing>() {
-                    return Some(parsed_file_list)
+                    return Some(parsed_file_list);
                 }
             } else if resp.status() == 404 {
                 println!("Failed to fetch google drive folder due to 404 error (maybe folder doesn't exist?)");
@@ -133,13 +129,13 @@ pub fn get_download_links_from_google_drive_by_filelist(filenames_to_find: Vec<P
         let mut links_to_dl = Vec::new();
         for drive_file in file_listing.files {
             for searched_name in &filenames_to_find {
-                if drive_file.name == searched_name.file_name().unwrap().to_string_lossy().to_string() {
+                if drive_file.name == searched_name.file_name().unwrap().to_string_lossy() {
                     links_to_dl.push((drive_file.name.clone(), drive_file.download_link.clone()));
                 }
             }
         }
         if !links_to_dl.is_empty() {
-            return Some(links_to_dl)
+            return Some(links_to_dl);
         }
     }
     None
@@ -165,7 +161,7 @@ fn download_save(save_name: &str, url: String) {
             eprintln!("Failed to download map: {}", save_name);
             eprintln!("Error details: {}", e);
             std::process::exit(1);
-        },
+        }
     };
     if resp.status().as_u16() == 200 {
         let mut file = OpenOptions::new()
@@ -179,7 +175,7 @@ fn download_save(save_name: &str, url: String) {
                 eprintln!("Failed to write file to {:?}!", file);
                 eprintln!("Error details: {}", e);
                 std::process::exit(1);
-            },
+            }
         }
     } else {
         eprintln!("Error: We recieved a bad response. Status code: {}", resp.status().as_u16());
