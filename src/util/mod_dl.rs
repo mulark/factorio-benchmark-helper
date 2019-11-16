@@ -218,7 +218,7 @@ pub fn prompt_for_mods() -> Vec<ModSet> {
                     //TODO
                     println!("__CURRENT__ is not yet implemented");
                 } else if !input.is_empty() {
-                    if let Some(m) = test_input_valid_for_mod(&mut input) {
+                    if let Some(m) = get_mod_info(&mut input) {
                         current_working_mod_set.mods.push(m);
                     }
                 }
@@ -235,7 +235,7 @@ pub fn prompt_for_mods() -> Vec<ModSet> {
     Vec::new()
 }
 
-fn test_input_valid_for_mod(mut input: &mut String) -> Option<Mod> {
+fn get_mod_info(mut input: &mut String) -> Option<Mod> {
     let mod_url = format!("{}{}", MOD_PORTAL_API_URL, input);
     if let Ok(mut resp) = reqwest::get(&mod_url) {
         if resp.status() == 200 {

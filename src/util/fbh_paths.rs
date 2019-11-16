@@ -27,6 +27,24 @@ pub fn initialize() -> Result<(),std::io::Error> {
     if !fbh_mod_use_dir().exists() {
         std::fs::create_dir(fbh_mod_use_dir())?;
     }
+    if !fbh_procedure_json_master_file().exists() {
+        if let Ok(mut resp) = reqwest::get("https://raw.githubusercontent.com/mulark/factorio-benchmark-helper/master/procedures.json") {
+            if resp.status() == 200 {
+                let mut file = OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .open(fbh_procedure_json_master_file())
+                    .unwrap();
+                match resp.copy_to(&mut file) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        println!("Failed to write file to {:?}!", file);
+                        panic!(e);
+                    },
+                }
+            }
+        }
+    }
     if !fbh_data_path().join("config.ini").exists() {
         fbh_init_config_file()?;
     }
@@ -36,7 +54,15 @@ pub fn initialize() -> Result<(),std::io::Error> {
     Ok(())
 }
 
-pub fn fbh_init_config_file() -> Result<(),std::io::Error> {
+pub fn fbh_procedure_json_local_file() -> PathBuf {
+    fbh_data_path().join("local.json")
+}
+
+pub fn fbh_procedure_json_master_file() -> PathBuf {
+    fbh_data_path().join("master.json")
+}
+
+fn fbh_init_config_file() -> Result<(),std::io::Error> {
     if let Ok(mut file) = OpenOptions::new()
         .write(true)
         .create(true)
@@ -48,9 +74,9 @@ pub fn fbh_init_config_file() -> Result<(),std::io::Error> {
             writeln!(file, "; The path to Factorio, if Steam version is not utilized or could not be found")?;
             writeln!(file, "; factorio_path=")?;
             writeln!(file)?;
-            writeln!(file, "; To procure a file listing of a google drive folder (even publically shared ones), this API key must be provided")?;
+            writeln!(file, "; To procure a file listing of a google drive folder (even publicly shared ones), this API key must be provided")?;
             writeln!(file, "; No API key is needed for normal operations, like downloading dependencies")?;
-            writeln!(file, "; google-drive-api-key=")?;
+            writeln!(file, "google-drive-api-key=")?;
     }
     Ok(())
 }

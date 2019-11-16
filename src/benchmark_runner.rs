@@ -34,13 +34,13 @@ pub struct BenchmarkParams {
     pub match_pattern: String,
     pub ticks: u32,
     pub runs: u32,
-    pub maps: Vec<PathBuf>,
+    pub map_paths: Vec<PathBuf>,
 }
 
 impl BenchmarkParams {
-    pub fn print_maps(&self) {
+    pub fn print_map_paths(&self) {
         let mut maps_found = 0;
-        for m in &self.maps {
+        for m in &self.map_paths {
             maps_found += 1;
             println!("{}: {:?}", maps_found, m.file_name().expect(""));
         }
@@ -53,20 +53,20 @@ impl Default for BenchmarkParams {
             match_pattern: "".to_string(),
             ticks: 0,
             runs: 0,
-            maps: Vec::new(),
+            map_paths: Vec::new(),
         }
     }
 }
 
 #[derive(Debug)]
-struct BenchmarkDuration {
+struct BenchmarkDurationOverhead {
     initialization_time: f64,
     per_tick_time: f64,
     per_run_overhead_time: f64,
     overall_time: f64,
 }
 
-impl Default for BenchmarkDuration {
+impl Default for BenchmarkDurationOverhead {
     fn default() -> Self {
         Self{
             initialization_time: 0.0,
@@ -97,8 +97,8 @@ fn parse_logline_time_to_f64(find_match_in_this_str: &str, regex: Regex) -> Opti
 
 fn validate_benchmark_params(params: &BenchmarkParams) {
     //don't care about pattern anymore
-    assert!(!params.maps.is_empty());
-    for map in &params.maps {
+    assert!(!params.map_paths.is_empty());
+    for map in &params.map_paths {
         assert!(&map.exists());
     }
     assert!(params.ticks > 0);
@@ -113,8 +113,8 @@ fn parse_stdout_for_errors(stdout: &str) {
     }
 }
 
-fn parse_stdout_for_benchmark_time_breakdown(bench_data_stdout: &str, ticks: u32, runs: u32) -> Option<BenchmarkDuration> {
-    let mut benchmark_time: BenchmarkDuration = BenchmarkDuration::default();
+fn parse_stdout_for_benchmark_time_breakdown(bench_data_stdout: &str, ticks: u32, runs: u32) -> Option<BenchmarkDurationOverhead> {
+    let mut benchmark_time: BenchmarkDurationOverhead = BenchmarkDurationOverhead::default();
     benchmark_time.initialization_time = parse_logline_time_to_f64(bench_data_stdout, INITIALIZATION_TIME_PATTERN.clone())?;
     benchmark_time.per_tick_time = parse_logline_time_to_f64(bench_data_stdout, PER_TICK_TIME_PATTERN.clone())?;
     benchmark_time.overall_time = parse_logline_time_to_f64(bench_data_stdout, TOTAL_TIME_PATTERN.clone())?;
@@ -132,8 +132,8 @@ fn parse_stdout_for_benchmark_time_breakdown(bench_data_stdout: &str, ticks: u32
 pub fn run_benchmarks_multiple_maps(params: &BenchmarkParams) {
     let executable_path = get_executable_path();
     validate_benchmark_params(params);
-    let mut map_durations: Vec<BenchmarkDuration> = Vec::new();
-    for map in &params.maps {
+    let mut map_durations: Vec<BenchmarkDurationOverhead> = Vec::new();
+    for map in &params.map_paths {
         println!("Checking errors for map: {}", map.to_string_lossy());
         let this_duration = run_benchmark_single_map(&map, NUMBER_ERROR_CHECKING_TICKS, NUMBER_ERROR_CHECKING_RUNS, &executable_path, false, None);
         if let Some(duration) = this_duration {
@@ -160,13 +160,13 @@ pub fn run_benchmarks_multiple_maps(params: &BenchmarkParams) {
         3, (expected_total_tick_time/expected_total_duration)*100.0,
         3, expected_total_benchmarking_run_overhead,
         3, expected_total_game_initialization_time);
-    for map in &params.maps {
+    for map in &params.map_paths {
         run_benchmark_single_map(&map, params.ticks, params.runs, &executable_path, true, Some(&params));
     }
     println!("Took {:.*}s to run benchmarks.", 3, now.elapsed().as_secs_f64());
 }
 
-fn run_benchmark_single_map(map: &PathBuf, ticks: u32, runs: u32, executable_path: &PathBuf, upload_result: bool, params: Option<&BenchmarkParams>) -> Option::<BenchmarkDuration> {
+fn run_benchmark_single_map(map: &PathBuf, ticks: u32, runs: u32, executable_path: &PathBuf, upload_result: bool, params: Option<&BenchmarkParams>) -> Option::<BenchmarkDurationOverhead> {
     //tick is implied in timings dump
     let verbose_timings = "wholeUpdate,gameUpdate,circuitNetworkUpdate,transportLinesUpdate,\
         fluidsUpdate,entityUpdate,mapGenerator,electricNetworkUpdate,logisticManagerUpdate,\

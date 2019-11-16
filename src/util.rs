@@ -11,7 +11,6 @@ use reqwest::Response;
 use std::thread::JoinHandle;
 pub use fbh_paths::{
     initialize,
-    fbh_init_config_file,
     fbh_data_path,
     fbh_config_file,
     fbh_cache_path,
@@ -19,10 +18,12 @@ pub use fbh_paths::{
     fbh_mod_use_dir,
     fbh_read_configuration_setting,
     fbh_save_dl_dir,
-    fbh_results_database
+    fbh_results_database,
+    fbh_procedure_json_local_file,
+    fbh_procedure_json_master_file,
 };
 
-pub use crate::procedure_file::{BenchmarkSet,ModSet};
+pub use crate::procedure_file::{BenchmarkSet,ModSet,create_procedure_interactively};
 use serde::{Deserialize, Serialize};
 use ini::Ini;
 use std::path::PathBuf;
@@ -31,7 +32,7 @@ use regex::Regex;
 mod mod_dl;
 pub use mod_dl::{fetch_mod_deps_parallel, prompt_for_mods};
 mod map_dl;
-pub use map_dl::{fetch_map_deps_parallel, get_download_link_from_google_drive_by_filename};
+pub use map_dl::{fetch_map_deps_parallel, get_download_links_from_google_drive_by_filelist};
 
 lazy_static!{
     #[derive(Debug)]
@@ -43,9 +44,9 @@ lazy_static!{
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Mod {
-    name: String,
-    version: String,
-    sha1: String,
+    pub name: String,
+    pub version: String,
+    pub sha1: String,
 }
 
 impl Mod {
@@ -60,28 +61,24 @@ impl Mod {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Map {
-    name: String,
-    sha256: String,
-    download_link: String,
-    ticks: u32,
-    runs: u32,
+    pub name: String,
+    pub sha256: String,
+    pub download_link: String,
 }
 
 impl Map {
-    pub fn new(name: &str, hash: &str, download_link: &str, ticks: u32, runs: u32) -> Map {
+    pub fn new(name: &str, sha256: &str, download_link: &str) -> Map {
         return Map {
             name: name.to_string(),
-            sha256: hash.to_string(),
+            sha256: sha256.to_string(),
             download_link: download_link.to_string(),
-            ticks,
-            runs,
         }
     }
 }
 
 
 pub fn fetch_benchmark_deps_parallel(set: BenchmarkSet) {
-    println!("Fetching benchmark dependencies for this benchmark set: {}", set.name);
+    //TODO println!("Fetching benchmark dependencies for this benchmark set: {}", set.name);
     let mut handles = Vec::new();
     fetch_mod_deps_parallel(set.mod_groups, &mut handles);
     fetch_map_deps_parallel(set.maps, &mut handles);
