@@ -104,10 +104,12 @@ fn download_shared_folder_file_listing_and_parse(drive_folder_url: &str) -> Opti
     }
     let client = reqwest::Client::new();
     let folder_id = drive_folder_url
-        .replace("https://drive.google.com/drive/folders/", "")
+        .replace("https://drive.google.com/drive", "")
         .replace("https://drive.google.com/open?id=", "")
         .replace("/view", "")
-        .replace("?usp=sharing", "");
+        .replace("?usp=sharing", "")
+        .replace("/u/0", "")
+        .replace("/folders/", "");
     println!("folder_id: {}", folder_id);
     if let Some(api_key) = fbh_read_configuration_setting("google-drive-api-key") {
         let req_url = format!(

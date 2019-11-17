@@ -238,8 +238,6 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
                 write_procedure_to_file(name, set, false, ProcedureFileKind::Master);
             }
         }
-
-
     }
     if matched_options.opt_present("list") {
         println!("Stub for --list");
@@ -300,10 +298,8 @@ fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
                         map.download_link = dl_link.clone();
                     }
                 }
-
             }
         }
-
     }
     assert!(user_args.new_benchmark_set_name.is_some());
     assert!(!benchmark_builder.maps.is_empty());
