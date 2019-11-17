@@ -17,6 +17,19 @@ pub struct TopLevel {
     pub meta_sets: BTreeMap<String, Vec<String>>,
 }
 
+impl TopLevel {
+    pub fn print_summary(self) {
+        println!("    Benchmark Sets:");
+        for sets in self.benchmark_sets.keys() {
+            println!("\t{}", sets);
+        }
+        println!("    Meta Sets:");
+        for sets in self.meta_sets.keys() {
+            println!("\t{}", sets);
+        }
+    }
+}
+
 impl Default for TopLevel {
     fn default() -> TopLevel {
         TopLevel {benchmark_sets: BTreeMap::new(), meta_sets: BTreeMap::new()}
@@ -69,6 +82,20 @@ fn load_top_level_from_file(file_type: ProcedureFileKind) -> Option<TopLevel> {
     None
 }
 
+pub fn print_all_procedures() {
+    let local = load_top_level_from_file(ProcedureFileKind::Local);
+    let master = load_top_level_from_file(ProcedureFileKind::Master);
+    if let Some(l) = local {
+        println!("Local: ");
+        l.print_summary()
+    }
+    if let Some(m) = master {
+        println!("Master:");
+        m.print_summary()
+    }
+
+}
+
 pub fn read_procedure_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<BenchmarkSet> {
     match load_top_level_from_file(file_kind) {
         Some(m) => {
@@ -96,8 +123,7 @@ pub fn write_procedure_to_file(name: &str, set: BenchmarkSet, force: bool, file_
         }
     }
     if top_level.benchmark_sets.contains_key(name) && !force {
-        eprintln!("Cannot write procedure to file, {:?} already exists!", name);
-        eprintln!("Maybe use --overwrite?");
+        eprintln!("Cannot write procedure to file, {:?} already exists! Maybe use --overwrite?", name);
         std::process::exit(1);
     } else {
         top_level.benchmark_sets.insert(name.to_string(), set);

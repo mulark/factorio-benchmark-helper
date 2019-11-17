@@ -17,12 +17,18 @@ pub use fbh_paths::{
 use reqwest::Response;
 use std::thread::JoinHandle;
 
-pub use crate::procedure_file::{create_procedure_interactively, BenchmarkSet, ProcedureFileKind, write_procedure_to_file, read_procedure_from_file};
+pub use crate::procedure_file::{create_procedure_interactively, BenchmarkSet, ProcedureFileKind, write_procedure_to_file, read_procedure_from_file, print_all_procedures};
 use directories::{BaseDirs, ProjectDirs};
 use ini::Ini;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+mod args;
+pub use args::{
+    add_options,
+    fetch_user_supplied_optargs,
+    UserSuppliedArgs,
+};
 mod mod_dl;
 pub use mod_dl::{Mod, fetch_mod_deps_parallel};
 mod map_dl;
