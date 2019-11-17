@@ -27,7 +27,6 @@ use std::path::PathBuf;
 
 mod benchmark_runner;
 mod database;
-mod help;
 mod procedure_file;
 use database::BenchmarkResults;
 mod util;
@@ -39,6 +38,7 @@ use util::{
     BenchmarkSet,
     Map,
     Mod,
+    read_procedure_from_file,
     write_procedure_to_file,
     ProcedureFileKind,
 };
@@ -52,6 +52,8 @@ struct UserSuppliedArgs {
     pattern: Option<String>,
     help_target: Option<String>,
     overwrite_existing_procedure: bool,
+    google_drive_folder: Option<String>,
+    commit_name: Option<String>,
 }
 
 impl Default for UserSuppliedArgs {
@@ -63,6 +65,8 @@ impl Default for UserSuppliedArgs {
             pattern: None,
             help_target: None,
             overwrite_existing_procedure: false,
+            google_drive_folder: None,
+            commit_name: None,
         }
     }
 }
@@ -82,6 +86,12 @@ fn fetch_user_supplied_optargs(options: &Matches, user_args: &mut UserSuppliedAr
     }
     if let Ok(help_target) = options.opt_get::<String>("help") {
         user_args.help_target = help_target;
+    }
+    if let Ok(drive_url) = options.opt_get::<String>("google-drive-folder") {
+        user_args.google_drive_folder = drive_url;
+    }
+    if let Ok(commit_name) = options.opt_get::<String>("commit") {
+        user_args.commit_name = commit_name;
     }
 }
 
@@ -136,13 +146,10 @@ fn main() {
 */
 
 fn add_options(options: &mut getopts::Options) {
-    options.opt(
+    options.optflag(
         "h",
         "help",
-        "Prints general help, or help about OPTION if supplied",
-        "OPTION",
-        getopts::HasArg::Maybe,
-        getopts::Occur::Optional,
+        "Prints this general help",
     );
     options.optflag("v", "version", "Print program version, then exits");
     options.optflag(
@@ -180,6 +187,20 @@ fn add_options(options: &mut getopts::Options) {
         getopts::HasArg::Yes,
         getopts::Occur::Optional,
     );
+    options.opt(
+        "",
+        "google-drive-folder",
+        "A link to a publically shared folder that contains the maps of the benchmark set you are creating.",
+        "LINK",
+        getopts::HasArg::Yes,
+        getopts::Occur::Optional,
+    );
+    options.optopt(
+        "",
+        "commit",
+        "Commits a benchmark to the master json file, staging it for upload to the git repository.",
+        "NAME",
+    );
 }
 
 fn parse_args(mut user_args: &mut UserSuppliedArgs) {
@@ -190,35 +211,41 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
 
     if args.len() == 1 {
         println!("No arguments supplied!");
-        println!("{}", options.short_usage("factorio_rust"));
+        println!("{}", options.short_usage("factorio-benchmark-helper"));
         std::process::exit(0);
     }
     let matched_options = match options.parse(&args[1..]) {
         Ok(m) => m,
         Err(e) => {
-            println!("{}", options.short_usage("factorio_rust"));
+            println!("{}", options.short_usage("factorio-benchmark-helper"));
             eprintln!("{}", e);
             std::process::exit(0);
         }
     };
+
     fetch_user_supplied_optargs(&matched_options, &mut user_args);
     if matched_options.opt_present("help") {
-        if let Some(help_arg) = &user_args.help_target {
-            help::print_help(&help_arg);
-        } else {
-            println!("{}", options.usage("factorio_rust"));
-        }
+        println!("{}", options.usage("factorio-benchmark-helper"));
         std::process::exit(0);
     }
     if matched_options.opt_present("version") {
         print_version();
         std::process::exit(0);
     }
+    if matched_options.opt_present("commit") {
+        if let Some(name) = &user_args.commit_name {
+            if let Some(set) =  read_procedure_from_file(name, ProcedureFileKind::Local) {
+                write_procedure_to_file(name, set, false, ProcedureFileKind::Master);
+            }
+        }
+
+
+    }
     if matched_options.opt_present("list") {
         println!("Stub for --list");
     }
     if matched_options.opt_present("create-benchmark-procedure") {
-        if matched_options.opt_present("overwrite-existing-procedure") {
+        if matched_options.opt_present("overwrite") {
             user_args.overwrite_existing_procedure = true;
         }
         if matched_options.opt_present("interactive") {
@@ -227,10 +254,11 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
             create_benchmark_procedure(&user_args);
         }
     }
+
 }
 
 fn print_version() {
-    println!("factorio_rust {}", FACTORIO_BENCHMARK_HELPER_VERSION);
+    println!("factorio-benchmark-helper {}", FACTORIO_BENCHMARK_HELPER_VERSION);
     std::process::exit(0);
 }
 
@@ -241,7 +269,7 @@ fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
         eprintln!("Supplied pattern found no maps!");
         std::process::exit(1);
     }
-    let path_to_sha256_tuple = bulk_sha256(current_map_paths);
+    let path_to_sha256_tuple = bulk_sha256(current_map_paths.clone());
     for (a_map, the_hash) in path_to_sha256_tuple {
         let map_struct = Map::new(a_map.file_name().unwrap().to_str().unwrap(), &the_hash, "");
         benchmark_builder.maps.push(map_struct);
@@ -260,11 +288,33 @@ fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
         }
         benchmark_builder.runs = *r;
     }
+    if let Some(url) = &user_args.google_drive_folder {
+        if !url.starts_with("https://drive.google.com/drive/") {
+            eprintln!("Google Drive URL didn't match expected format!");
+            std::process::exit(1);
+        }
+        if let Some(resp) = get_download_links_from_google_drive_by_filelist(current_map_paths, &user_args.google_drive_folder.as_ref().unwrap()) {
+            for (fname, dl_link) in resp {
+                for mut map in &mut benchmark_builder.maps {
+                    if map.name == fname {
+                        map.download_link = dl_link.clone();
+                    }
+                }
+
+            }
+        }
+
+    }
     assert!(user_args.new_benchmark_set_name.is_some());
     assert!(!benchmark_builder.maps.is_empty());
     assert!(benchmark_builder.runs > 0);
     assert!(benchmark_builder.ticks > 0);
-    write_procedure_to_file(&user_args.new_benchmark_set_name.as_ref().unwrap(), benchmark_builder, false, ProcedureFileKind::Local);
+    write_procedure_to_file(
+        &user_args.new_benchmark_set_name.as_ref().unwrap(),
+        benchmark_builder,
+        user_args.overwrite_existing_procedure,
+        ProcedureFileKind::Local
+    );
 
 }
 

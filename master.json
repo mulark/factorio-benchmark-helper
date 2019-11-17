@@ -1,0 +1,22 @@
+{
+  "benchmark_sets": {
+    "test-000046": {
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000046.dummy_load.zip",
+          "sha256": "8675deb562ce7b757ac788502577e7d14d7d8fcf30784eea50cf0d0c666c3de1",
+          "download_link": "https://drive.google.com/uc?id=123u4vYXvPHx-g5wjA7L9F0ZZWroMvfWS&export=download"
+        },
+        {
+          "name": "test-000046.dummy_load_recompressed.zip",
+          "sha256": "fcc1a464a8ee700ace694b5fcdcd05427cd71777c38c272e6f6c809152be1e78",
+          "download_link": "https://drive.google.com/uc?id=1ngAotN7rlAkr_e2_0o4qkcaisLnvPw6t&export=download"
+        }
+      ],
+      "ticks": 1000,
+      "runs": 10
+    }
+  },
+  "meta_sets": {}
+}

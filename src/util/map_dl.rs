@@ -56,7 +56,7 @@ pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec<JoinHandle<()>>
                             match std::fs::copy(&alt_filepath, &filepath) {
                                 Ok(_) => (),
                                 Err(e) => {
-                                    eprintln!("Error: We found a map inside the Factorio save directory, but failed to copy it to the cache.");
+                                    eprintln!("Error: We found a map inside the Factorio save directory, but failed to copy it to the cache folder.");
                                     eprintln!("Error details: {}", e);
                                     std::process::exit(1);
                                 },
@@ -99,14 +99,16 @@ pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec<JoinHandle<()>>
 
 fn download_shared_folder_file_listing_and_parse(drive_folder_url: &str) -> Option<DriveFolderListing> {
     if !drive_folder_url.contains("drive.google.com") || drive_folder_url.is_empty() {
-        println!("You provided a link that isn't part of the drive.google.com domain");
+        eprintln!("You provided a link that isn't part of the drive.google.com domain");
         return None;
     }
     let client = reqwest::Client::new();
     let folder_id = drive_folder_url
         .replace("https://drive.google.com/drive/folders/", "")
         .replace("https://drive.google.com/open?id=", "")
-        .replace("/view?usp=sharing", "");
+        .replace("/view", "")
+        .replace("?usp=sharing", "");
+    println!("folder_id: {}", folder_id);
     if let Some(api_key) = fbh_read_configuration_setting("google-drive-api-key") {
         let req_url = format!(
             "{}{}{}{}{}{}{}{}{}",
@@ -126,14 +128,15 @@ fn download_shared_folder_file_listing_and_parse(drive_folder_url: &str) -> Opti
                     return Some(parsed_file_list);
                 }
             } else if resp.status() == 404 {
-                println!("Failed to fetch google drive folder due to 404 error (maybe folder doesn't exist?)");
+                eprintln!("Failed to fetch google drive folder due to 404 error (maybe folder doesn't exist?)");
             } else if resp.status() == 403 {
-                println!("Failed to fetch google drive folder due to 403 forbidden! (Check your api key and that the folder is shared)");
-            }
+                eprintln!("Failed to fetch google drive folder due to 403 forbidden! (Check your api key and that the folder is shared)");
+            } else {
+                eprintln!("Failed to fetch google drive folder due to an unknown response: {}", resp.status());            }
         }
     } else {
-        println!("Couldn't get a google drive api key from your config.ini file.");
-        println!("Follow instructions at LINK to add this api key.");
+        eprintln!("Couldn't get a google drive api key from your config.ini file.");
+        eprintln!("Follow instructions at LINK to add this api key.");
     }
     None
 }

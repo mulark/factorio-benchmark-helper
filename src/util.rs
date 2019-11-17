@@ -17,7 +17,7 @@ pub use fbh_paths::{
 use reqwest::Response;
 use std::thread::JoinHandle;
 
-pub use crate::procedure_file::{create_procedure_interactively, BenchmarkSet, ProcedureFileKind, write_procedure_to_file};
+pub use crate::procedure_file::{create_procedure_interactively, BenchmarkSet, ProcedureFileKind, write_procedure_to_file, read_procedure_from_file};
 use directories::{BaseDirs, ProjectDirs};
 use ini::Ini;
 use regex::Regex;
@@ -166,7 +166,6 @@ pub fn bulk_sha256(paths: Vec<PathBuf>) -> Vec<(PathBuf, String)> {
     let mut path_sha256_tuple_holder = Vec::new();
     for path in paths {
         handle_holder.push(std::thread::spawn(move || {
-            println!("{:?}", path);
             let sha256 = sha256sum(path.clone());
             (path, sha256)
         }));

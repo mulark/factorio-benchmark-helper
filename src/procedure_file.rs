@@ -69,6 +69,18 @@ fn load_top_level_from_file(file_type: ProcedureFileKind) -> Option<TopLevel> {
     None
 }
 
+pub fn read_procedure_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<BenchmarkSet> {
+    match load_top_level_from_file(file_kind) {
+        Some(m) => {
+            if m.benchmark_sets.contains_key(name) {
+                return Some(m.benchmark_sets[name].clone())
+            }
+        }
+        _ => return None,
+    }
+    None
+}
+
 pub fn write_procedure_to_file(name: &str, set: BenchmarkSet, force: bool, file_kind: ProcedureFileKind) {
     let mut top_level;
     let file_path = match file_kind {
@@ -84,7 +96,8 @@ pub fn write_procedure_to_file(name: &str, set: BenchmarkSet, force: bool, file_
         }
     }
     if top_level.benchmark_sets.contains_key(name) && !force {
-        eprintln!("Cannot write procedure to file, the key {:?} already exists!", name);
+        eprintln!("Cannot write procedure to file, {:?} already exists!", name);
+        eprintln!("Maybe use --overwrite?");
         std::process::exit(1);
     } else {
         top_level.benchmark_sets.insert(name.to_string(), set);
