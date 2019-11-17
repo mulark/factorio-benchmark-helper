@@ -11,6 +11,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate sha2;
 
+use crate::util::bulk_sha256;
 use benchmark_runner::{run_benchmarks_multiple_maps, BenchmarkParams};
 use getopts::Matches;
 use reqwest::Response;
@@ -38,6 +39,8 @@ use util::{
     BenchmarkSet,
     Map,
     Mod,
+    write_procedure_to_file,
+    ProcedureFileKind,
 };
 
 const FACTORIO_BENCHMARK_HELPER_VERSION: &str = "0.0.1";
@@ -48,6 +51,7 @@ struct UserSuppliedArgs {
     runs: Option<u32>,
     pattern: Option<String>,
     help_target: Option<String>,
+    overwrite_existing_procedure: bool,
 }
 
 impl Default for UserSuppliedArgs {
@@ -58,6 +62,7 @@ impl Default for UserSuppliedArgs {
             runs: None,
             pattern: None,
             help_target: None,
+            overwrite_existing_procedure: false,
         }
     }
 }
@@ -88,8 +93,7 @@ fn main() {
             panic!(e);
         }
     }
-    util::create_procedure_interactively();
-    panic!();
+    //util::create_procedure_interactively();
     //database::put_data_to_db(BenchmarkResults::new())
     /*
         let m = Mod::new("creative-world-plus", "0.0.9", "e90da651af3eac017210b85dab5a09c15cf5aca8");
@@ -131,10 +135,7 @@ fn main() {
 --run-meta-benchmark META_NAME
 */
 
-fn parse_args(mut user_args: &mut UserSuppliedArgs) {
-    let args: Vec<String> = env::args().collect();
-    let mut options = getopts::Options::new();
-    options.parsing_style(getopts::ParsingStyle::FloatingFrees);
+fn add_options(options: &mut getopts::Options) {
     options.opt(
         "h",
         "help",
@@ -144,7 +145,13 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
         getopts::Occur::Optional,
     );
     options.optflag("v", "version", "Print program version, then exits");
+    options.optflag(
+        "",
+        "list",
+        "Lists available benchmark/meta sets",
+    );
     options.optflag("", "interactive", "Runs program interactively");
+    options.optflag("", "overwrite", "Overwrite existing procedure if NAME supplied already exists.");
     options.opt(
         "",
         "pattern",
@@ -173,6 +180,14 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
         getopts::HasArg::Yes,
         getopts::Occur::Optional,
     );
+}
+
+fn parse_args(mut user_args: &mut UserSuppliedArgs) {
+    let args: Vec<String> = env::args().collect();
+    let mut options = getopts::Options::new();
+    options.parsing_style(getopts::ParsingStyle::FloatingFrees);
+    add_options(&mut options);
+
     if args.len() == 1 {
         println!("No arguments supplied!");
         println!("{}", options.short_usage("factorio_rust"));
@@ -199,7 +214,13 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
         print_version();
         std::process::exit(0);
     }
+    if matched_options.opt_present("list") {
+        println!("Stub for --list");
+    }
     if matched_options.opt_present("create-benchmark-procedure") {
+        if matched_options.opt_present("overwrite-existing-procedure") {
+            user_args.overwrite_existing_procedure = true;
+        }
         if matched_options.opt_present("interactive") {
             create_benchmark_procedure_interactive(&mut user_args);
         } else {
@@ -215,17 +236,15 @@ fn print_version() {
 
 fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
     let mut benchmark_builder = BenchmarkSet::default();
-    if let Some(p) = &user_args.pattern {
-        let current_map_paths = get_map_paths_from_pattern(&p);
-        if current_map_paths.is_empty() {
-            eprintln!("Supplied pattern found no maps!");
-            std::process::exit(1);
-        }
-        let mut sha256;
-        for a_map in current_map_paths {
-            sha256 = format!("{:x}", sha2::Sha256::digest(&read(&a_map).unwrap()));
-            Map::new(a_map.file_name().unwrap().to_str().unwrap(), &sha256, "");
-        }
+    let current_map_paths = get_map_paths_from_pattern(&user_args.pattern.as_ref().unwrap_or(&"".to_string()));
+    if current_map_paths.is_empty() {
+        eprintln!("Supplied pattern found no maps!");
+        std::process::exit(1);
+    }
+    let path_to_sha256_tuple = bulk_sha256(current_map_paths);
+    for (a_map, the_hash) in path_to_sha256_tuple {
+        let map_struct = Map::new(a_map.file_name().unwrap().to_str().unwrap(), &the_hash, "");
+        benchmark_builder.maps.push(map_struct);
     }
     if let Some(t) = &user_args.ticks {
         if *t == 0 {
@@ -241,6 +260,12 @@ fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
         }
         benchmark_builder.runs = *r;
     }
+    assert!(user_args.new_benchmark_set_name.is_some());
+    assert!(!benchmark_builder.maps.is_empty());
+    assert!(benchmark_builder.runs > 0);
+    assert!(benchmark_builder.ticks > 0);
+    write_procedure_to_file(&user_args.new_benchmark_set_name.as_ref().unwrap(), benchmark_builder, false, ProcedureFileKind::Local);
+
 }
 
 fn create_benchmark_procedure_interactive(user_args: &mut UserSuppliedArgs) {

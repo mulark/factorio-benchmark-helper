@@ -1,6 +1,6 @@
-use crate::util::{fbh_read_configuration_setting, fbh_save_dl_dir, get_saves_directory, Map};
+use crate::util::{fbh_read_configuration_setting, fbh_save_dl_dir, get_saves_directory, sha256sum};
 use reqwest;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use std::fs::{read, OpenOptions};
 use std::path::PathBuf;
@@ -11,6 +11,24 @@ lazy_static! {
         String::from("drive.google.com"),
         String::from("forums.factorio.com"),
     );
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Map {
+    pub name: String,
+    pub sha256: String,
+    pub download_link: String,
+}
+
+impl Map {
+    pub fn new(name: &str, sha256: &str, download_link: &str) -> Map {
+        return Map {
+            name: name.to_string(),
+            sha256: sha256.to_string(),
+            download_link: download_link.to_string(),
+        };
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -49,9 +67,7 @@ pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec<JoinHandle<()>>
                             download_save(&map.name, map.download_link);
                         } else {
                             println!("Found an existing map, checking sha256sum.", );
-                            sha256 = format!("{:x}", sha2::Sha256::digest(
-                                &read(&fbh_save_dl_dir().join(&filepath)).unwrap()
-                            ));
+                            sha256 = sha256sum(fbh_save_dl_dir().join(&filepath));
                             if sha256 == map.sha256 && map.sha256 != "" {
                                 println!("Found cached map with correct hash, skipping download.");
                             } else {
@@ -68,9 +84,7 @@ pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec<JoinHandle<()>>
                     std::process::exit(1);
                 }
                 if filepath.is_file() {
-                    sha256 = format!("{:x}", sha2::Sha256::digest(
-                        &read(&fbh_save_dl_dir().join(&filepath)).unwrap()
-                    ));
+                    sha256 = sha256sum(fbh_save_dl_dir().join(&filepath));
                     if sha256 != map.sha256 {
                         eprintln!("We downloaded map {} but it doesn't match the sha256sum we have on file?", &map.name);
                         eprintln!("sha256 in config: {}", map.sha256);

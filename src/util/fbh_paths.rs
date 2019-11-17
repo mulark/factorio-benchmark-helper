@@ -54,12 +54,16 @@ pub fn initialize() -> Result<(), std::io::Error> {
     Ok(())
 }
 
-pub fn fbh_procedure_json_local_file() -> PathBuf {
-    fbh_data_path().join("local.json")
+pub fn fbh_procedure_directory() -> PathBuf {
+    fbh_data_path().join("procedures").join("")
 }
 
 pub fn fbh_procedure_json_master_file() -> PathBuf {
-    fbh_data_path().join("master.json")
+    fbh_procedure_directory().join("master.json")
+}
+
+pub fn fbh_procedure_json_local_file() -> PathBuf {
+    fbh_procedure_directory().join("local.json")
 }
 
 fn fbh_init_config_file() -> Result<(), std::io::Error> {

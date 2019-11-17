@@ -2,14 +2,25 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
-use crate::util::{fbh_procedure_json_local_file, fbh_procedure_json_master_file, Map, Mod};
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::fs::read;
+use crate::util::{fbh_procedure_json_local_file ,fbh_procedure_json_master_file, Map, Mod};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::fs::{File};
+use std::io::BufReader;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TopLevel {
     pub benchmark_sets: BTreeMap<String, BenchmarkSet>,
     pub meta_sets: BTreeMap<String, Vec<String>>,
+}
+
+impl Default for TopLevel {
+    fn default() -> TopLevel {
+        TopLevel {benchmark_sets: BTreeMap::new(), meta_sets: BTreeMap::new()}
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -31,20 +42,86 @@ impl Default for BenchmarkSet {
     }
 }
 
-pub fn load_top_level_json() -> Option<TopLevel> {
-    if fbh_procedure_json_local_file().exists() {
-        let mut something = Vec::new();
-        something.push("foo");
-        something;
+pub enum ProcedureFileKind {
+    Local,
+    Master,
+}
 
-    }
-    if fbh_procedure_json_master_file().exists() {
-
+fn load_top_level_from_file(file_type: ProcedureFileKind) -> Option<TopLevel> {
+    match file_type {
+        ProcedureFileKind::Local => {
+            if fbh_procedure_json_local_file().exists() {
+                let json: Option<TopLevel> = serde_json::from_slice(
+                    &read(fbh_procedure_json_local_file()).expect("")
+                ).unwrap_or_default();
+                return json;
+            }
+        }
+        ProcedureFileKind::Master => {
+            if fbh_procedure_json_master_file().exists() {
+                let json: Option<TopLevel> = serde_json::from_slice(
+                    &read(fbh_procedure_json_master_file()).expect("")
+                ).unwrap_or_default();
+                return json;
+            }
+        }
     }
     None
 }
 
+pub fn write_procedure_to_file(name: &str, set: BenchmarkSet, force: bool, file_kind: ProcedureFileKind) {
+    let mut top_level;
+    let file_path = match file_kind {
+        ProcedureFileKind::Local => fbh_procedure_json_local_file(),
+        ProcedureFileKind::Master => fbh_procedure_json_master_file(),
+    };
+    match load_top_level_from_file(file_kind) {
+        Some(m) => {
+            top_level = m;
+        }
+        _ => {
+            top_level = TopLevel::default();
+        }
+    }
+    if top_level.benchmark_sets.contains_key(name) && !force {
+        eprintln!("Cannot write procedure to file, the key {:?} already exists!", name);
+        std::process::exit(1);
+    } else {
+        top_level.benchmark_sets.insert(name.to_string(), set);
+        let j = serde_json::to_string_pretty(&top_level).unwrap();
+        std::fs::write(file_path, j).unwrap();
+    }
+}
+
+fn write_meta_to_file(name: &str, members: Vec<String>, force: bool, file_kind: ProcedureFileKind) {
+    let mut top_level;
+    let file_path = match file_kind {
+        ProcedureFileKind::Local => fbh_procedure_json_local_file(),
+        ProcedureFileKind::Master => fbh_procedure_json_master_file(),
+    };
+    match load_top_level_from_file(file_kind) {
+        Some(m) => top_level = m,
+        _ => top_level = TopLevel::default(),
+    }
+
+    if top_level.meta_sets.contains_key(name) && !force {
+        eprintln!("Cannot write procedure to master file, the key {:?} already exists!", name);
+        std::process::exit(1);
+    } else {
+        top_level.meta_sets.insert(name.to_string(), members);
+        let j = serde_json::to_string_pretty(&top_level).unwrap();
+        std::fs::write(file_path, j).unwrap();
+    }
+}
+
 pub fn create_procedure_interactively() {
+    let mut set = BenchmarkSet::default();
+    set.maps = vec!(Map::new("name","hash","dl"));
+    set.runs = 100;
+    set.ticks = 40;
+    write_procedure_to_file("test-000041-1", set, true, ProcedureFileKind::Local);
+    write_procedure_to_file("test-000041-2", BenchmarkSet::default(), true, ProcedureFileKind::Local);
+    write_meta_to_file("mulark.github.io maps", vec!("test-000041-1".to_string(), "test-000041-2".to_string()), true, ProcedureFileKind::Local);
     let single_map = Map::new("test-000046.dummy_load", "a hash", "a download link");
     let single_mod = Mod::new("this mod", "this hash", "this version");
     let mut another_mod = single_mod.clone();
@@ -72,4 +149,6 @@ pub fn create_procedure_interactively() {
     };
     let j = serde_json::to_string_pretty(&top_level).unwrap();
     println!("{}", j);
+    let reserialize: TopLevel = serde_json::from_str(&j).unwrap();
+    println!("{:?}", reserialize);
 }

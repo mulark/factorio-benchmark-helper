@@ -1,12 +1,29 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs::{read, File, OpenOptions};
 use std::io::stdin;
 use std::thread::JoinHandle;
 
-use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory, Mod};
+use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory};
 
 const MOD_PORTAL_URL: &str = "https://mods.factorio.com";
 const MOD_PORTAL_API_URL: &str = "https://mods.factorio.com/api/mods/";
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct Mod {
+    pub name: String,
+    pub version: String,
+    pub sha1: String,
+}
+
+impl Mod {
+    pub fn new(name: &str, version: &str, hash: &str) -> Mod {
+        Mod {
+            name: name.to_string(),
+            version: version.to_string(),
+            sha1: hash.to_string(),
+        }
+    }
+}
 
 #[derive(Debug, Deserialize, Clone)]
 struct ModMetaInfoHolder {
