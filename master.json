@@ -186,8 +186,8 @@
           "download_link": "https://drive.google.com/uc?id=1ngAotN7rlAkr_e2_0o4qkcaisLnvPw6t&export=download"
         }
       ],
-      "ticks": 1000,
-      "runs": 10
+      "ticks": 260,
+      "runs": 100
     }
   },
   "meta_sets": {}

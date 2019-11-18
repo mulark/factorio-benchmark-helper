@@ -102,10 +102,10 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
         std::process::exit(0);
     }
     if matched_options.opt_present("commit") {
-        if let Some(name) = &user_args.commit_to_master_name {
+        if let Some(name) = &user_args.benchmark_set_name {
             if let Some(set) =  read_procedure_from_file(name, ProcedureFileKind::Local) {
                 write_procedure_to_file(name, set, user_args.overwrite_existing_procedure, ProcedureFileKind::Master);
-                println!("Successfully commited {:?} to the master json file... Now submit a PR.", name);
+                println!("Successfully commited {:?} to the master json file... Now submit a PR :)", name);
                 std::process::exit(0);
             }
         }

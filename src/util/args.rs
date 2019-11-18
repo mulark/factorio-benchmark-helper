@@ -8,7 +8,6 @@ pub struct UserSuppliedArgs {
     pub help_target: Option<String>,
     pub overwrite_existing_procedure: bool,
     pub google_drive_folder: Option<String>,
-    pub commit_to_master_name: Option<String>,
 }
 
 
@@ -22,7 +21,6 @@ impl Default for UserSuppliedArgs {
             help_target: None,
             overwrite_existing_procedure: false,
             google_drive_folder: None,
-            commit_to_master_name: None,
         }
     }
 }
