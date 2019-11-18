@@ -116,9 +116,13 @@ pub fn fetch_user_supplied_optargs(options: &Matches, user_args: &mut UserSuppli
         user_args.google_drive_folder = drive_url;
     }
     if let Ok(commit_name) = options.opt_get::<String>("commit") {
-        user_args.benchmark_set_name = commit_name;
+        if user_args.benchmark_set_name.is_none() {
+            user_args.benchmark_set_name = commit_name;
+        }
     }
     if let Ok(bench_name) = options.opt_get::<String>("benchmark") {
-        user_args.benchmark_set_name = bench_name;
+        if user_args.benchmark_set_name.is_none() {
+            user_args.benchmark_set_name = bench_name;
+        }
     }
 }
