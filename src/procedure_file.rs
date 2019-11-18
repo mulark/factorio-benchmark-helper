@@ -2,14 +2,10 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
-use std::path::PathBuf;
-use std::sync::Mutex;
 use std::fs::read;
 use crate::util::{fbh_procedure_json_local_file ,fbh_procedure_json_master_file, Map, Mod};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::fs::{File};
-use std::io::BufReader;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TopLevel {
@@ -42,6 +38,27 @@ pub struct BenchmarkSet {
     pub maps: Vec<Map>,
     pub ticks: u32,
     pub runs: u32,
+}
+
+impl PartialEq for BenchmarkSet {
+    fn eq(&self, cmp: &Self) -> bool {
+        let mut ret = true;
+        if self.ticks == cmp.ticks && self.runs == cmp.runs && self.maps.len() == cmp.maps.len() && self.mods.len() == cmp.mods.len() {
+            for i in 0..self.maps.len() {
+                if self.maps[i] != cmp.maps[i] {
+                    ret = false;
+                }
+            }
+            for i in 0..self.mods.len() {
+                if self.mods[i] != cmp.mods[i] {
+                    ret = false;
+                }
+            }
+        } else {
+            ret = false;
+        }
+        ret
+    }
 }
 
 impl Default for BenchmarkSet {
@@ -93,7 +110,6 @@ pub fn print_all_procedures() {
         println!("Master:");
         m.print_summary()
     }
-
 }
 
 pub fn read_procedure_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<BenchmarkSet> {

@@ -11,39 +11,30 @@ extern crate serde;
 extern crate serde_json;
 extern crate sha2;
 
+use crate::benchmark_runner::run_benchmarks;
 use crate::util::bulk_sha256;
-use benchmark_runner::{run_benchmarks_multiple_maps, BenchmarkParams};
-use getopts::Matches;
-use reqwest::Response;
-use serde::{Deserialize, Serialize};
 use sha2::Digest;
-use std::collections::HashMap;
 use std::env;
 use std::fs::read;
-use std::fs::File;
-use std::io::{stdin, BufRead};
-use std::io::{BufReader, Read};
+use std::io::{stdin};
 use std::path::PathBuf;
 
 mod benchmark_runner;
-mod database;
 mod procedure_file;
-use database::BenchmarkResults;
 mod util;
 use util::{
     add_options,
     BenchmarkSet,
-    fbh_read_configuration_setting,
     fetch_user_supplied_optargs,
     get_download_links_from_google_drive_by_filelist,
     get_saves_directory,
     Map,
-    Mod,
     print_all_procedures,
     ProcedureFileKind,
     read_procedure_from_file,
     UserSuppliedArgs,
     write_procedure_to_file,
+    prompt_for_mods,
 };
 
 const FACTORIO_BENCHMARK_HELPER_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -59,24 +50,6 @@ fn main() {
     }
     let mut params = UserSuppliedArgs::default();
     parse_args(&mut params);
-    //util::create_procedure_interactively();
-    //database::put_data_to_db(BenchmarkResults::new())
-    /*
-        let m = Mod::new("creative-world-plus", "0.0.9", "e90da651af3eac017210b85dab5a09c15cf5aca8");
-        let m4 = Mod::new("creative-world-plus", "0.0.9", "e90da651af3eac017210b85dab5a09c15cf5aca8");
-        //let m2 = Mod::new("warptorio2_expansion", "0.0.35", "fc4e77dd57953bcf79570b38698bd5c2ea07af2b");
-        //let m3 = Mod::new("warptorio2_expansion", "", "");
-        let ms = ModSet {mods: vec!(m, m4)};
-        let ma = Map::new("foobar.zip", "89e807c58e547f99915e184baac32cbf3e22b7191110580430e48f90a25be657", "https://forums.factorio.com/download/file.php?id=54562", 100, 100);
-        let maps = vec!(ma);
-        let bs = BenchmarkSet {maps, mod_groups: vec!(ms), name: "test".to_string(), pattern: "".to_string()};
-        util::fetch_benchmark_deps_parallel(bs);
-    */
-
-    //procedure_file::set_json();
-
-    //get_map_paths_and_append_to_params(&mut params);
-    //run_benchmarks_multiple_maps(&params);
 }
 
 /*
@@ -147,6 +120,22 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
         } else {
             create_benchmark_procedure(&user_args);
         }
+        std::process::exit(0);
+    }
+    if matched_options.opt_present("benchmark") {
+        let local = read_procedure_from_file(&user_args.benchmark_set_name.as_ref().unwrap(), ProcedureFileKind::Local);
+        let master = read_procedure_from_file(&user_args.benchmark_set_name.as_ref().unwrap(), ProcedureFileKind::Master);
+        if local.is_some() || master.is_some() {
+            if local.is_some() && master.is_some() && local.clone().unwrap() != master.clone().unwrap() {
+                println!("WARN: procedure with name {:?} is present in both local and master, and they differ.", user_args.benchmark_set_name);
+                println!("WARN: procedure is being ran from master.json");
+            }
+            let procedure = if master.is_some() { master } else { local };
+            run_benchmarks(procedure.unwrap());
+        } else {
+            eprintln!("Could not find benchmark with the name: {:?}", user_args.benchmark_set_name);
+            std::process::exit(1);
+        }
     }
 }
 
@@ -177,7 +166,7 @@ fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
         }
         benchmark_builder.ticks = *t;
     } else {
-        eprintln!("Missing argument: --ticks");
+        eprintln!("Missing argument (u32): --ticks");
         std::process::exit(1);
     }
     if let Some(r) = &user_args.runs {
@@ -187,7 +176,7 @@ fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
         }
         benchmark_builder.runs = *r;
     } else {
-        eprintln!("Missing argument: --runs");
+        eprintln!("Missing argument (u32): --runs");
         std::process::exit(1);
     }
     if let Some(url) = &user_args.google_drive_folder {
@@ -212,12 +201,12 @@ fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
     } else {
         println!("WARN: no google drive folder specified, no download links will be populated.");
     }
-    assert!(user_args.new_benchmark_set_name.is_some());
+    assert!(user_args.benchmark_set_name.is_some());
     assert!(!benchmark_builder.maps.is_empty());
     assert!(benchmark_builder.runs > 0);
     assert!(benchmark_builder.ticks > 0);
     write_procedure_to_file(
-        &user_args.new_benchmark_set_name.as_ref().unwrap(),
+        &user_args.benchmark_set_name.as_ref().unwrap(),
         benchmark_builder,
         user_args.overwrite_existing_procedure,
         ProcedureFileKind::Local
@@ -254,12 +243,12 @@ fn create_benchmark_procedure_interactive(user_args: &mut UserSuppliedArgs) {
         );
     }
     println!("Benchmark with mods? [y/N]");
-    println!("If you do not specify any mod sets, vanilla is implied.");
+    println!("If you do not specify any mods, vanilla is implied.");
     let mut input = String::new();
     if let Ok(_m) = stdin().read_line(&mut input) {
         input.pop();
         if input.to_lowercase() == "y" {
-            //            benchmark_builder.mods = prompt_for_mods();
+                        benchmark_builder.mods = prompt_for_mods();
         }
     }
     /*input.clear();

@@ -1,8 +1,7 @@
 use crate::util::{fbh_read_configuration_setting, fbh_save_dl_dir, get_saves_directory, sha256sum};
 use reqwest;
 use serde::{Deserialize, Serialize};
-use sha2::Digest;
-use std::fs::{read, OpenOptions};
+use std::fs::{OpenOptions};
 use std::path::PathBuf;
 use std::thread::JoinHandle;
 
@@ -28,6 +27,15 @@ impl Map {
             sha256: sha256.to_string(),
             download_link: download_link.to_string(),
         };
+    }
+}
+
+impl PartialEq for Map {
+    fn eq(&self, cmp: &Self) -> bool {
+        if self.sha256 == cmp.sha256 {
+            return true;
+        }
+        false
     }
 }
 
@@ -66,10 +74,10 @@ pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec<JoinHandle<()>>
                             println!("Could not find map in cache or Factorio save directory, doing download.");
                             download_save(&map.name, map.download_link);
                         } else {
-                            println!("Found an existing map, checking sha256sum.", );
+                            println!("Found an existing map, checking sha256sum...", );
                             sha256 = sha256sum(fbh_save_dl_dir().join(&filepath));
                             if sha256 == map.sha256 && map.sha256 != "" {
-                                println!("Found cached map with correct hash, skipping download.");
+                                println!("Found correct sha256sum, skipping download.");
                             } else {
                                 println!("Found mismatched or empty sha256sum, performing download.");
                                 download_save(&map.name, map.download_link);

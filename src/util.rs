@@ -4,7 +4,15 @@ extern crate regex;
 extern crate reqwest;
 extern crate sha1;
 extern crate sha2;
+extern crate raw_cpuid;
 
+mod database;
+pub use database::{
+    setup_database,
+    upload_verbose,
+    upload_collection,
+    upload_benchmark,
+};
 mod fbh_paths;
 use sha2::Digest;
 use std::fs::File;
@@ -14,14 +22,18 @@ pub use fbh_paths::{
     fbh_procedure_json_local_file, fbh_procedure_json_master_file, fbh_read_configuration_setting,
     fbh_results_database, fbh_save_dl_dir, initialize,
 };
-use reqwest::Response;
-use std::thread::JoinHandle;
 
-pub use crate::procedure_file::{create_procedure_interactively, BenchmarkSet, ProcedureFileKind, write_procedure_to_file, read_procedure_from_file, print_all_procedures};
-use directories::{BaseDirs, ProjectDirs};
+pub use crate::procedure_file::{
+    create_procedure_interactively,
+    BenchmarkSet,
+    ProcedureFileKind,
+    write_procedure_to_file,
+    read_procedure_from_file,
+    print_all_procedures,
+};
+use directories::{BaseDirs};
 use ini::Ini;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 mod args;
 pub use args::{
@@ -30,16 +42,15 @@ pub use args::{
     UserSuppliedArgs,
 };
 mod mod_dl;
-pub use mod_dl::{Mod, fetch_mod_deps_parallel};
+pub use mod_dl::{Mod, fetch_mod_deps_parallel, prompt_for_mods};
 mod map_dl;
 pub use map_dl::{Map, fetch_map_deps_parallel, get_download_links_from_google_drive_by_filelist};
 
 lazy_static! {
     #[derive(Debug)]
-    pub static ref FACTORIO_VERSION: String = get_factorio_version().replace("Version: ","");
-    static ref FACTORIO_EXECUTABLE_VERSION_LINE: Regex = Regex::new(r"Version: \d{1,2}\.\d{2,3}\.\d{2,3}").unwrap();
+    pub static ref FACTORIO_INFO: (String, String, String) = get_factorio_info();
+    static ref FACTORIO_EXECUTABLE_VERSION_LINE: Regex = Regex::new(r"Version: \d{1,2}\.\d{2,3}\.\d{2,3}.*\n").unwrap();
     //If Factorio ever goes to 3/4/4 digits for their versioning, this will break.
-
 }
 
 pub fn fetch_benchmark_deps_parallel(set: BenchmarkSet) {
@@ -149,15 +160,35 @@ pub fn get_saves_directory() -> PathBuf {
     return get_factorio_rw_directory().join("saves").join("");
 }
 
-fn get_factorio_version() -> String {
+fn get_factorio_info() -> (String, String, String) {
     //Don't call this, use FACTORIO_VERSION instead
-    FACTORIO_EXECUTABLE_VERSION_LINE.captures(&String::from_utf8_lossy(&std::process::Command::new(get_executable_path())
+    let line = FACTORIO_EXECUTABLE_VERSION_LINE.captures(&String::from_utf8_lossy(&std::process::Command::new(get_executable_path())
         .arg("--version")
         .output()
         .expect("")
         .stdout))
     .unwrap()[0]
-    .to_string()
+    .to_string();
+    let split = line.split_whitespace();
+    let mut version = String::new();
+    let mut os = String::new();
+    let mut platform = String::new();
+
+    for (i,s) in split.enumerate() {
+        match i {
+            1 => (version = s.to_string()),
+            4 => ({
+                os = s.to_string();
+                os.pop();
+            }),
+            5 => ({
+                platform = s.to_string();
+                platform.pop();
+            }),
+            _ => (),
+        }
+    }
+    (version, os, platform)
 }
 
 pub fn sha256sum(file_path: PathBuf) -> String {
@@ -181,4 +212,12 @@ pub fn bulk_sha256(paths: Vec<PathBuf>) -> Vec<(PathBuf, String)> {
         path_sha256_tuple_holder.push(res_tuple);
     }
     path_sha256_tuple_holder
+}
+
+pub fn query_system_info() -> String {
+    let cpuid = raw_cpuid::CpuId::new();
+    cpuid.get_extended_function_info().as_ref().map_or_else(
+            || "n/a",
+            |extfuninfo| extfuninfo.processor_brand_string().unwrap_or("unreadable"),
+        ).trim().to_string()
 }

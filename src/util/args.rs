@@ -1,7 +1,7 @@
 use getopts::Matches;
 
 pub struct UserSuppliedArgs {
-    pub new_benchmark_set_name: Option<String>,
+    pub benchmark_set_name: Option<String>,
     pub ticks: Option<u32>,
     pub runs: Option<u32>,
     pub pattern: Option<String>,
@@ -15,7 +15,7 @@ pub struct UserSuppliedArgs {
 impl Default for UserSuppliedArgs {
     fn default() -> UserSuppliedArgs {
         UserSuppliedArgs {
-            new_benchmark_set_name: None,
+            benchmark_set_name: None,
             ticks: None,
             runs: None,
             pattern: None,
@@ -25,10 +25,6 @@ impl Default for UserSuppliedArgs {
             commit_to_master_name: None,
         }
     }
-}
-
-pub fn parse_args() {
-
 }
 
 pub fn add_options(options: &mut getopts::Options) {
@@ -88,12 +84,18 @@ pub fn add_options(options: &mut getopts::Options) {
         "Commits a benchmark to the master json file, staging it for upload to the git repository.",
         "NAME",
     );
+    options.optopt(
+        "",
+        "benchmark",
+        "Runs a benchmark from local/master json files",
+        "NAME",
+    );
 }
 
 
 pub fn fetch_user_supplied_optargs(options: &Matches, user_args: &mut UserSuppliedArgs) {
     if let Ok(new_set_name) = options.opt_get::<String>("create-benchmark-procedure") {
-        user_args.new_benchmark_set_name = new_set_name;
+        user_args.benchmark_set_name = new_set_name;
     }
     if let Ok(ticks) = options.opt_get::<u32>("ticks") {
         user_args.ticks = ticks;
@@ -114,6 +116,9 @@ pub fn fetch_user_supplied_optargs(options: &Matches, user_args: &mut UserSuppli
         user_args.google_drive_folder = drive_url;
     }
     if let Ok(commit_name) = options.opt_get::<String>("commit") {
-        user_args.commit_to_master_name = commit_name;
+        user_args.benchmark_set_name = commit_name;
+    }
+    if let Ok(bench_name) = options.opt_get::<String>("benchmark") {
+        user_args.benchmark_set_name = bench_name;
     }
 }

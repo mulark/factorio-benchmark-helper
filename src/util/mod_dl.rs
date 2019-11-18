@@ -8,7 +8,7 @@ use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory};
 const MOD_PORTAL_URL: &str = "https://mods.factorio.com";
 const MOD_PORTAL_API_URL: &str = "https://mods.factorio.com/api/mods/";
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Mod {
     pub name: String,
     pub version: String,
@@ -22,6 +22,15 @@ impl Mod {
             version: version.to_string(),
             sha1: hash.to_string(),
         }
+    }
+}
+
+impl PartialEq for Mod {
+    fn eq(&self, cmp: &Self) -> bool {
+        if self.sha1 == cmp.sha1 {
+            return true;
+        }
+        false
     }
 }
 
@@ -65,11 +74,6 @@ pub fn fetch_mod_deps_parallel(mods: Vec<Mod>, handles: &mut Vec<JoinHandle<()>>
             user_data = serde_json::from_reader(file).unwrap();
         }
     }
-    if user_data.token.is_empty() || user_data.username.is_empty() {
-        eprintln!("Couldn't read playerdata.json for service-username or service-token, downloading mods from the mod portal is not possible.");
-        std::process::exit(1);
-    }
-
     let mut unique_mods: Vec<Mod> = Vec::new();
     //Only attempt to download unique mods from the sets. Skip base mod as it's special for vanilla.
     for indiv_mod in mods {
@@ -77,6 +81,11 @@ pub fn fetch_mod_deps_parallel(mods: Vec<Mod>, handles: &mut Vec<JoinHandle<()>>
             unique_mods.push(indiv_mod);
         }
     }
+    if !unique_mods.is_empty() && (user_data.token.is_empty() || user_data.username.is_empty()) {
+        eprintln!("Couldn't read playerdata.json for service-username or service-token, downloading mods from the mod portal is not possible.");
+        std::process::exit(1);
+    }
+
     let mut filename;
     for mut m in unique_mods {
         filename = format!(
@@ -205,54 +214,34 @@ fn get_latest_mod_version(meta_info: ModMetaInfoHolder) -> String {
     }
     latest
 }
-/*
-pub fn prompt_for_mods() -> Vec<ModSet> {
+
+pub fn prompt_for_mods() -> Vec<Mod> {
     let mut input = String::new();
-    let mut mod_sets: Vec<ModSet> = Vec::new();
+    let mut mod_set: Vec<Mod> = Vec::new();
     println!("Creating a new set of mods.");
-    println!("Each mod set defines a list of mods that will be tested together.");
-    println!("Add a set of mods containing only vanilla? [y/N]");
-    if let Ok(_m) = stdin().read_line(&mut input) {
-        input.pop();
-        if input.to_lowercase() == "y" {
-            mod_sets.push(ModSet{mods: vec!(Mod::new("base", "", ""))});
-            println!("Added the vanilla mod set");
-        }
-    }
     input.clear();
-    let mut add_sets = true;
-    while add_sets {
-        println!("Starting a new ModSet");
-        let mut current_working_mod_set = Vec::new();
-        let mut set_finished = false;
-        while !set_finished {
-            println!("Enter the name of a mod to add to this set. Provide an empty response to stop adding mods to this set.");
-            println!("The special response \"__CURRENT__\" will attempt to fill this ModSet with the currently enabled mods from your mod-list.json file.");
-            if let Ok(_m) = stdin().read_line(&mut input) {
-                input.pop();
-                if input.is_empty() {
-                    set_finished = true;
-                }
-                if input == "__CURRENT__" {
-                    //TODO
-                    println!("__CURRENT__ is not yet implemented");
-                } else if !input.is_empty() {
-                    if let Some(m) = get_mod_info(&mut input) {
-                        current_working_mod_set.mods.push(m);
-                    }
-                }
-            }
-            input.clear();
-        }
-        println!("Add another set of mods? [y/N]");
+    let mut add_more = true;
+    while add_more {
+        println!("Enter the name of a mod to add to this set. Provide an empty response to stop adding mods to this set.");
+        println!("The special response \"__CURRENT__\" will attempt to fill this ModSet with the currently enabled mods from your mod-list.json file.");
         if let Ok(_m) = stdin().read_line(&mut input) {
-            if input.to_lowercase() != "y" {
-                add_sets = false;
+            input.pop();
+            if input.is_empty() {
+                add_more = false;
+            }
+            if input == "__CURRENT__" {
+                //TODO
+                println!("__CURRENT__ is not yet implemented");
+            } else if !input.is_empty() {
+                if let Some(m) = get_mod_info(&mut input) {
+                    mod_set.push(m);
+                    input.clear();
+                }
             }
         }
     }
-    Vec::new()
-}*/
+    mod_set
+}
 
 fn get_mod_info(mut input: &mut String) -> Option<Mod> {
     let mod_url = format!("{}{}", MOD_PORTAL_API_URL, input);
@@ -261,9 +250,9 @@ fn get_mod_info(mut input: &mut String) -> Option<Mod> {
             println!("Found mod: {}", input);
             input.clear();
             println!("Enter the version you wish to use. Leave empty to save the latest version.");
-            stdin().read_line(&mut input);
-            input.pop();
-
+            if let Ok(_m) = stdin().read_line(&mut input) {
+                input.pop();
+            }
             if let Ok(meta_info_response) = resp.json::<ModMetaInfoHolder>() {
                 if input.is_empty() {
                     println!("Getting latest version...");

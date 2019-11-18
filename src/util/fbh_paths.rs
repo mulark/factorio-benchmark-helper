@@ -3,10 +3,11 @@ Factorio Benchmark Helper Paths
 usually lives in ~/.local/share/factorio_benchmark_helper/
 */
 
-use crate::database::setup_database;
-use crate::util::generic_read_configuration_setting;
-use directories::{BaseDirs, ProjectDirs};
-use ini::Ini;
+use crate::util::{
+    generic_read_configuration_setting,
+    setup_database,
+};
+use directories::{ProjectDirs};
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
@@ -83,6 +84,7 @@ fn fbh_init_config_file() -> Result<(), std::io::Error> {
         writeln!(file, "; factorio_path=")?;
         writeln!(file)?;
         writeln!(file, "; To procure a file listing of a google drive folder (even publicly shared ones), this API key must be provided")?;
+        writeln!(file, "; See documentation for further instructions.")?;
         writeln!(
             file,
             "; No API key is needed for normal operations, like downloading dependencies"
@@ -94,11 +96,11 @@ fn fbh_init_config_file() -> Result<(), std::io::Error> {
 
 pub fn fbh_data_path() -> PathBuf {
     //Data paths for this program, not Factorio
-    if let Some(projdir) = ProjectDirs::from("", "", "factorio_benchmark_helper") {
+    if let Some(projdir) = ProjectDirs::from("", "", "factorio-benchmark-helper") {
         return projdir.data_dir().to_path_buf();
     } else {
         match std::env::current_dir() {
-            Ok(m) => return m.join("factorio_benchmark_helper"),
+            Ok(m) => return m.join("factorio-benchmark-helper"),
             Err(e) => panic!(e.to_string()),
         }
     }
