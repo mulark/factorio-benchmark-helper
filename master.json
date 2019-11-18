@@ -169,7 +169,7 @@
           "download_link": "https://drive.google.com/uc?id=1jUeRm9_GE1X2gfsBGopRx3B4YaAf0H1S&export=download"
         }
       ],
-      "ticks": 100000,
+      "ticks": 3000,
       "runs": 3
     },
     "test-000046": {
