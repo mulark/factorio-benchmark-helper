@@ -219,7 +219,7 @@ fn run_benchmarks_multiple_maps(set: BenchmarkSet) {
         3, expected_total_benchmarking_run_overhead,
         3, expected_total_game_initialization_time);
     println!(
-        "Expecting benchmarks to take: {}:{:02}:{:.3}",
+        "Expecting benchmarks to take: {}:{:02}:{:02.3}",
         hrs, mins, secs
     );
     let collection_id = upload_collection();
@@ -232,7 +232,7 @@ fn run_benchmarks_multiple_maps(set: BenchmarkSet) {
     let mins = ((total_duration % 3600.0) / 60.0) as u64;
     let secs = (total_duration % 3600.0) % 60.0;
     println!(
-        "Benchmarks took: {}:{:02}:{:.3}",
+        "Benchmarks took: {}:{:02}:{:02.3}",
         hrs, mins, secs
     );
 }
