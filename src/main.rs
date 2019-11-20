@@ -18,6 +18,7 @@ use std::env;
 use std::fs::read;
 use std::io::{stdin};
 use std::path::PathBuf;
+use std::process::exit;
 
 mod benchmark_runner;
 mod procedure_file;
@@ -80,7 +81,7 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
     if args.len() == 1 {
         println!("No arguments supplied!");
         println!("{}", options.usage(FACTORIO_BENCHMARK_HELPER_NAME));
-        std::process::exit(0);
+        exit(0);
     }
 
     let matched_options = match options.parse(&args[1..]) {
@@ -88,31 +89,31 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
         Err(e) => {
             println!("{}", options.usage(FACTORIO_BENCHMARK_HELPER_NAME));
             eprintln!("{}", e);
-            std::process::exit(0);
+            exit(0);
         }
     };
 
     fetch_user_supplied_optargs(&matched_options, &mut user_args);
     if matched_options.opt_present("help") {
         println!("{}", options.usage(FACTORIO_BENCHMARK_HELPER_NAME));
-        std::process::exit(0);
+        exit(0);
     }
     if matched_options.opt_present("version") {
         print_version();
-        std::process::exit(0);
+        exit(0);
     }
     if matched_options.opt_present("commit") {
         if let Some(name) = &user_args.benchmark_set_name {
             if let Some(set) =  read_procedure_from_file(name, ProcedureFileKind::Local) {
                 write_procedure_to_file(name, set, user_args.overwrite_existing_procedure, ProcedureFileKind::Master);
                 println!("Successfully commited {:?} to the master json file... Now submit a PR :)", name);
-                std::process::exit(0);
+                exit(0);
             }
         }
     }
     if matched_options.opt_present("list") {
         print_all_procedures();
-        std::process::exit(0);
+        exit(0);
     }
     if matched_options.opt_present("create-benchmark-procedure") {
         if matched_options.opt_present("interactive") {
@@ -120,7 +121,7 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
         } else {
             create_benchmark_procedure(&user_args);
         }
-        std::process::exit(0);
+        exit(0);
     }
     if matched_options.opt_present("benchmark") {
         let local = read_procedure_from_file(&user_args.benchmark_set_name.as_ref().unwrap(), ProcedureFileKind::Local);
@@ -131,17 +132,17 @@ fn parse_args(mut user_args: &mut UserSuppliedArgs) {
                 println!("WARN: procedure is being ran from master.json");
             }
             let procedure = if master.is_some() { master } else { local };
-            run_benchmarks(procedure.unwrap());
+            run_benchmarks(&user_args.benchmark_set_name.as_ref().unwrap(), procedure.unwrap());
         } else {
             eprintln!("Could not find benchmark with the name: {:?}", user_args.benchmark_set_name);
-            std::process::exit(1);
+            exit(1);
         }
     }
 }
 
 fn print_version() {
     println!("{} {}", FACTORIO_BENCHMARK_HELPER_NAME, FACTORIO_BENCHMARK_HELPER_VERSION);
-    std::process::exit(0);
+    exit(0);
 }
 
 fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
@@ -152,7 +153,7 @@ fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
     let current_map_paths = get_map_paths_from_pattern(&user_args.pattern.as_ref().unwrap_or(&"".to_string()));
     if current_map_paths.is_empty() {
         eprintln!("Supplied pattern found no maps!");
-        std::process::exit(1);
+        exit(1);
     }
     let path_to_sha256_tuple = bulk_sha256(current_map_paths.clone());
     for (a_map, the_hash) in path_to_sha256_tuple {
@@ -162,27 +163,27 @@ fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
     if let Some(t) = &user_args.ticks {
         if *t == 0 {
             eprintln!("Ticks aren't allowed to be 0!");
-            std::process::exit(1);
+            exit(1);
         }
         benchmark_builder.ticks = *t;
     } else {
         eprintln!("Missing argument (u32): --ticks");
-        std::process::exit(1);
+        exit(1);
     }
     if let Some(r) = &user_args.runs {
         if *r == 0 {
             eprintln!("Runs aren't allowed to be 0!");
-            std::process::exit(1);
+            exit(1);
         }
         benchmark_builder.runs = *r;
     } else {
         eprintln!("Missing argument (u32): --runs");
-        std::process::exit(1);
+        exit(1);
     }
     if let Some(url) = &user_args.google_drive_folder {
         if !url.starts_with("https://drive.google.com/drive/") {
             eprintln!("Google Drive URL didn't match expected format!");
-            std::process::exit(1);
+            exit(1);
         }
         if let Some(resp) = get_download_links_from_google_drive_by_filelist(current_map_paths, &user_args.google_drive_folder.as_ref().unwrap()) {
             for (fname, dl_link) in resp {

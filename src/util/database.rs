@@ -1,5 +1,6 @@
 extern crate rusqlite;
 
+use std::process::exit;
 use std::sync::Mutex;
 use crate::benchmark_runner::SimpleBenchmarkParam;
 use crate::util::query_system_info;
@@ -16,6 +17,7 @@ pub const CREATE_SQL: &str = "
 BEGIN TRANSACTION;
 CREATE TABLE IF NOT EXISTS `collection` (
   `collection_id` integer NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `name` varchar(100)  NOT NULL
 ,  `factorio_version` varchar(10)  NOT NULL
 ,  `platform` varchar(100)  NOT NULL
 ,  `executable_type` varchar(100)  NOT NULL
@@ -97,14 +99,15 @@ pub fn setup_database(create_new_db: bool) -> Connection {
     return database;
 }
 
-pub fn upload_collection() -> u32 {
+pub fn upload_collection(set_name: &str) -> u32 {
     let database = DB_CONNECTION.lock().unwrap();
     let collection_header =
         "factorio_version,platform,executable_type,cpuid";
     let factorio_info = FACTORIO_INFO.clone();
     let sys_info = query_system_info();
     let collection_data = format!(
-        "{:?},{:?},{:?},{:?}",
+        "{:?},{:?},{:?},{:?},{:?}",
+        set_name,
         factorio_info.0,
         factorio_info.1,
         factorio_info.2,
@@ -117,7 +120,7 @@ pub fn upload_collection() -> u32 {
             eprintln!("Failed to insert collection data to database!");
             eprintln!("{}",e);
             eprintln!("{:?}", collection_data);
-            std::process::exit(1);
+            exit(1);
         }
     }
     database.last_insert_rowid() as u32
@@ -142,14 +145,14 @@ pub fn upload_benchmark(params: SimpleBenchmarkParam) -> u32 {
             eprintln!("Failed to insert benchmark data to database!");
             eprintln!("{}",e);
             database.execute_batch(&format!("DELETE FROM collection where collection_id = {:?}:", params.collection_id)).expect("");
-            std::process::exit(1);
+            exit(1);
         }
     }
     database.last_insert_rowid() as u32
 }
 
 pub fn upload_verbose(verbose_data: Vec<String>, benchmark_id: u32, collection_id: u32) {
-    let mut database = DB_CONNECTION.lock().unwrap();
+    let database = DB_CONNECTION.lock().unwrap();
     let verbose_header =
         "tick_number,wholeUpdate,gameUpdate,circuitNetworkUpdate,transportLinesUpdate,\
          fluidsUpdate,entityUpdate,mapGenerator,electricNetworkUpdate,logisticManagerUpdate,\
@@ -167,7 +170,7 @@ pub fn upload_verbose(verbose_data: Vec<String>, benchmark_id: u32, collection_i
             eprintln!("{}",e);
             database.execute_batch(&format!("DELETE FROM benchmark where benchmark_id = {}", benchmark_id)).expect("");
             database.execute_batch(&format!("DELETE FROM collection where collection_id = {}:", collection_id)).expect("");
-            std::process::exit(1);
+            exit(1);
          }
     }
 }
@@ -178,7 +181,7 @@ fn create_tables_in_db(database: &Connection) {
         Err(e) => {
             eprintln!("Couldn't create sql in db?");
             eprintln!("{}", e);
-            std::process::exit(1);
+            exit(1);
         }
     }
 }

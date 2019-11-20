@@ -7,6 +7,7 @@ extern crate sha2;
 extern crate raw_cpuid;
 
 mod database;
+use std::process::exit;
 pub use database::{
     setup_database,
     upload_verbose,
@@ -24,7 +25,6 @@ pub use fbh_paths::{
 };
 
 pub use crate::procedure_file::{
-    create_procedure_interactively,
     BenchmarkSet,
     ProcedureFileKind,
     write_procedure_to_file,
@@ -104,12 +104,12 @@ fn get_factorio_path() -> PathBuf {
                     return path;
                 } else {
                     eprintln!("Could not resolve path from config file to a valid directory of a Factorio install");
-                    std::process::exit(1);
+                    exit(1);
                 }
             }
             Err(_e) => {
                 eprintln!("Could not resolve path from config file to a valid directory of a Factorio install");
-                std::process::exit(1);
+                exit(1);
             }
         }
     }

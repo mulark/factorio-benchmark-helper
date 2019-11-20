@@ -1,3 +1,4 @@
+use std::process::exit;
 use serde::{Deserialize, Serialize};
 use std::fs::{read, File, OpenOptions};
 use std::io::stdin;
@@ -83,7 +84,7 @@ pub fn fetch_mod_deps_parallel(mods: Vec<Mod>, handles: &mut Vec<JoinHandle<()>>
     }
     if !unique_mods.is_empty() && (user_data.token.is_empty() || user_data.username.is_empty()) {
         eprintln!("Couldn't read playerdata.json for service-username or service-token, downloading mods from the mod portal is not possible.");
-        std::process::exit(1);
+        exit(1);
     }
 
     let mut filename;
@@ -166,7 +167,7 @@ pub fn fetch_mod_deps_parallel(mods: Vec<Mod>, handles: &mut Vec<JoinHandle<()>>
                 println!("Could not download mods from the mod portal.");
                 println!("Either player-data.json doesn't exist or it's missing your service-username/service-token.");
                 println!("The easiest fix would be to run the game and login.");
-                std::process::exit(1);
+                exit(1);
             }
         } else {
             println!("Mod already up to date: {}", m.name);
@@ -193,13 +194,13 @@ fn convert_version_str_to_vec(version: &str) -> Vec<u32> {
                 vers.push(u);
             } else {
                 eprintln!("Error: Could not parse version string {} as a valid version!", version);
-                std::process::exit(1);
+                exit(1);
             }
         }
     }
     if vers.len() > 3 {
         eprintln!("Error: Mod versions can have at most 3 sections!", );
-        std::process::exit(1);
+        exit(1);
     }
     if vers.is_empty() {
         vers = vec![0, 0, 0];

@@ -2,6 +2,7 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
+use std::process::exit;
 use std::fs::read;
 use crate::util::{fbh_procedure_json_local_file ,fbh_procedure_json_master_file, Map, Mod};
 use serde::{Deserialize, Serialize};
@@ -140,7 +141,7 @@ pub fn write_procedure_to_file(name: &str, set: BenchmarkSet, force: bool, file_
     }
     if top_level.benchmark_sets.contains_key(name) && !force {
         eprintln!("Cannot write procedure to file, {:?} already exists! Maybe use --overwrite?", name);
-        std::process::exit(1);
+        exit(1);
     } else {
         top_level.benchmark_sets.insert(name.to_string(), set);
         let j = serde_json::to_string_pretty(&top_level).unwrap();
@@ -161,7 +162,7 @@ fn write_meta_to_file(name: &str, members: Vec<String>, force: bool, file_kind: 
 
     if top_level.meta_sets.contains_key(name) && !force {
         eprintln!("Cannot write procedure to master file, the key {:?} already exists!", name);
-        std::process::exit(1);
+        exit(1);
     } else {
         top_level.meta_sets.insert(name.to_string(), members);
         let j = serde_json::to_string_pretty(&top_level).unwrap();
@@ -169,7 +170,7 @@ fn write_meta_to_file(name: &str, members: Vec<String>, force: bool, file_kind: 
     }
 }
 
-pub fn create_procedure_interactively() {
+pub fn create_procedure_example() {
     let mut set = BenchmarkSet::default();
     set.maps = vec!(Map::new("name","hash","dl"));
     set.runs = 100;

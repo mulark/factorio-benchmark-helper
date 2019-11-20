@@ -1,3 +1,4 @@
+use std::process::exit;
 use crate::util::{fbh_read_configuration_setting, fbh_save_dl_dir, get_saves_directory, sha256sum};
 use reqwest;
 use serde::{Deserialize, Serialize};
@@ -66,7 +67,7 @@ pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec<JoinHandle<()>>
                                 Err(e) => {
                                     eprintln!("Error: We found a map inside the Factorio save directory, but failed to copy it to the cache folder.");
                                     eprintln!("Error details: {}", e);
-                                    std::process::exit(1);
+                                    exit(1);
                                 },
                             }
                         }
@@ -85,11 +86,11 @@ pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec<JoinHandle<()>>
                         }
                     } else {
                         eprintln!("Expected map \"{}\" to have a .zip extension!", &map.name);
-                        std::process::exit(1);
+                        exit(1);
                     }
                 } else {
                     eprintln!("Expected map \"{}\" to have a .zip extension!", &map.name);
-                    std::process::exit(1);
+                    exit(1);
                 }
                 if filepath.is_file() {
                     sha256 = sha256sum(fbh_save_dl_dir().join(&filepath));
@@ -171,7 +172,7 @@ pub fn get_download_links_from_google_drive_by_filelist(filenames_to_find: Vec<P
 fn download_save(save_name: &str, url: String) {
     if url.is_empty() {
         eprintln!("Could not download map {} because a download link was not defined!", save_name);
-        std::process::exit(1);
+        exit(1);
     }
     let mut whitelisted_url = false;
     for domain in WHITELISTED_DOMAINS.clone() {
@@ -187,7 +188,7 @@ fn download_save(save_name: &str, url: String) {
         Err(e) => {
             eprintln!("Failed to download map: {}", save_name);
             eprintln!("Error details: {}", e);
-            std::process::exit(1);
+            exit(1);
         }
     };
     if resp.status().as_u16() == 200 {
@@ -201,11 +202,11 @@ fn download_save(save_name: &str, url: String) {
             Err(e) => {
                 eprintln!("Failed to write file to {:?}!", file);
                 eprintln!("Error details: {}", e);
-                std::process::exit(1);
+                exit(1);
             }
         }
     } else {
         eprintln!("Error: We recieved a bad response. Status code: {}", resp.status().as_u16());
-        std::process::exit(1);
+        exit(1);
     }
 }

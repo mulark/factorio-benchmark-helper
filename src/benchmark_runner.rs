@@ -1,5 +1,6 @@
 extern crate regex;
 
+use std::process::exit;
 use std::fs::read;
 use crate::util::{
     get_executable_path,
@@ -105,14 +106,14 @@ fn parse_stdout_for_errors(stdout: &str) {
     if let Some(e) = GENERIC_FACTORIO_ERROR_MATCH_PATTERN.captures(stdout) {
         eprintln!("An error was detected when trying to run Factorio");
         eprintln!("{:?}", &e[0]);
-        std::process::exit(1);
+        exit(1);
     }
 }
 
-pub fn run_benchmarks(procedure: BenchmarkSet) {
-    validate_benchmark_set(&procedure);
-    fetch_benchmark_deps_parallel(procedure.clone());
-    for map in &procedure.maps {
+pub fn run_benchmarks(set_name: &str, benchmark_set: BenchmarkSet) {
+    validate_benchmark_set(&benchmark_set);
+    fetch_benchmark_deps_parallel(benchmark_set.clone());
+    for map in &benchmark_set.maps {
         let fpath = fbh_save_dl_dir().join(map.name.clone());
         assert!(fpath.exists());
     }
@@ -124,24 +125,24 @@ pub fn run_benchmarks(procedure: BenchmarkSet) {
                     Ok(_) => (),
                     _ => {
                         eprintln!("Failed to remove a mod from the staging directory!");
-                        std::process::exit(1);
+                        exit(1);
                     }
                 }
             }
         }
     }
-    for indiv_mod in &procedure.mods {
+    for indiv_mod in &benchmark_set.mods {
         let fpath = fbh_mod_dl_dir().join(indiv_mod.name.clone());
         assert!(fpath.exists());
         match std::fs::write(fbh_mod_use_dir().join(indiv_mod.name.clone()), &read(&fpath).unwrap()) {
             Ok(_m) => (),
             _ => {
                 eprintln!("Failed to copy mod {:?} for use.", indiv_mod.name);
-                std::process::exit(1);
+                exit(1);
             }
         }
     }
-    run_benchmarks_multiple_maps(procedure);
+    run_benchmarks_multiple_maps(set_name, benchmark_set);
 }
 
 fn parse_stdout_for_benchmark_time_breakdown(bench_data_stdout: &str, ticks: u32, runs: u32) -> Option<BenchmarkDurationOverhead> {
@@ -164,7 +165,7 @@ fn parse_stdout_for_benchmark_time_breakdown(bench_data_stdout: &str, ticks: u32
     return Some(benchmark_time);
 }
 
-fn run_benchmarks_multiple_maps(set: BenchmarkSet) {
+fn run_benchmarks_multiple_maps(set_name: &str, set: BenchmarkSet) {
     let mut map_durations: Vec<BenchmarkDurationOverhead> = Vec::new();
     let mut initial_error_check_params = Vec::new();
     let mut set_params = Vec::new();
@@ -222,7 +223,7 @@ fn run_benchmarks_multiple_maps(set: BenchmarkSet) {
         "Expecting benchmarks to take: {}:{:02}:{:02.3}",
         hrs, mins, secs
     );
-    let collection_id = upload_collection();
+    let collection_id = upload_collection(set_name);
     for mut param in set_params {
         param.collection_id = collection_id;
         run_benchmark_single_map(param, collection_id);
