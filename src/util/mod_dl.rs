@@ -1,3 +1,4 @@
+use crate::util::trim_newline;
 use std::process::exit;
 use serde::{Deserialize, Serialize};
 use std::fs::{read, File, OpenOptions};
@@ -226,7 +227,7 @@ pub fn prompt_for_mods() -> Vec<Mod> {
         println!("Enter the name of a mod to add to this set. Provide an empty response to stop adding mods to this set.");
         println!("The special response \"__CURRENT__\" will attempt to fill this ModSet with the currently enabled mods from your mod-list.json file.");
         if let Ok(_m) = stdin().read_line(&mut input) {
-            input.pop();
+            trim_newline(&mut input);
             if input.is_empty() {
                 add_more = false;
             }
@@ -252,7 +253,7 @@ fn get_mod_info(mut input: &mut String) -> Option<Mod> {
             input.clear();
             println!("Enter the version you wish to use. Leave empty to save the latest version.");
             if let Ok(_m) = stdin().read_line(&mut input) {
-                input.pop();
+                trim_newline(&mut input);
             }
             if let Ok(meta_info_response) = resp.json::<ModMetaInfoHolder>() {
                 if input.is_empty() {

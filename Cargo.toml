@@ -21,6 +21,7 @@ reqwest = "0.9.22"
 sha1 = "*"
 sha2 = "*"
 raw-cpuid = "*"
+clap = "*"
 
 [profile.release]
 debug = 1

@@ -2,6 +2,7 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
+use std::collections::HashMap;
 use std::process::exit;
 use std::fs::read;
 use crate::util::{fbh_procedure_json_local_file ,fbh_procedure_json_master_file, Map, Mod};
@@ -149,7 +150,19 @@ pub fn write_procedure_to_file(name: &str, set: BenchmarkSet, force: bool, file_
     }
 }
 
-fn write_meta_to_file(name: &str, members: Vec<String>, force: bool, file_kind: ProcedureFileKind) {
+pub fn read_meta_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<Vec<String>> {
+    match load_top_level_from_file(file_kind) {
+        Some(m) => {
+            if m.meta_sets.contains_key(name) {
+                return Some(m.meta_sets[name].clone())
+            }
+        }
+        _ => return None,
+    }
+    None
+}
+
+pub fn write_meta_to_file(name: &str, members: Vec<String>, force: bool, file_kind: ProcedureFileKind) {
     let mut top_level;
     let file_path = match file_kind {
         ProcedureFileKind::Local => fbh_procedure_json_local_file(),
@@ -167,6 +180,32 @@ fn write_meta_to_file(name: &str, members: Vec<String>, force: bool, file_kind: 
         top_level.meta_sets.insert(name.to_string(), members);
         let j = serde_json::to_string_pretty(&top_level).unwrap();
         std::fs::write(file_path, j).unwrap();
+    }
+}
+/*
+Returns a hashmap of all benchmark sets contained within this meta set, as well as the meta sets
+found recursively within meta sets contained within this meta set.
+*/
+pub fn get_sets_from_meta(meta_set_key: String, source: ProcedureFileKind) -> HashMap<String, BenchmarkSet> {
+    let mut current_sets = HashMap::new();
+    let mut seen_keys = Vec::new();
+    let top_level = load_top_level_from_file(source).unwrap();
+    walk_meta_recursive(meta_set_key, &top_level, &mut seen_keys, &mut current_sets);
+    current_sets
+}
+
+fn walk_meta_recursive(key: String, top_level: &TopLevel, seen_keys: &mut Vec<String>, current_benchmark_sets: &mut HashMap<String, BenchmarkSet>) {
+    println!("processing {:?}", key);
+    if !seen_keys.contains(&key) {
+        if top_level.meta_sets.contains_key(&key) {
+            seen_keys.push(key.clone());
+            for k in &top_level.meta_sets[&key] {
+                walk_meta_recursive(k.to_string(), &top_level, seen_keys, current_benchmark_sets);
+            }
+        }
+        if top_level.benchmark_sets.contains_key(&key) {
+            current_benchmark_sets.insert(key.clone(), top_level.benchmark_sets[&key].to_owned());
+        }
     }
 }
 

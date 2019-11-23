@@ -1,7 +1,8 @@
 #![allow(clippy::needless_return)]
 #[macro_use]
 extern crate lazy_static;
-
+#[macro_use]
+extern crate clap;
 extern crate directories;
 extern crate getopts;
 extern crate glob;
@@ -11,6 +12,11 @@ extern crate serde;
 extern crate serde_json;
 extern crate sha2;
 
+use crate::util::trim_newline;
+use std::collections::HashMap;
+use crate::procedure_file::read_meta_from_file;
+use crate::procedure_file::write_meta_to_file;
+use crate::procedure_file::get_sets_from_meta;
 use crate::benchmark_runner::run_benchmarks;
 use crate::util::bulk_sha256;
 use sha2::Digest;
@@ -24,16 +30,16 @@ mod benchmark_runner;
 mod procedure_file;
 mod util;
 use util::{
-    add_options,
+    add_options_and_parse,
     BenchmarkSet,
-    fetch_user_supplied_optargs,
     get_download_links_from_google_drive_by_filelist,
     get_saves_directory,
     Map,
     print_all_procedures,
     ProcedureFileKind,
+    prompt_until_allowed_vals,
     read_procedure_from_file,
-    UserSuppliedArgs,
+    UserArgs,
     write_procedure_to_file,
     prompt_for_mods,
 };
@@ -49,95 +55,169 @@ fn main() {
             panic!(e);
         }
     }
-    let mut params = UserSuppliedArgs::default();
-    parse_args(&mut params);
+    let mut parsed_args = add_options_and_parse();
+    execute_from_args(&mut parsed_args);
+    //println!("{:?}", stuff);
+//    let mut params = UserArgs::default();
+//    parse_args(&mut params);
 }
+// Precedence of exclusive execution
+// commit
+// run benchmark
+// run metabenchmark
+// create benchmark
+// create metabenchmark
 
-/*
---list
-    LISTING OF PROCEDURES
-    LISTING OF METASETS
---create-benchmark-procedure Option<PROCEDURE_NAME>
-    --interactive
-        RUNS
-        TICKS
-        PATTERN
-        MOD_LISTS
-        UPLOAD_DIRECTORY
-    or
-    --runs RUNS
-    --ticks TICKS
-    --pattern PATTERN
-    --upload GOOGLE_DRIVE_URL
---run-benchmark PROCEDURE
-
---run-meta-benchmark META_NAME
-*/
-
-fn parse_args(mut user_args: &mut UserSuppliedArgs) {
-    let args: Vec<String> = env::args().collect();
-    let mut options = getopts::Options::new();
-    add_options(&mut options);
-    if args.len() == 1 {
-        println!("No arguments supplied!");
-        println!("{}", options.usage(FACTORIO_BENCHMARK_HELPER_NAME));
-        exit(0);
+fn execute_from_args(args: &mut UserArgs) {
+    if args.interactive {
+        println!("Selected interactive mode.");
     }
-
-    let matched_options = match options.parse(&args[1..]) {
-        Ok(m) => m,
-        Err(e) => {
-            println!("{}", options.usage(FACTORIO_BENCHMARK_HELPER_NAME));
-            eprintln!("{}", e);
-            exit(0);
-        }
-    };
-
-    fetch_user_supplied_optargs(&matched_options, &mut user_args);
-    if matched_options.opt_present("help") {
-        println!("{}", options.usage(FACTORIO_BENCHMARK_HELPER_NAME));
-        exit(0);
-    }
-    if matched_options.opt_present("version") {
-        print_version();
-        exit(0);
-    }
-    if matched_options.opt_present("commit") {
-        if let Some(name) = &user_args.benchmark_set_name {
-            if let Some(set) =  read_procedure_from_file(name, ProcedureFileKind::Local) {
-                write_procedure_to_file(name, set, user_args.overwrite_existing_procedure, ProcedureFileKind::Master);
-                println!("Successfully commited {:?} to the master json file... Now submit a PR :)", name);
-                exit(0);
+    if !(args.commit_flag || args.run_benchmark || args.run_meta || args.create_benchmark || args.create_meta) {
+        if args.interactive {
+            println!("Choose a suitable course of action.");
+            println!("1: Commit a benchmark or meta set to the master.json file from the local.json file.");
+            println!("2: Run a benchmark.");
+            println!("3: Run a metabenchmark.");
+            println!("4: Create a new benchmark.");
+            println!("5: Create a new metabenchmark.");
+            match prompt_until_allowed_vals(&[1,2,3,4,5]) {
+                Some(m) => match m {
+                    1 => {
+                        args.commit_flag = true;
+                    },
+                    2 => {
+                        args.run_benchmark = true;
+                    },
+                    3 => {
+                        args.run_meta = true
+                    },
+                    4 => {
+                        args.create_benchmark = true
+                    },
+                    5 => {
+                        args.create_meta = true
+                    },
+                    _ => {
+                        eprintln!("Unrecognized option {:?}", m);
+                        exit(1);
+                    }
+                },
+                _ => {
+                    eprintln!("You supplied something that isn't an interger.");
+                    exit(1);
+                }
             }
-        }
-    }
-    if matched_options.opt_present("list") {
-        print_all_procedures();
-        exit(0);
-    }
-    if matched_options.opt_present("create-benchmark-procedure") {
-        if matched_options.opt_present("interactive") {
-            create_benchmark_procedure_interactive(&mut user_args);
         } else {
-            create_benchmark_procedure(&user_args);
-        }
-        exit(0);
-    }
-    if matched_options.opt_present("benchmark") {
-        let local = read_procedure_from_file(&user_args.benchmark_set_name.as_ref().unwrap(), ProcedureFileKind::Local);
-        let master = read_procedure_from_file(&user_args.benchmark_set_name.as_ref().unwrap(), ProcedureFileKind::Master);
-        if local.is_some() || master.is_some() {
-            if local.is_some() && master.is_some() && local.clone().unwrap() != master.clone().unwrap() {
-                println!("WARN: procedure with name {:?} is present in both local and master, and they differ.", user_args.benchmark_set_name);
-                println!("WARN: procedure is being ran from master.json");
-            }
-            let procedure = if master.is_some() { master } else { local };
-            run_benchmarks(&user_args.benchmark_set_name.as_ref().unwrap(), procedure.unwrap());
-        } else {
-            eprintln!("Could not find benchmark with the name: {:?}", user_args.benchmark_set_name);
+            eprintln!("You provided args but didn't pick commit/benchmark/meta/create-benchmark/create-meta or interactive!");
+            eprintln!("Without one of these options there's nothing to do.");
             exit(1);
         }
     }
+    if args.commit_flag {
+        perform_commit(&args);
+    } else if args.run_benchmark {
+        let benchmark_sets_to_run = convert_args_to_benchmark_run(&args);
+        run_benchmarks_multiple(benchmark_sets_to_run);
+    } else if args.run_meta {
+        let benchmark_sets_to_run = convert_args_to_meta_benchmark_runs(&args);
+        run_benchmarks_multiple(benchmark_sets_to_run);
+    } else if args.create_benchmark {
+        create_benchmark_from_args(&args);
+    } else if args.create_meta {
+        create_meta_from_args(&args);
+    }
+
+}
+
+fn run_benchmarks_multiple(multiple_sets: HashMap<String, BenchmarkSet>) {
+
+}
+
+fn perform_commit(args: &UserArgs) {
+    if args.commit_name.is_none() && args.commit_type.is_none() {
+        if args.interactive {
+            println!("Performing a commit to the master.json file.");
+        }
+    }
+    let commit_name = args.commit_name.as_ref().unwrap();
+    let commit_type = args.commit_type.as_ref().unwrap();
+    if commit_type == "benchmark" {
+        if let Some(benchmark_set) =  read_procedure_from_file(commit_name, ProcedureFileKind::Local) {
+            write_procedure_to_file(commit_name, benchmark_set, args.overwrite, ProcedureFileKind::Master);
+            println!("Successfully committed {:?} to the master json file... Now submit a PR :)", commit_name);
+            exit(0);
+        } else {
+            eprintln!("Failed to commit benchmark set {:?} to master, because that benchmark set doesn't exist in local!", commit_name);
+            exit(1);
+        }
+    } else if commit_type == "meta" {
+        if let Some(meta_set) = read_meta_from_file(commit_name, ProcedureFileKind::Local) {
+            write_meta_to_file(commit_name, meta_set, args.overwrite, ProcedureFileKind::Master);
+        } else {
+            eprintln!("Failed to commit meta set {:?} to master, because that meta set doesn't exist in local!", commit_name);
+            exit(1);
+        }
+    } else {
+        eprintln!("Commit type is neither meta or benchmark! We should have caught this eariler.");
+        exit(1);
+    }
+}
+
+fn convert_args_to_benchmark_run(args: &UserArgs) -> HashMap<String, BenchmarkSet> {
+    let name = args.benchmark_set_name.as_ref().unwrap().to_owned();
+    let mut hash_map = HashMap::default();
+    let local = read_procedure_from_file(&name, ProcedureFileKind::Local);
+    let master = read_procedure_from_file(&name, ProcedureFileKind::Master);
+    if local.is_some() || master.is_some() {
+        if local.is_some() && master.is_some() && local.clone().unwrap() != master.clone().unwrap() {
+            println!("WARN: benchmark with name {:?} is present in both local and master, and they differ.", &name);
+            println!("WARN: benchmark is being ran from master.json");
+        }
+        let procedure = if master.is_some() { master } else { local };
+        hash_map.insert(name, procedure.unwrap());
+        return hash_map;
+    } else {
+        eprintln!("Could not find benchmark with the name: {:?}", &name);
+        exit(1);
+    }
+}
+
+fn convert_args_to_meta_benchmark_runs(args: &UserArgs) -> HashMap<String, BenchmarkSet> {
+    let name = args.meta_set_name.as_ref().unwrap().to_owned();
+    let local = read_meta_from_file(&name, ProcedureFileKind::Local);
+    let master = read_meta_from_file(&name, ProcedureFileKind::Master);
+    if local.is_some() || master.is_some() {
+        if local.is_some() && master.is_some() && local.clone().unwrap() != master.clone().unwrap() {
+            println!("WARN: meta set with name {:?} is present in both local and master, and they differ.", &name);
+            println!("WARN: meta set is being ran from master.json");
+        }
+        let meta_src_file = if master.is_some() { ProcedureFileKind::Master } else { ProcedureFileKind::Local };
+        get_sets_from_meta(name, meta_src_file)
+    } else {
+        eprintln!("Could not find meta benchmark set with the name: {:?}", &name);
+        exit(1);
+    }
+}
+
+fn create_benchmark_from_args(args: &UserArgs) {
+
+}
+
+fn create_meta_from_args(args: &UserArgs) {
+
+}
+
+fn parse_args(mut user_args: &mut UserArgs) {
+    let args: Vec<String> = env::args().collect();
+    let mut options = getopts::Options::new();
+    //add_options(&mut options);
+
+    create_benchmark_procedure_interactive(&mut user_args);
+
+    create_benchmark_procedure(&user_args);
+
+    exit(0);
+
 }
 
 fn print_version() {
@@ -145,7 +225,7 @@ fn print_version() {
     exit(0);
 }
 
-fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
+fn create_benchmark_procedure(user_args: &UserArgs) {
     let mut benchmark_builder = BenchmarkSet::default();
     if user_args.pattern.is_none() {
         println!("WARN: Did not explictly set a --pattern, selecting all maps.");
@@ -209,13 +289,13 @@ fn create_benchmark_procedure(user_args: &UserSuppliedArgs) {
     write_procedure_to_file(
         &user_args.benchmark_set_name.as_ref().unwrap(),
         benchmark_builder,
-        user_args.overwrite_existing_procedure,
+        user_args.overwrite,
         ProcedureFileKind::Local
     );
 
 }
 
-fn create_benchmark_procedure_interactive(user_args: &mut UserSuppliedArgs) {
+fn create_benchmark_procedure_interactive(user_args: &mut UserArgs) {
     let mut benchmark_builder = BenchmarkSet::default();
     let mut pattern = String::new();
     if let Some(p) = &user_args.pattern {
@@ -247,7 +327,7 @@ fn create_benchmark_procedure_interactive(user_args: &mut UserSuppliedArgs) {
     println!("If you do not specify any mods, vanilla is implied.");
     let mut input = String::new();
     if let Ok(_m) = stdin().read_line(&mut input) {
-        input.pop();
+        trim_newline(&mut input);
         if input.to_lowercase() == "y" {
                         benchmark_builder.mods = prompt_for_mods();
         }
@@ -255,7 +335,7 @@ fn create_benchmark_procedure_interactive(user_args: &mut UserSuppliedArgs) {
     /*input.clear();
     println!("Upload maps to google drive? NOT IMPLEMENTED");
     if let Ok(_m) = std::io::stdin().read_line(&mut input) {
-        input.pop();
+        trim_newline(&mut input);;
         if input.to_lowercase() == "y" {
 
         }
@@ -263,7 +343,7 @@ fn create_benchmark_procedure_interactive(user_args: &mut UserSuppliedArgs) {
     input.clear();
     println!("Provide Google Drive shared folder url that contains maps or hit enter to skip.");
     if let Ok(_m) = stdin().read_line(&mut input) {
-        input.pop();
+        trim_newline(&mut input);
         if input.contains("drive.google.com") {
             get_download_links_from_google_drive_by_filelist(current_map_paths, &input);
         } else {
@@ -287,7 +367,7 @@ fn prompt_dl_link_indiv_map(name: &str) -> String {
     let mut input = String::new();
     println!("Enter a valid download link for the save {}", name);
     if let Ok(_m) = stdin().read_line(&mut input) {
-        input.pop();
+        trim_newline(&mut input);
         if let Ok(some_resp) = reqwest::get(&input) {
             if some_resp.status().is_success() {
                 return input;
@@ -302,7 +382,7 @@ fn retrieve_pattern(pattern: &mut String) {
     if pattern.is_empty() {
         println!("Enter a map pattern to match...");
         if let Ok(_m) = stdin().read_line(&mut input) {
-            input.pop();
+            trim_newline(&mut input);
         }
     } else {
         println!("Pattern supplied from args... {}", pattern);
@@ -317,7 +397,7 @@ fn retrieve_pattern(pattern: &mut String) {
         }
         println!("Hit enter to confirm or enter a new pattern.");
         if let Ok(_m) = stdin().read_line(&mut input) {
-            input.pop();
+            trim_newline(&mut input);
             if input.is_empty() {
                 cont = false;
             } else {
@@ -332,7 +412,7 @@ fn prompt_for_nonzero_u32(numeric_field: &mut u32, default: u32) {
     let mut input = "".to_string();
     while *numeric_field == 0 {
         stdin().read_line(&mut input).expect("");
-        input.pop();
+        trim_newline(&mut input);
         if input.is_empty() {
             *numeric_field = default;
         } else {
@@ -354,7 +434,7 @@ fn get_map_paths_from_pattern(initial_input: &str) -> Vec<PathBuf> {
     let save_directory = get_saves_directory();
     assert!(save_directory.is_dir());
     if input == "*" {
-        input.pop();
+        trim_newline(&mut input);
     }
     if !input.is_empty() {
         input.push_str("*");

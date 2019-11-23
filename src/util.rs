@@ -7,6 +7,10 @@ extern crate sha2;
 extern crate raw_cpuid;
 
 mod database;
+use std::io::stdout;
+use core::fmt::Debug;
+use std::io::stdin;
+use core::str::FromStr;
 use std::process::exit;
 pub use database::{
     setup_database,
@@ -27,8 +31,10 @@ pub use fbh_paths::{
 pub use crate::procedure_file::{
     BenchmarkSet,
     ProcedureFileKind,
-    write_procedure_to_file,
     read_procedure_from_file,
+    write_procedure_to_file,
+    read_meta_from_file,
+    write_meta_to_file,
     print_all_procedures,
 };
 use directories::{BaseDirs};
@@ -37,14 +43,15 @@ use regex::Regex;
 use std::path::PathBuf;
 mod args;
 pub use args::{
-    add_options,
-    fetch_user_supplied_optargs,
-    UserSuppliedArgs,
+    add_options_and_parse,
+    UserArgs,
 };
 mod mod_dl;
 pub use mod_dl::{Mod, fetch_mod_deps_parallel, prompt_for_mods};
 mod map_dl;
 pub use map_dl::{Map, fetch_map_deps_parallel, get_download_links_from_google_drive_by_filelist};
+
+static mut TIMES_CALLED: u32 = 0;
 
 lazy_static! {
     #[derive(Debug)]
@@ -199,6 +206,10 @@ pub fn sha256sum(file_path: PathBuf) -> String {
 }
 
 pub fn bulk_sha256(paths: Vec<PathBuf>) -> Vec<(PathBuf, String)> {
+    unsafe {{
+        TIMES_CALLED += 1;
+        println!("Called sha256bulk {} times", TIMES_CALLED);
+    }}
     let mut handle_holder = Vec::new();
     let mut path_sha256_tuple_holder = Vec::new();
     for path in paths {
@@ -220,4 +231,31 @@ pub fn query_system_info() -> String {
             || "n/a",
             |extfuninfo| extfuninfo.processor_brand_string().unwrap_or("unreadable"),
         ).trim().to_string()
+}
+
+pub fn trim_newline(s: &mut String) {
+    if s.ends_with('\n') {
+        s.pop();
+        if s.ends_with('\r') {
+            s.pop();
+        }
+    }
+}
+
+pub fn prompt_until_allowed_vals<T: FromStr + PartialEq + Debug>(allowed_vals: &[T]) -> Option<T> {
+    let mut cont = true;
+    let mut input = String::new();
+    while cont {
+        input.clear();
+        stdin().read_line(&mut input);
+        trim_newline(&mut input);
+        if let Ok(m) = input.parse::<T>() {
+            if allowed_vals.contains(&m) {
+                cont = false;
+                return Some(m);
+            }
+        }
+        eprintln!("Unrecognized option {:?}.\tAllowed values are: {:?}", input, allowed_vals);
+    }
+    None
 }
