@@ -66,7 +66,7 @@ impl User {
 }
 
 //TODO make work with same mod but 2 diff versions
-pub fn fetch_mod_deps_parallel(mods: &Vec<Mod>, handles: &mut Vec<JoinHandle<()>>) {
+pub fn fetch_mod_deps_parallel(mods: &[Mod], handles: &mut Vec<JoinHandle<()>>) {
     let mut user_data: User = User::default();
     let maybe_playerdata_json_file = get_factorio_rw_directory().join("player-data.json");
     if maybe_playerdata_json_file.is_file() {

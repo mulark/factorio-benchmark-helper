@@ -76,7 +76,7 @@ pub fn setup_database(create_new_db: bool) -> Connection {
     }
     let database = rusqlite::Connection::open(fbh_results_database()).unwrap();
     create_tables_in_db(&database);
-    return database;
+    database
 }
 
 pub fn upload_collection(set_name: &str) -> u32 {

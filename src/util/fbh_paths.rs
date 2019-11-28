@@ -106,17 +106,17 @@ fn fbh_init_config_file() -> Result<(), std::io::Error> {
 pub fn fbh_data_path() -> PathBuf {
     //Data paths for this program, not Factorio
     if let Some(projdir) = ProjectDirs::from("", "", "factorio-benchmark-helper") {
-        return projdir.data_dir().to_path_buf();
+        projdir.data_dir().to_path_buf()
     } else {
         match std::env::current_dir() {
-            Ok(m) => return m.join("factorio-benchmark-helper"),
+            Ok(m) => m.join("factorio-benchmark-helper"),
             Err(e) => panic!(e.to_string()),
         }
     }
 }
 
 pub fn fbh_results_database() -> PathBuf {
-    return fbh_data_path().join("results.db");
+    fbh_data_path().join("results.db")
 }
 
 pub fn fbh_cache_path() -> PathBuf {
@@ -140,8 +140,7 @@ pub fn fbh_known_hash_file() -> PathBuf {
 }
 
 pub fn fbh_config_file() -> PathBuf {
-    let f = fbh_data_path().join("config.ini");
-    return f;
+    fbh_data_path().join("config.ini")
 }
 
 pub fn fbh_read_configuration_setting(key: &str) -> Option<String> {

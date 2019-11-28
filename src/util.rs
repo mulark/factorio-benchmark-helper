@@ -71,7 +71,9 @@ pub fn download_benchmark_deps_parallel(set: &BenchmarkSet) {
 
 pub fn generic_read_configuration_setting(file: PathBuf, key: &str) -> Option<String> {
     match Ini::load_from_file(file) {
-        Ok(i) => return i.get_from(None::<String>, key).map(String::from),
+        Ok(i) => {
+            return i.get_from::<String>(None, key).map(String::from);
+        },
         Err(_e) => return None,
     };
 }
@@ -83,7 +85,7 @@ fn get_factorio_path() -> PathBuf {
         .unwrap_or(true);
     if use_steam_dir {
         let base_dir = BaseDirs::new().unwrap();
-        let probable_steam_path = if cfg!(Windows) {
+        if cfg!(Windows) {
             PathBuf::from("C:")
                 .join("Program Files (x86)")
                 .join("Steam")
@@ -101,13 +103,12 @@ fn get_factorio_path() -> PathBuf {
                 .join("common")
                 .join("Factorio")
                 .join("")
-        };
-        return probable_steam_path;
+        }
     } else {
         match fbh_read_configuration_setting("factorio-path").unwrap_or_default().parse::<PathBuf>() {
             Ok(path) => {
                 if path.is_dir() {
-                    return path;
+                    path
                 } else {
                     eprintln!("Could not resolve path from config file to a valid directory of a Factorio install");
                     exit(1);
@@ -123,14 +124,14 @@ fn get_factorio_path() -> PathBuf {
 
 pub fn get_executable_path() -> PathBuf {
     if cfg!(Windows) {
-        return get_factorio_path()
+        get_factorio_path()
             .join("bin")
             .join("x64")
-            .join("factorio.exe");
+            .join("factorio.exe")
     } else {
-        return get_factorio_path().join("bin")
+        get_factorio_path().join("bin")
             .join("x64")
-            .join("factorio");
+            .join("factorio")
     }
 }
 
@@ -144,26 +145,26 @@ fn get_factorio_rw_directory() -> PathBuf {
     if use_system_rw_directories {
         if cfg!(Windows) {
             // %appdata%\Roaming\
-            return BaseDirs::new()
+            BaseDirs::new()
                 .unwrap()
                 .data_dir()
                 .join("Factorio")
-                .join("");
+                .join("")
         } else {
             // ~/.factorio/
-            return BaseDirs::new()
+            BaseDirs::new()
                 .unwrap()
                 .home_dir()
                 .join(".factorio")
-                .join("");
+                .join("")
         }
     } else {
-        return get_factorio_path();
+        get_factorio_path()
     }
 }
 
 pub fn get_saves_directory() -> PathBuf {
-    return get_factorio_rw_directory().join("saves").join("");
+    get_factorio_rw_directory().join("saves").join("")
 }
 
 fn get_factorio_info() -> (String, String, String) {

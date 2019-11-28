@@ -15,12 +15,7 @@ extern crate sha2;
 use crate::procedure_file::is_known_map_hash;
 use crate::util::sha256sum;
 use crate::procedure_file::write_known_map_hash;
-use crate::benchmark_runner::auto_resave;
 use regex::Regex;
-use crate::util::Mod;
-use crate::util::prompt_until_allowed_val_in_range;
-use crate::util::prompt_until_empty_str;
-use crate::util::trim_newline;
 use std::collections::HashMap;
 use crate::procedure_file::read_meta_from_file;
 use crate::procedure_file::write_meta_to_file;
@@ -31,7 +26,11 @@ use std::path::PathBuf;
 use std::process::exit;
 
 mod benchmark_runner;
-use benchmark_runner::run_benchmarks_multiple;
+use benchmark_runner::{
+    run_benchmarks_multiple,
+    auto_resave,
+};
+
 mod procedure_file;
 mod util;
 use util::{
@@ -40,10 +39,14 @@ use util::{
     get_download_links_from_google_drive_by_filelist,
     get_saves_directory,
     Map,
+    Mod,
     ProcedureKind,
     ProcedureFileKind,
     prompt_until_allowed_val,
+    prompt_until_allowed_val_in_range,
+    prompt_until_empty_str,
     read_procedure_from_file,
+    trim_newline,
     UserArgs,
     write_procedure_to_file,
     get_mod_info,
@@ -195,7 +198,7 @@ fn convert_args_to_benchmark_run(args: &mut UserArgs) -> HashMap<String, Benchma
         }
         let procedure = if master.is_some() { master } else { local };
         hash_map.insert(name, procedure.unwrap());
-        return hash_map;
+        hash_map
     } else {
         eprintln!("Could not find benchmark with the name: {:?}", &name);
         exit(1);

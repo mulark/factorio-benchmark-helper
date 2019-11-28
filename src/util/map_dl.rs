@@ -22,11 +22,11 @@ pub struct Map {
 
 impl Map {
     pub fn new(name: &str, sha256: &str, download_link: &str) -> Map {
-        return Map {
+        Map {
             name: name.to_string(),
             sha256: sha256.to_string(),
             download_link: download_link.to_string(),
-        };
+        }
     }
 }
 
@@ -51,8 +51,8 @@ pub struct DriveFile {
     download_link: String,
 }
 
-pub fn fetch_map_deps_parallel(maps: &Vec<Map>, handles: &mut Vec<JoinHandle<()>>) {
-    let mut unique_maps = maps.clone();
+pub fn fetch_map_deps_parallel(maps: &[Map], handles: &mut Vec<JoinHandle<()>>) {
+    let mut unique_maps: Vec<_> = maps.to_vec();
     unique_maps.sort();
     unique_maps.dedup();
     for map in unique_maps {

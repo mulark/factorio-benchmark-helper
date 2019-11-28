@@ -276,7 +276,7 @@ fn parse_stdout_for_benchmark_time_breakdown(bench_data_stdout: &str, ticks: u32
         benchmark_time.per_run_overhead_time =
             (time_spent_in_benchmarks / f64::from(runs)) - tick_cumulative_time_per_run;
     }
-    return Some(benchmark_time);
+    Some(benchmark_time)
 }
 
 fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
@@ -334,7 +334,7 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
         3, expected_total_benchmarking_run_overhead,
         3, expected_total_game_initialization_time);
     println!(
-        "Expecting benchmarks to take: {}:{:02}:{:02.3}",
+        "Expecting benchmarks to take: {}:{:02}:{:02}",
         hrs, mins, secs
     );
     let collection_id = upload_collection(set_name);
@@ -406,5 +406,5 @@ fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_id: u32) ->
         assert_eq!((params.ticks * params.runs) as usize, verbose_data.len());
         upload_verbose(verbose_data, benchmark_id, collection_id);
     }
-    return benchmark_times;
+    benchmark_times
 }
