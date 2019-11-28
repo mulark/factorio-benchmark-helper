@@ -1,5 +1,6 @@
 extern crate regex;
 
+use std::sync::Mutex;
 use std::fs::remove_dir_all;
 use std::fs::read_to_string;
 use std::io::Write;
@@ -40,6 +41,7 @@ lazy_static! {
     static ref MAP_VERSION_MATCH_PATTERN: Regex = Regex::new(r": Map version \d{1,2}\.\d{2,3}\.\d{2,3}").unwrap();
     static ref VERBOSE_COLUMN_HEADER_MATCH_PATTERN: Regex = Regex::new("tick,.*,*\n").unwrap();
     static ref VERBOSE_DATA_ROW_MATCH_PATTERN: Regex = Regex::new("^t[0-9]*[0-9],[0-9]").unwrap();
+    static ref CURRENT_RESAVE_PORT: Mutex<u32> = Mutex::new(31498);
 }
 
 #[derive(Debug, Clone)]
@@ -87,6 +89,7 @@ impl Default for BenchmarkDurationOverhead {
 }
 
 pub fn auto_resave(file_to_resave: PathBuf) -> Result<bool,std::io::Error> {
+    println!("resaving {:?}", file_to_resave);
     if !cfg!(target_os = "linux") {
         panic!("auto_resave is not supported on Windows!");
     }
@@ -96,19 +99,27 @@ pub fn auto_resave(file_to_resave: PathBuf) -> Result<bool,std::io::Error> {
     let local_config_file_path = fbh_resave_dir().join(format!("{}{}", file_to_resave.file_name().unwrap().to_str().unwrap(), ".ini"));
     let mut local_config_file = File::create(&local_config_file_path).unwrap();
     let local_write_dir = fbh_resave_dir().join(file_to_resave.file_name().unwrap()).join("");
+    let local_mods_dir = local_write_dir.join("mods");
     let local_logfile = local_write_dir.join("factorio-current.log");
     writeln!(local_config_file, "[path]")?;
     writeln!(local_config_file, "read-data=__PATH__system-read-data__")?;
     writeln!(local_config_file, "write-data={}", local_write_dir.to_str().unwrap())?;
     writeln!(local_config_file, "[other]")?;
     writeln!(local_config_file, "autosave-compression-level=maximum")?;
+    let port: u32;
+    {
+        let mut data = CURRENT_RESAVE_PORT.lock().unwrap();
+        *data += 1;
+        port = *data;
+    }
+    writeln!(local_config_file, "port={}", port)?;
     let child = Command::new(get_executable_path())
         .arg("--config")
         .arg(&local_config_file_path)
         .arg("--start-server")
         .arg(&file_to_resave)
         .arg("--mod-directory")
-        .arg("test")
+        .arg(local_mods_dir)
         .stdout(Stdio::null())
         .spawn()?;
     let pid = Pid::from_raw(child.id() as i32);
@@ -128,7 +139,7 @@ pub fn auto_resave(file_to_resave: PathBuf) -> Result<bool,std::io::Error> {
             if file_text.contains("Loading script.dat") {
                 break;
             }
-            if file_text.contains("Error") {
+            if file_text.contains("Error") || file_text.contains("Failed") {
                 eprintln!("An error was detected trying to resave maps.");
                 eprintln!("Here is the factorio output for this moment.");
                 eprintln!("{}", file_text);
@@ -152,6 +163,7 @@ pub fn auto_resave(file_to_resave: PathBuf) -> Result<bool,std::io::Error> {
             }
             if do_timeout && Instant::now() > expire {
                 //if we have passed the timeout threshold and did not see the game being saved, exit uncleanly.
+                eprintln!("A resave thread timed out");
                 break;
             }
             if last_line_content.contains("Goodbye") {
@@ -189,6 +201,7 @@ fn parse_logline_time_to_f64(find_match_in_this_str: &str, regex: Regex) -> Opti
         }
         None => {
             eprintln!("Internal error, maybe Factorio exited early from outside interference? (parsing line timestamp)");
+            eprintln!("Trying to match {:?}", find_match_in_this_str);
             return None;
         }
     };
