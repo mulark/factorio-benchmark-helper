@@ -1,17 +1,21 @@
-use crate::procedure_file::write_procedure_to_file;
-use crate::procedure_file::read_procedure_from_file;
+use crate::util::fbh_paths::fbh_config_file;
+use crate::util::prompt_until_allowed_val;
 use crate::procedure_file::print_all_procedures;
-use crate::ProcedureFileKind;
+use crate::util::{
+    ProcedureKind,
+};
 use std::process::exit;
 use crate::FACTORIO_BENCHMARK_HELPER_VERSION;
 use crate::FACTORIO_BENCHMARK_HELPER_NAME;
 use clap::ArgMatches;
 use clap::{Arg,App,AppSettings};
+use ini::Ini;
 
 #[derive(Debug)]
 pub struct UserArgs {
     pub interactive: bool,
     pub overwrite: bool,
+    pub resave: bool,
 
     pub run_benchmark: bool,
     pub create_benchmark: bool,
@@ -21,23 +25,24 @@ pub struct UserArgs {
     pub ticks: Option<u32>,
     pub runs: Option<u32>,
     pub google_drive_folder: Option<String>,
+    pub mods_dirty: Option<String>,
 
     pub run_meta: bool,
     pub create_meta: bool,
     pub meta_set_name: Option<String>,
-    pub meta_set_members: Option<Vec<String>>,
+    pub meta_set_members: Option<String>,
 
     pub commit_flag: bool,
     pub commit_name: Option<String>,
-    pub commit_type: Option<String>,
+    pub commit_type: Option<ProcedureKind>,
 }
-
 
 impl Default for UserArgs {
     fn default() -> UserArgs {
         UserArgs {
             interactive: false,
             overwrite: false,
+            resave: false,
 
             run_benchmark: false,
             create_benchmark: false,
@@ -47,6 +52,7 @@ impl Default for UserArgs {
             runs: None,
             pattern: None,
             google_drive_folder: None,
+            mods_dirty: None,
 
             run_meta: false,
             create_meta: false,
@@ -92,6 +98,10 @@ pub fn add_options_and_parse() -> UserArgs {
                 .long("meta")
                 .help("Runs benchmarks of all benchmark/meta sets found recusively within this meta set.")
                 .value_name("NAME"),
+            Arg::with_name("create-benchmark")
+                .long("create-benchmark")
+                .help("Creates a new benchmark, using NAME")
+                .value_name("NAME"),
             Arg::with_name("pattern")
                 .long("pattern")
                 .help("Restrict maps to those matching PATTERN")
@@ -109,10 +119,10 @@ pub fn add_options_and_parse() -> UserArgs {
                 .long("google-drive-folder")
                 .help("A link to a publicly shared google drive folder so that individual download links can be automatically filled")
                 .value_name("LINK"),
-            Arg::with_name("create-benchmark")
-                .long("create-benchmark")
-                .help("Creates a new benchmark, using NAME")
-                .value_name("NAME"),
+            Arg::with_name("mods")
+                .long("mods")
+                .help("A comma separated list of mods you wish to create this benchmark with. 'region-cloner' specifies the latest version of region cloner, whereas 'region-cloner_1.1.2' specifies that specific version.")
+                .value_name("MODS..."),
             Arg::with_name("create-meta")
                 .long("create-meta")
                 .help("Creates a meta set with NAME, with provided MEMBERS. MEMBERS given as a comma separated list.")
@@ -152,15 +162,15 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
     }
     if args.contains_key("benchmark") {
         arguments.run_benchmark = true;
-        arguments.benchmark_set_name = Some(args["benchmark"].vals[0].to_str().unwrap().to_string());
+        arguments.benchmark_set_name = Some(args["benchmark"].vals[0].to_str().unwrap().trim().to_string());
     }
     if args.contains_key("meta") {
         arguments.run_meta = true;
-        arguments.meta_set_name = Some(args["meta"].vals[0].to_str().unwrap().to_string());
+        arguments.meta_set_name = Some(args["meta"].vals[0].to_str().unwrap().trim().to_string());
     }
     if args.contains_key("create-benchmark") {
         arguments.create_benchmark = true;
-        arguments.benchmark_set_name = Some(args["create-benchmark"].vals[0].to_str().unwrap().to_string());
+        arguments.benchmark_set_name = Some(args["create-benchmark"].vals[0].to_str().unwrap().trim().to_string());
     }
     if args.contains_key("pattern") {
         let mut pattern = String::new();
@@ -168,7 +178,7 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
             pattern.push_str(&v.clone().into_string().unwrap());
             pattern.push_str(" ");
         }
-        pattern.pop();
+        pattern = pattern.trim().to_owned();
         arguments.pattern = Some(pattern);
     }
     if args.contains_key("ticks") {
@@ -192,7 +202,7 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
         };
     }
     if args.contains_key("runs") {
-        arguments.ticks = match args["runs"].vals[0].clone().into_string() {
+        arguments.runs = match args["runs"].vals[0].clone().into_string() {
             Ok(m) =>  match m.parse::<u32>() {
                 Ok(u) => if u != 0 {
                     Some(u)
@@ -212,39 +222,41 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
         };
     }
     if args.contains_key("google-drive-folder") {
-        let url = args["google-drive-folder"].vals[0].to_str().unwrap().to_string();
+        let url = args["google-drive-folder"].vals[0].to_str().unwrap().trim().to_string();
         if url.contains("drive.google.com") {
-
+            arguments.google_drive_folder = Some(url);
         }
+    }
+    if args.contains_key("mods") {
+        let collect_as_csv: String = args["mods"].vals.iter().map(|x| x.to_str().unwrap().trim()).collect();
+        arguments.mods_dirty = Some(collect_as_csv);
     }
     if args.contains_key("create-meta") {
         arguments.create_meta = true;
-        let mut vals: Vec<String> = Vec::new();
-        for v in args["create-meta"].vals[1..].iter() {
-            for k in v.to_str().unwrap().split(',') {
-                vals.push(k.to_string());
-            };
-        };
+        let collect_as_csv: String = args["create-meta"].vals[1..].iter().map(|x| x.to_str().unwrap().trim()).collect();
+        arguments.meta_set_members = Some(collect_as_csv);
+
         let name = args["create-meta"].vals[0].to_str().unwrap().replace(',', "");
         arguments.meta_set_name = Some(name);
-        arguments.meta_set_members = Some(vals);
     }
     if args.contains_key("commit") {
         arguments.commit_flag = true;
-        let commit_name = args["commit"].vals[0].to_str().unwrap().to_string();
+        let commit_name = args["commit"].vals[1].to_str().unwrap().trim().to_string();
         arguments.commit_name = Some(commit_name);
-        let commit_type = args["commit"].vals[1].to_str().unwrap().to_string().to_lowercase();
-        if !(commit_type == "benchmark" || commit_type == "meta") {
-            eprintln!("Invalid type supplied for commit! Expected {:?} or {:?}", "benchmark", "meta");
-            if arguments.interactive {
-                println!("Stub for interactively fetching commit type");
-                exit(1);
-            } else {
-                exit(1);
-            }
+        if let Ok(commit_type) = args["commit"].vals[0].to_str().unwrap().trim().parse() {
+            arguments.commit_type = Some(commit_type);
+        } else if arguments.interactive {
+            println!("You failed to set a valid type from args, and are running interactively, enter a commit type. types: benchmark, meta");
+            arguments.commit_type = Some(prompt_until_allowed_val(&[ProcedureKind::Benchmark, ProcedureKind::Meta]));
+        } else {
+            unreachable!("Illegal commit type found!");
         }
-        arguments.commit_type = Some(commit_type);
     }
-    println!("{:?}", arguments);
+
+    let i = Ini::load_from_file(fbh_config_file()).unwrap();
+    if let Ok(b) = i.get_from::<String>(None, "auto-resave").unwrap_or_default().parse::<bool>() {
+        arguments.resave = b;
+    }
+
     arguments
 }

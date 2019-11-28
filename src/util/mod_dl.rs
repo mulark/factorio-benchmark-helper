@@ -1,8 +1,6 @@
-use crate::util::trim_newline;
 use std::process::exit;
 use serde::{Deserialize, Serialize};
 use std::fs::{read, File, OpenOptions};
-use std::io::stdin;
 use std::thread::JoinHandle;
 
 use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory};
@@ -10,7 +8,7 @@ use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory};
 const MOD_PORTAL_URL: &str = "https://mods.factorio.com";
 const MOD_PORTAL_API_URL: &str = "https://mods.factorio.com/api/mods/";
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialOrd, Ord, Eq)]
 pub struct Mod {
     pub name: String,
     pub version: String,
@@ -29,7 +27,7 @@ impl Mod {
 
 impl PartialEq for Mod {
     fn eq(&self, cmp: &Self) -> bool {
-        if self.sha1 == cmp.sha1 {
+        if self.sha1 == cmp.sha1 && !self.sha1.is_empty() {
             return true;
         }
         false
@@ -68,7 +66,7 @@ impl User {
 }
 
 //TODO make work with same mod but 2 diff versions
-pub fn fetch_mod_deps_parallel(mods: Vec<Mod>, handles: &mut Vec<JoinHandle<()>>) {
+pub fn fetch_mod_deps_parallel(mods: &Vec<Mod>, handles: &mut Vec<JoinHandle<()>>) {
     let mut user_data: User = User::default();
     let maybe_playerdata_json_file = get_factorio_rw_directory().join("player-data.json");
     if maybe_playerdata_json_file.is_file() {
@@ -76,13 +74,10 @@ pub fn fetch_mod_deps_parallel(mods: Vec<Mod>, handles: &mut Vec<JoinHandle<()>>
             user_data = serde_json::from_reader(file).unwrap();
         }
     }
-    let mut unique_mods: Vec<Mod> = Vec::new();
+    let mut unique_mods: Vec<Mod> = mods.to_owned();
     //Only attempt to download unique mods from the sets. Skip base mod as it's special for vanilla.
-    for indiv_mod in mods {
-        if indiv_mod.name != "base" && !unique_mods.contains(&indiv_mod) {
-            unique_mods.push(indiv_mod);
-        }
-    }
+    unique_mods.sort();
+    unique_mods.dedup();
     if !unique_mods.is_empty() && (user_data.token.is_empty() || user_data.username.is_empty()) {
         eprintln!("Couldn't read playerdata.json for service-username or service-token, downloading mods from the mod portal is not possible.");
         exit(1);
@@ -217,51 +212,19 @@ fn get_latest_mod_version(meta_info: ModMetaInfoHolder) -> String {
     latest
 }
 
-pub fn prompt_for_mods() -> Vec<Mod> {
-    let mut input = String::new();
-    let mut mod_set: Vec<Mod> = Vec::new();
-    println!("Creating a new set of mods.");
-    input.clear();
-    let mut add_more = true;
-    while add_more {
-        println!("Enter the name of a mod to add to this set. Provide an empty response to stop adding mods to this set.");
-        println!("The special response \"__CURRENT__\" will attempt to fill this ModSet with the currently enabled mods from your mod-list.json file.");
-        if let Ok(_m) = stdin().read_line(&mut input) {
-            trim_newline(&mut input);
-            if input.is_empty() {
-                add_more = false;
-            }
-            if input == "__CURRENT__" {
-                //TODO
-                println!("__CURRENT__ is not yet implemented");
-            } else if !input.is_empty() {
-                if let Some(m) = get_mod_info(&mut input) {
-                    mod_set.push(m);
-                    input.clear();
-                }
-            }
-        }
-    }
-    mod_set
-}
-
-fn get_mod_info(mut input: &mut String) -> Option<Mod> {
-    let mod_url = format!("{}{}", MOD_PORTAL_API_URL, input);
+pub fn get_mod_info(mod_name: &str, mod_version: &str) -> Option<Mod> {
+    let mut mod_v = mod_version.to_string();
+    let mod_url = format!("{}{}", MOD_PORTAL_API_URL, mod_name);
     if let Ok(mut resp) = reqwest::get(&mod_url) {
         if resp.status() == 200 {
-            println!("Found mod: {}", input);
-            input.clear();
-            println!("Enter the version you wish to use. Leave empty to save the latest version.");
-            if let Ok(_m) = stdin().read_line(&mut input) {
-                trim_newline(&mut input);
-            }
+            println!("Found mod: {}", mod_name);
             if let Ok(meta_info_response) = resp.json::<ModMetaInfoHolder>() {
-                if input.is_empty() {
+                if mod_version.is_empty() {
                     println!("Getting latest version...");
-                    *input = get_latest_mod_version(meta_info_response.clone());
+                    mod_v = get_latest_mod_version(meta_info_response.clone());
                 }
                 for release in meta_info_response.releases {
-                    if release.version == *input {
+                    if release.version == mod_v {
                         println!("Succesfully found mod {}", release.file_name);
                         return Some(Mod {
                             name: release.file_name,
@@ -272,7 +235,7 @@ fn get_mod_info(mut input: &mut String) -> Option<Mod> {
                 }
             }
         } else if resp.status() == 404 {
-            println!("The mod {} was not found", input);
+            println!("The mod {} was not found", mod_name);
             return None;
         } else {
             println!(

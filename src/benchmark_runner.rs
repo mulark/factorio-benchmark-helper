@@ -1,11 +1,17 @@
 extern crate regex;
 
+use std::fs::remove_dir_all;
+use std::fs::read_to_string;
+use std::io::Write;
+use std::fs::remove_file;
+use crate::util::fbh_resave_dir;
+use std::collections::HashMap;
 use std::process::exit;
-use std::fs::read;
+use std::fs::{read, File};
 use crate::util::{
     get_executable_path,
     BenchmarkSet,
-    fetch_benchmark_deps_parallel,
+    download_benchmark_deps_parallel,
     fbh_save_dl_dir,
     fbh_mod_dl_dir,
     fbh_mod_use_dir,
@@ -15,8 +21,11 @@ use crate::util::{
 };
 use regex::Regex;
 use std::path::PathBuf;
-use std::process::Command;
-use std::time::Instant;
+use std::process::{Command, Stdio};
+use std::time::{Instant, Duration};
+use nix::unistd::Pid;
+use nix::sys::signal::{kill, Signal};
+use nix::sys::wait::WaitStatus;
 
 static NUMBER_ERROR_CHECKING_TICKS: u32 = 300;
 static NUMBER_ERROR_CHECKING_RUNS: u32 = 3;
@@ -77,6 +86,96 @@ impl Default for BenchmarkDurationOverhead {
     }
 }
 
+pub fn auto_resave(file_to_resave: PathBuf) -> Result<bool,std::io::Error> {
+    if !cfg!(target_os = "linux") {
+        panic!("auto_resave is not supported on Windows!");
+    }
+    if !fbh_resave_dir().exists() {
+        std::fs::create_dir(fbh_resave_dir())?;
+    }
+    let local_config_file_path = fbh_resave_dir().join(format!("{}{}", file_to_resave.file_name().unwrap().to_str().unwrap(), ".ini"));
+    let mut local_config_file = File::create(&local_config_file_path).unwrap();
+    let local_write_dir = fbh_resave_dir().join(file_to_resave.file_name().unwrap()).join("");
+    let local_logfile = local_write_dir.join("factorio-current.log");
+    writeln!(local_config_file, "[path]")?;
+    writeln!(local_config_file, "read-data=__PATH__system-read-data__")?;
+    writeln!(local_config_file, "write-data={}", local_write_dir.to_str().unwrap())?;
+    writeln!(local_config_file, "[other]")?;
+    writeln!(local_config_file, "autosave-compression-level=maximum")?;
+    let child = Command::new(get_executable_path())
+        .arg("--config")
+        .arg(&local_config_file_path)
+        .arg("--start-server")
+        .arg(&file_to_resave)
+        .arg("--mod-directory")
+        .arg("test")
+        .stdout(Stdio::null())
+        .spawn()?;
+    let pid = Pid::from_raw(child.id() as i32);
+    let mut clean = false;
+    std::thread::sleep(Duration::from_millis(500));
+    let mut file_text;
+    let expire = Instant::now() + Duration::from_millis(30000);
+    loop {
+        //keep reading logfile until it's safe to send a SIGINT, or we fail, or we timeout.
+        if Instant::now() > expire {
+            //Incase the logfile never exists or never contains the lines we're looking for
+            eprintln!("Timed out during busy loop waiting for log file to become ready.");
+            exit(1);
+        }
+        if local_logfile.exists() {
+            file_text = read_to_string(&local_logfile).unwrap();
+            if file_text.contains("Loading script.dat") {
+                break;
+            }
+            if file_text.contains("Error") {
+                eprintln!("An error was detected trying to resave maps.");
+                eprintln!("Here is the factorio output for this moment.");
+                eprintln!("{}", file_text);
+                exit(1);
+            }
+        }
+        std::thread::sleep(Duration::from_millis(16));
+    }
+    if let Ok(()) = kill(pid, Signal::SIGINT) {
+        let mut do_timeout = true;
+        let mut last_line_content: String = "".to_string();
+        while !last_line_content.contains("Goodbye") {
+            let local_logfile = local_logfile.clone();
+            if local_logfile.exists() {
+                let read_buf = read_to_string(local_logfile).unwrap();
+                let logfile_contents: Vec<_> = read_buf.lines().collect();
+                last_line_content = logfile_contents[logfile_contents.len() - 1].to_string();
+            }
+            if last_line_content.contains("Saving progress:") {
+                do_timeout = false;
+            }
+            if do_timeout && Instant::now() > expire {
+                //if we have passed the timeout threshold and did not see the game being saved, exit uncleanly.
+                break;
+            }
+            if last_line_content.contains("Goodbye") {
+                clean = true;
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(500));
+        }
+        if clean {
+            remove_dir_all(local_write_dir)?;
+            remove_file(local_config_file_path)?;
+        } else {
+            eprintln!("Child did not cleanly exit for {:?}", file_to_resave);
+            if let Ok(WaitStatus::StillAlive) = nix::sys::wait::waitpid(pid, None) {
+                let res = kill(pid, Signal::SIGKILL);
+                println!("{:?}", res);
+            } else {
+                panic!("Wasnt stillalive?");
+            }
+        }
+    }
+    Ok(clean)
+}
+
 fn parse_logline_time_to_f64(find_match_in_this_str: &str, regex: Regex) -> Option<f64> {
     match regex.captures(find_match_in_this_str) {
         Some(x) => {
@@ -89,13 +188,13 @@ fn parse_logline_time_to_f64(find_match_in_this_str: &str, regex: Regex) -> Opti
             }
         }
         None => {
-            eprintln!("Internal error, maybe Factorio exited early from outside interference?");
+            eprintln!("Internal error, maybe Factorio exited early from outside interference? (parsing line timestamp)");
             return None;
         }
     };
 }
 
-fn validate_benchmark_set(set: &BenchmarkSet) {
+fn validate_benchmark_set_parameters(set: &BenchmarkSet) {
     //don't care about pattern anymore
     assert!(!set.maps.is_empty());
     assert!(set.ticks > 0);
@@ -110,39 +209,41 @@ fn parse_stdout_for_errors(stdout: &str) {
     }
 }
 
-pub fn run_benchmarks(set_name: &str, benchmark_set: BenchmarkSet) {
-    validate_benchmark_set(&benchmark_set);
-    fetch_benchmark_deps_parallel(benchmark_set.clone());
-    for map in &benchmark_set.maps {
-        let fpath = fbh_save_dl_dir().join(map.name.clone());
-        assert!(fpath.exists());
-    }
-    assert!(fbh_mod_use_dir().is_dir());
-    if let Ok(dir_list) = std::fs::read_dir(fbh_mod_use_dir()) {
-        for file in dir_list {
-            if let Ok(f) = file {
-                match std::fs::remove_file(f.path()) {
-                    Ok(_) => (),
-                    _ => {
-                        eprintln!("Failed to remove a mod from the staging directory!");
-                        exit(1);
+pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
+    for (name, set) in sets {
+        validate_benchmark_set_parameters(&set);
+        download_benchmark_deps_parallel(&set);
+        for map in &set.maps {
+            let fpath = fbh_save_dl_dir().join(map.name.clone());
+            assert!(fpath.exists());
+        }
+        assert!(fbh_mod_use_dir().is_dir());
+        if let Ok(dir_list) = std::fs::read_dir(fbh_mod_use_dir()) {
+            for dir_entry_result in dir_list {
+                if let Ok(dir_entry) = dir_entry_result {
+                    match std::fs::remove_file(dir_entry.path()) {
+                        Ok(_) => (),
+                        _ => {
+                            eprintln!("Failed to remove a mod from the staging directory!");
+                            exit(1);
+                        }
                     }
                 }
             }
         }
-    }
-    for indiv_mod in &benchmark_set.mods {
-        let fpath = fbh_mod_dl_dir().join(indiv_mod.name.clone());
-        assert!(fpath.exists());
-        match std::fs::write(fbh_mod_use_dir().join(indiv_mod.name.clone()), &read(&fpath).unwrap()) {
-            Ok(_m) => (),
-            _ => {
-                eprintln!("Failed to copy mod {:?} for use.", indiv_mod.name);
-                exit(1);
+        for indiv_mod in &set.mods {
+            let fpath = fbh_mod_dl_dir().join(indiv_mod.name.clone());
+            assert!(fpath.exists());
+            match std::fs::write(fbh_mod_use_dir().join(indiv_mod.name.clone()), &read(&fpath).unwrap()) {
+                Ok(_m) => (),
+                _ => {
+                    eprintln!("Failed to copy mod {:?} for use.", indiv_mod.name);
+                    exit(1);
+                }
             }
         }
+        run_factorio_benchmarks_from_set(&name, set);
     }
-    run_benchmarks_multiple_maps(set_name, benchmark_set);
 }
 
 fn parse_stdout_for_benchmark_time_breakdown(bench_data_stdout: &str, ticks: u32, runs: u32) -> Option<BenchmarkDurationOverhead> {
@@ -165,7 +266,7 @@ fn parse_stdout_for_benchmark_time_breakdown(bench_data_stdout: &str, ticks: u32
     return Some(benchmark_time);
 }
 
-fn run_benchmarks_multiple_maps(set_name: &str, set: BenchmarkSet) {
+fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     let mut map_durations: Vec<BenchmarkDurationOverhead> = Vec::new();
     let mut initial_error_check_params = Vec::new();
     let mut set_params = Vec::new();

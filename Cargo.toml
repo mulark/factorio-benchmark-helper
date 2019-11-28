@@ -1,6 +1,6 @@
 [package]
 name = "factorio-benchmark-helper"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["mulark <mulark11@gmail.com>"]
 edition = "2018"
 
@@ -22,6 +22,7 @@ sha1 = "*"
 sha2 = "*"
 raw-cpuid = "*"
 clap = "*"
+nix = "*"
 
 [profile.release]
 debug = 1

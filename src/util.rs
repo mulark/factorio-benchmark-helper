@@ -7,9 +7,9 @@ extern crate sha2;
 extern crate raw_cpuid;
 
 mod database;
-use std::io::stdout;
 use core::fmt::Debug;
 use std::io::stdin;
+use std::ops::Range;
 use core::str::FromStr;
 use std::process::exit;
 pub use database::{
@@ -20,16 +20,17 @@ pub use database::{
 };
 mod fbh_paths;
 use sha2::Digest;
-use std::fs::File;
-use std::io::Read;
+use std::fs::{File};
+use std::io::{Read};
 pub use fbh_paths::{
     fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir, fbh_mod_use_dir,
     fbh_procedure_json_local_file, fbh_procedure_json_master_file, fbh_read_configuration_setting,
-    fbh_results_database, fbh_save_dl_dir, initialize,
+    fbh_results_database, fbh_save_dl_dir, initialize, fbh_known_hash_file, fbh_resave_dir,
 };
 
 pub use crate::procedure_file::{
     BenchmarkSet,
+    ProcedureKind,
     ProcedureFileKind,
     read_procedure_from_file,
     write_procedure_to_file,
@@ -47,11 +48,9 @@ pub use args::{
     UserArgs,
 };
 mod mod_dl;
-pub use mod_dl::{Mod, fetch_mod_deps_parallel, prompt_for_mods};
+pub use mod_dl::{Mod, fetch_mod_deps_parallel, get_mod_info};
 mod map_dl;
 pub use map_dl::{Map, fetch_map_deps_parallel, get_download_links_from_google_drive_by_filelist};
-
-static mut TIMES_CALLED: u32 = 0;
 
 lazy_static! {
     #[derive(Debug)]
@@ -60,11 +59,11 @@ lazy_static! {
     //If Factorio ever goes to 3/4/4 digits for their versioning, this will break.
 }
 
-pub fn fetch_benchmark_deps_parallel(set: BenchmarkSet) {
+pub fn download_benchmark_deps_parallel(set: &BenchmarkSet) {
     //TODO println!("Fetching benchmark dependencies for this benchmark set: {}", set.name);
     let mut handles = Vec::new();
-    fetch_mod_deps_parallel(set.mods, &mut handles);
-    fetch_map_deps_parallel(set.maps, &mut handles);
+    fetch_mod_deps_parallel(&set.mods, &mut handles);
+    fetch_map_deps_parallel(&set.maps, &mut handles);
     for handle in handles {
         handle.join().expect("");
     }
@@ -206,10 +205,6 @@ pub fn sha256sum(file_path: PathBuf) -> String {
 }
 
 pub fn bulk_sha256(paths: Vec<PathBuf>) -> Vec<(PathBuf, String)> {
-    unsafe {{
-        TIMES_CALLED += 1;
-        println!("Called sha256bulk {} times", TIMES_CALLED);
-    }}
     let mut handle_holder = Vec::new();
     let mut path_sha256_tuple_holder = Vec::new();
     for path in paths {
@@ -242,20 +237,57 @@ pub fn trim_newline(s: &mut String) {
     }
 }
 
-pub fn prompt_until_allowed_vals<T: FromStr + PartialEq + Debug>(allowed_vals: &[T]) -> Option<T> {
-    let mut cont = true;
+pub fn prompt_until_empty_str(allow_first_empty: bool) -> String {
     let mut input = String::new();
-    while cont {
+    let mut last_input = String::new();
+    let mut is_first = true;
+    println!("Enter value, provide empty response to confirm.");
+    loop {
         input.clear();
-        stdin().read_line(&mut input);
+        stdin().read_line(&mut input).expect("");
+        input = input.trim().to_owned();
         trim_newline(&mut input);
+        if input.is_empty() && allow_first_empty && is_first {
+            return input;
+        }
+        if input.is_empty() && !last_input.is_empty() {
+            return last_input;
+        }
+        last_input = input.clone();
+        is_first = false;
+    }
+}
+
+pub fn prompt_until_allowed_val<T: FromStr + PartialEq + Debug>(allowed_vals: &[T]) -> T {
+    let mut input = String::new();
+    loop {
+        input.clear();
+        stdin().read_line(&mut input).expect("");
+        input = input.trim().to_owned();
+        trim_newline(&mut input);
+        input.to_lowercase();
         if let Ok(m) = input.parse::<T>() {
             if allowed_vals.contains(&m) {
-                cont = false;
-                return Some(m);
+                return m;
             }
         }
-        eprintln!("Unrecognized option {:?}.\tAllowed values are: {:?}", input, allowed_vals);
+        eprintln!("Unrecognized option {:?}.\tAllowed values are: {:?}. Note: case insensitive.", input, allowed_vals);
     }
-    None
+}
+
+pub fn prompt_until_allowed_val_in_range<T: FromStr + PartialEq + PartialOrd + Debug>(range: Range<T>) -> T {
+    let mut input = String::new();
+    loop {
+        input.clear();
+        stdin().read_line(&mut input).expect("");
+        input = input.trim().to_owned();
+        trim_newline(&mut input);
+        input.to_lowercase();
+        if let Ok(m) = input.parse::<T>() {
+            if range.contains(&m) {
+                return m;
+            }
+        }
+        eprintln!("Unrecognized option {:?}.\t Must be in range {:?}.", input, range);
+    }
 }

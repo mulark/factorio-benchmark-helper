@@ -1,8 +1,3 @@
-/*
-Factorio Benchmark Helper Paths
-usually lives in ~/.local/share/factorio_benchmark_helper/
-*/
-
 use crate::util::{
     generic_read_configuration_setting,
     setup_database,
@@ -52,6 +47,12 @@ pub fn initialize() -> Result<(), std::io::Error> {
     if !fbh_results_database().exists() {
         setup_database(true);
     }
+    if !fbh_known_hash_file().exists() {
+        std::fs::File::create(fbh_known_hash_file())?;
+    }
+    if !fbh_resave_dir().exists() {
+        std::fs::create_dir(fbh_resave_dir())?;
+    }
     Ok(())
 }
 
@@ -65,6 +66,10 @@ pub fn fbh_procedure_json_master_file() -> PathBuf {
 
 pub fn fbh_procedure_json_local_file() -> PathBuf {
     fbh_procedure_directory().join("local.json")
+}
+
+pub fn fbh_resave_dir() -> PathBuf {
+    fbh_cache_path().join("resave")
 }
 
 fn fbh_init_config_file() -> Result<(), std::io::Error> {
@@ -90,6 +95,10 @@ fn fbh_init_config_file() -> Result<(), std::io::Error> {
             "; No API key is needed for normal operations, like downloading dependencies"
         )?;
         writeln!(file, "google-drive-api-key=")?;
+        writeln!(file)?;
+        writeln!(file, "; Automatically resave maps when creating a benchmark?")?;
+        writeln!(file, "; Does nothing on Windows (currently)")?;
+        writeln!(file, "auto-resave=true")?;
     }
     Ok(())
 }
@@ -124,6 +133,10 @@ pub fn fbh_mod_use_dir() -> PathBuf {
 
 pub fn fbh_save_dl_dir() -> PathBuf {
     fbh_cache_path().join("saves").join("")
+}
+
+pub fn fbh_known_hash_file() -> PathBuf {
+    fbh_cache_path().join("resaved_map_hashes.json")
 }
 
 pub fn fbh_config_file() -> PathBuf {

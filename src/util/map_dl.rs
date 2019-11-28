@@ -3,7 +3,6 @@ use crate::util::{fbh_read_configuration_setting, fbh_save_dl_dir, get_saves_dir
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::fs::{OpenOptions};
-use std::path::PathBuf;
 use std::thread::JoinHandle;
 
 lazy_static! {
@@ -14,7 +13,7 @@ lazy_static! {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Ord, Eq, PartialOrd)]
 pub struct Map {
     pub name: String,
     pub sha256: String,
@@ -52,8 +51,11 @@ pub struct DriveFile {
     download_link: String,
 }
 
-pub fn fetch_map_deps_parallel(maps: Vec<Map>, handles: &mut Vec<JoinHandle<()>>) {
-    for map in maps {
+pub fn fetch_map_deps_parallel(maps: &Vec<Map>, handles: &mut Vec<JoinHandle<()>>) {
+    let mut unique_maps = maps.clone();
+    unique_maps.sort();
+    unique_maps.dedup();
+    for map in unique_maps {
         handles.push(std::thread::spawn(move ||
             {
                 let mut sha256;
@@ -152,12 +154,12 @@ fn download_shared_folder_file_listing_and_parse(drive_folder_url: &str) -> Opti
     None
 }
 
-pub fn get_download_links_from_google_drive_by_filelist(filenames_to_find: Vec<PathBuf>, drive_folder_url: &str) -> Option<Vec<(String, String)>> {
+pub fn get_download_links_from_google_drive_by_filelist(filenames_to_find: Vec<String>, drive_folder_url: &str) -> Option<Vec<(String, String)>> {
     if let Some(file_listing) = download_shared_folder_file_listing_and_parse(drive_folder_url) {
         let mut links_to_dl = Vec::new();
         for drive_file in file_listing.files {
             for searched_name in &filenames_to_find {
-                if drive_file.name == searched_name.file_name().unwrap().to_string_lossy() {
+                if &drive_file.name == searched_name {
                     links_to_dl.push((drive_file.name.clone(), drive_file.download_link.clone()));
                 }
             }
@@ -192,10 +194,21 @@ fn download_save(save_name: &str, url: String) {
         }
     };
     if resp.status().as_u16() == 200 {
+        let save_path = fbh_save_dl_dir().join(save_name);
+        if save_path.exists() {
+            match std::fs::remove_file(&save_path) {
+                Ok(()) => (),
+                Err(e) => {
+                    eprintln!("A failure occured when trying to remove already existing map with mismatched hash");
+                    eprintln!("{}", e);
+                    exit(1);
+                }
+            }
+        }
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
-            .open(fbh_save_dl_dir().join(save_name))
+            .open(save_path)
             .unwrap();
         match resp.copy_to(&mut file) {
             Ok(_) => (),

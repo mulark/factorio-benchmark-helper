@@ -5,17 +5,14 @@ use std::sync::Mutex;
 use crate::benchmark_runner::SimpleBenchmarkParam;
 use crate::util::query_system_info;
 use crate::util::FACTORIO_INFO;
-use crate::procedure_file::BenchmarkSet;
 use crate::util::fbh_results_database;
-use rusqlite::{Connection, NO_PARAMS};
-#[macro_use]
-use rusqlite::params;
+use rusqlite::{Connection};
 use std::fs;
 use std::fs::OpenOptions;
 
 pub const CREATE_SQL: &str = "
 BEGIN TRANSACTION;
-CREATE TABLE IF NOT EXISTS `collection` (
+CREATE TABLE IF NOT EXISTS `collection2` (
   `collection_id` integer NOT NULL PRIMARY KEY AUTOINCREMENT
 ,  `name` varchar(100)  NOT NULL
 ,  `factorio_version` varchar(10)  NOT NULL
@@ -68,23 +65,6 @@ lazy_static! {
     static ref DB_CONNECTION: Mutex<Connection> = Mutex::new(setup_database(false));
 }
 
-#[derive(Debug)]
-pub struct BenchmarkResults {
-    pub collection_data: String,
-    pub benchmark_data: Vec<String>,
-    pub verbose_data: Vec<String>,
-}
-
-impl BenchmarkResults {
-    pub fn new() -> BenchmarkResults {
-        BenchmarkResults {
-            collection_data: String::new(),
-            benchmark_data: Vec::new(),
-            verbose_data: Vec::new(),
-        }
-    }
-}
-
 pub fn setup_database(create_new_db: bool) -> Connection {
     if create_new_db {
         fs::remove_file(fbh_results_database()).ok();
@@ -102,7 +82,7 @@ pub fn setup_database(create_new_db: bool) -> Connection {
 pub fn upload_collection(set_name: &str) -> u32 {
     let database = DB_CONNECTION.lock().unwrap();
     let collection_header =
-        "factorio_version,platform,executable_type,cpuid";
+        "name,factorio_version,platform,executable_type,cpuid";
     let factorio_info = FACTORIO_INFO.clone();
     let sys_info = query_system_info();
     let collection_data = format!(
