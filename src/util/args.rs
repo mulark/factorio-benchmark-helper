@@ -245,14 +245,13 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
     if let Ok(b) = i.get_from::<String>(None, "auto-resave").unwrap_or_default().parse::<bool>() {
         arguments.resave = b;
     }
-
     arguments
 }
 
 fn try_parse_nonzero_u32(s: &str) -> Option<u32> {
     match s.parse::<u32>() {
         Ok(u) => if u != 0 {
-            Some(u)
+            return Some(u)
         } else {
             eprintln!("Parsed arg not allowd to be 0!");
             exit(1);
@@ -262,5 +261,4 @@ fn try_parse_nonzero_u32(s: &str) -> Option<u32> {
             exit(1);
         },
     };
-    None
 }

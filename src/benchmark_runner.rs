@@ -223,9 +223,9 @@ fn parse_stdout_for_errors(stdout: &str) {
 }
 
 pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
+    download_benchmark_deps_parallel(&sets);
     for (name, set) in sets {
         validate_benchmark_set_parameters(&set);
-        download_benchmark_deps_parallel(&set);
         for map in &set.maps {
             let fpath = fbh_save_dl_dir().join(map.name.clone());
             assert!(fpath.exists());

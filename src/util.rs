@@ -7,6 +7,7 @@ extern crate sha2;
 extern crate raw_cpuid;
 
 mod database;
+use std::collections::HashMap;
 use core::fmt::Debug;
 use std::io::stdin;
 use std::ops::Range;
@@ -59,11 +60,26 @@ lazy_static! {
     //If Factorio ever goes to 3/4/4 digits for their versioning, this will break.
 }
 
-pub fn download_benchmark_deps_parallel(set: &BenchmarkSet) {
-    //TODO println!("Fetching benchmark dependencies for this benchmark set: {}", set.name);
+pub fn download_benchmark_deps_parallel(sets: &HashMap<String,BenchmarkSet>) {
     let mut handles = Vec::new();
-    fetch_mod_deps_parallel(&set.mods, &mut handles);
-    fetch_map_deps_parallel(&set.maps, &mut handles);
+    let mut mods = Vec::new();
+    let mut maps = Vec::new();
+    for set in sets.values() {
+        for indiv_mod in set.mods.clone() {
+            mods.push(indiv_mod);
+        }
+        for indiv_map in set.maps.clone() {
+            maps.push(indiv_map);
+        }
+    }
+    maps.sort();
+    maps.dedup();
+    mods.sort();
+    mods.dedup();
+
+    fetch_mod_deps_parallel(&mods, &mut handles);
+    fetch_map_deps_parallel(&maps, &mut handles);
+
     for handle in handles {
         handle.join().expect("");
     }

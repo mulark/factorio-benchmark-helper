@@ -80,6 +80,7 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod], handles: &mut Vec<JoinHandle<()>>) 
     unique_mods.dedup();
     if !unique_mods.is_empty() && (user_data.token.is_empty() || user_data.username.is_empty()) {
         eprintln!("Couldn't read playerdata.json for service-username or service-token, downloading mods from the mod portal is not possible.");
+        eprintln!("If using the steam version try launching the game, and exiting normally once.");
         exit(1);
     }
 
@@ -111,7 +112,20 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod], handles: &mut Vec<JoinHandle<()>>) 
                     {
                         println!("Downloading Mod: {}", filename);
                         let mod_url = format!("{}{}", MOD_PORTAL_API_URL, m.name);
-                        let meta_info_response: ModMetaInfoHolder = reqwest::get(&mod_url).unwrap().json().unwrap();
+                        let meta_info_response: ModMetaInfoHolder = match reqwest::get(&mod_url) {
+                            Ok(mut m) => match m.json() {
+                                Ok(j) => j,
+                                Err(e) => {
+                                    eprintln!("Error {}", e);
+                                    eprintln!("{:?}", m);
+                                    exit(1);
+                                },
+                            }
+                            Err(e) => {
+                                eprintln!("Unexpected response! {}", e);
+                                exit(1);
+                            }
+                        };
                         if m.version.is_empty() {
                             for release in &meta_info_response.releases {
                                 m.version = compare_version_str(&release.version, &m.version);
@@ -226,8 +240,9 @@ pub fn get_mod_info(mod_name: &str, mod_version: &str) -> Option<Mod> {
                 for release in meta_info_response.releases {
                     if release.version == mod_v {
                         println!("Succesfully found mod {}", release.file_name);
+                        let mod_name = release.file_name.split('_').collect::<Vec<_>>()[0];
                         return Some(Mod {
-                            name: release.file_name,
+                            name: mod_name.to_string(),
                             sha1: release.sha1,
                             version: release.version,
                         });

@@ -197,7 +197,7 @@
     "test-000042-2": {
       "mods": [
         {
-          "name": "item-entity-collision-mask-remover_0.0.1.zip",
+          "name": "item-entity-collision-mask-remover",
           "version": "0.0.1",
           "sha1": "a9f2e61c8a84f44d97b0b561f483588713179784"
         }
@@ -225,7 +225,7 @@
     "test-000042-3": {
       "mods": [
         {
-          "name": "item-entity-collision-box-remover_0.0.1.zip",
+          "name": "item-entity-collision-box-remover",
           "version": "0.0.1",
           "sha1": "606316074592f48b136d3b4776bd5f1de323bf17"
         }
@@ -253,12 +253,12 @@
     "test-000042-4": {
       "mods": [
         {
-          "name": "item-entity-collision-box-remover_0.0.1.zip",
+          "name": "item-entity-collision-box-remover",
           "version": "0.0.1",
           "sha1": "606316074592f48b136d3b4776bd5f1de323bf17"
         },
         {
-          "name": "item-entity-collision-mask-remover_0.0.1.zip",
+          "name": "item-entity-collision-mask-remover",
           "version": "0.0.1",
           "sha1": "a9f2e61c8a84f44d97b0b561f483588713179784"
         }
