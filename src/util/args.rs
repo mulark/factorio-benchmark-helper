@@ -35,6 +35,7 @@ pub struct UserArgs {
     pub commit_flag: bool,
     pub commit_name: Option<String>,
     pub commit_type: Option<ProcedureKind>,
+    pub commit_recursive: bool,
 }
 
 impl Default for UserArgs {
@@ -62,6 +63,7 @@ impl Default for UserArgs {
             commit_flag: false,
             commit_name: None,
             commit_type: None,
+            commit_recursive: false,
         }
     }
 }
@@ -88,6 +90,12 @@ pub fn add_options_and_parse() -> UserArgs {
             Arg::with_name("overwrite")
                 .long("overwrite")
                 .help("If a benchmark/meta set already exists with NAME, overwrite")
+        )
+        .arg(
+            Arg::with_name("recursive")
+                .long("recursive")
+                .short("r")
+                .help("When committing a meta set, also recursively commit every meta/benchmark set contained within that set.")
         )
         .args(&[
             Arg::with_name("benchmark")
@@ -160,18 +168,22 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
         print_all_procedures();
         exit(0);
     }
+
     if args.contains_key("benchmark") {
         arguments.run_benchmark = true;
         arguments.benchmark_set_name = Some(args["benchmark"].vals[0].to_str().unwrap().trim().to_string());
     }
+
     if args.contains_key("meta") {
         arguments.run_meta = true;
         arguments.meta_set_name = Some(args["meta"].vals[0].to_str().unwrap().trim().to_string());
     }
+
     if args.contains_key("create-benchmark") {
         arguments.create_benchmark = true;
         arguments.benchmark_set_name = Some(args["create-benchmark"].vals[0].to_str().unwrap().trim().to_string());
     }
+
     if args.contains_key("pattern") {
         let mut pattern = String::new();
         for v in &args["pattern"].vals {
@@ -181,56 +193,27 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
         pattern = pattern.trim().to_owned();
         arguments.pattern = Some(pattern);
     }
+
     if args.contains_key("ticks") {
-        arguments.ticks = match args["ticks"].vals[0].clone().into_string() {
-            Ok(m) =>  match m.parse::<u32>() {
-                Ok(u) => if u != 0 {
-                    Some(u)
-                } else {
-                    eprintln!("Ticks not allowed to be 0!");
-                    exit(1);
-                }
-                _ => {
-                    eprintln!("Failed to process --ticks as u32");
-                    exit(1);
-                },
-            },
-            _ => {
-                eprintln!("Failed to process --ticks");
-                exit(1);
-            },
-        };
+        arguments.ticks = try_parse_nonzero_u32(args["ticks"].vals[0].to_str().unwrap_or(""));
     }
+
     if args.contains_key("runs") {
-        arguments.runs = match args["runs"].vals[0].clone().into_string() {
-            Ok(m) =>  match m.parse::<u32>() {
-                Ok(u) => if u != 0 {
-                    Some(u)
-                } else {
-                    eprintln!("Runs not allowed to be 0!");
-                    exit(1);
-                }
-                _ => {
-                    eprintln!("Failed to process --runs as u32");
-                    exit(1);
-                },
-            },
-            _ => {
-                eprintln!("Failed to process --runs");
-                exit(1);
-            },
-        };
+        arguments.runs = try_parse_nonzero_u32(args["runs"].vals[0].to_str().unwrap_or(""));
     }
+
     if args.contains_key("google-drive-folder") {
         let url = args["google-drive-folder"].vals[0].to_str().unwrap().trim().to_string();
         if url.contains("drive.google.com") {
             arguments.google_drive_folder = Some(url);
         }
     }
+
     if args.contains_key("mods") {
         let collect_as_csv: String = args["mods"].vals.iter().map(|x| x.to_str().unwrap().trim()).collect();
         arguments.mods_dirty = Some(collect_as_csv);
     }
+
     if args.contains_key("create-meta") {
         arguments.create_meta = true;
         let collect_as_csv: String = args["create-meta"].vals[1..].iter().map(|x| x.to_str().unwrap().trim()).collect();
@@ -239,6 +222,7 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
         let name = args["create-meta"].vals[0].to_str().unwrap().replace(',', "");
         arguments.meta_set_name = Some(name);
     }
+
     if args.contains_key("commit") {
         arguments.commit_flag = true;
         let commit_name = args["commit"].vals[1].to_str().unwrap().trim().to_string();
@@ -253,10 +237,30 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
         }
     }
 
+    if args.contains_key("recursive") {
+        arguments.commit_recursive = true;
+    }
+
     let i = Ini::load_from_file(fbh_config_file()).unwrap();
     if let Ok(b) = i.get_from::<String>(None, "auto-resave").unwrap_or_default().parse::<bool>() {
         arguments.resave = b;
     }
 
     arguments
+}
+
+fn try_parse_nonzero_u32(s: &str) -> Option<u32> {
+    match s.parse::<u32>() {
+        Ok(u) => if u != 0 {
+            Some(u)
+        } else {
+            eprintln!("Parsed arg not allowd to be 0!");
+            exit(1);
+        }
+        _ => {
+            eprintln!("Failed to process --runs as u32");
+            exit(1);
+        },
+    };
+    None
 }

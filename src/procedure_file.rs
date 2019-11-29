@@ -230,22 +230,39 @@ pub fn get_sets_from_meta(meta_set_key: String, source: ProcedureFileKind) -> Ha
     let mut current_sets = HashMap::new();
     let mut seen_keys = Vec::new();
     let top_level = load_top_level_from_file(source).unwrap();
-    walk_meta_recursive(meta_set_key, &top_level, &mut seen_keys, &mut current_sets);
+    walk_meta_recursive_for_benchmarks(meta_set_key, &top_level, &mut seen_keys, &mut current_sets);
     current_sets
 }
 
-fn walk_meta_recursive(key: String, top_level: &TopLevel, seen_keys: &mut Vec<String>, current_benchmark_sets: &mut HashMap<String, BenchmarkSet>) {
-    println!("processing {:?}", key);
+fn walk_meta_recursive_for_benchmarks(key: String, top_level: &TopLevel, seen_keys: &mut Vec<String>, current_benchmark_sets: &mut HashMap<String, BenchmarkSet>) {
     if !seen_keys.contains(&key) {
         if top_level.meta_sets.contains_key(&key) {
             seen_keys.push(key.clone());
             for k in &top_level.meta_sets[&key] {
-                walk_meta_recursive(k.to_string(), &top_level, seen_keys, current_benchmark_sets);
+                walk_meta_recursive_for_benchmarks(k.to_string(), &top_level, seen_keys, current_benchmark_sets);
             }
         }
         if top_level.benchmark_sets.contains_key(&key) {
             current_benchmark_sets.insert(key.clone(), top_level.benchmark_sets[&key].to_owned());
         }
+    }
+}
+
+pub fn get_metas_from_meta(meta_set_key: String, file_source_type: ProcedureFileKind) -> Vec<String> {
+    let mut seen_keys = Vec::new();
+    let mut current_meta_sets = Vec::new();
+    let top_level = load_top_level_from_file(file_source_type).unwrap();
+    walk_meta_recursive_for_metas(meta_set_key, &top_level, &mut seen_keys, &mut current_meta_sets);
+    current_meta_sets
+}
+
+fn walk_meta_recursive_for_metas(key: String, top_level: &TopLevel, seen_keys: &mut Vec<String>, current_meta_sets: &mut Vec<String>) {
+    if !seen_keys.contains(&key) && top_level.meta_sets.contains_key(&key) {
+        seen_keys.push(key.clone());
+        for k in &top_level.meta_sets[&key] {
+            walk_meta_recursive_for_metas(k.to_string(), &top_level, seen_keys, current_meta_sets);
+        }
+        current_meta_sets.push(key);
     }
 }
 

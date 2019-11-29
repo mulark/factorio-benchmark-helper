@@ -20,6 +20,7 @@ use std::collections::HashMap;
 use crate::procedure_file::read_meta_from_file;
 use crate::procedure_file::write_meta_to_file;
 use crate::procedure_file::get_sets_from_meta;
+use crate::procedure_file::get_metas_from_meta;
 use crate::util::bulk_sha256;
 use std::env;
 use std::path::PathBuf;
@@ -70,12 +71,6 @@ fn main() {
     let mut parsed_args = add_options_and_parse();
     execute_from_args(&mut parsed_args);
 }
-// Precedence of exclusive execution
-// commit
-// run benchmark
-// run metabenchmark
-// create benchmark
-// create metabenchmark
 
 fn execute_from_args(mut args: &mut UserArgs) {
     if args.interactive {
@@ -166,6 +161,19 @@ fn perform_commit(args: &mut UserArgs) {
         }
     } else if commit_type == &ProcedureKind::Meta {
         if let Some(meta_set) = read_meta_from_file(commit_name, ProcedureFileKind::Local) {
+            if args.commit_recursive {
+                println!("Selected recursive, committing all members of this meta");
+                let meta_sets = get_metas_from_meta(commit_name.to_string(), ProcedureFileKind::Local);
+                let benchmark_sets = get_sets_from_meta(commit_name.to_string(), ProcedureFileKind::Local);
+                for (name, set) in benchmark_sets {
+                    write_procedure_to_file(&name, set, args.overwrite, ProcedureFileKind::Master, args.interactive)
+                }
+                for meta in meta_sets {
+                    if let Some(members) = read_meta_from_file(&meta, ProcedureFileKind::Local) {
+                        write_meta_to_file(&meta, members, args.overwrite, ProcedureFileKind::Master)
+                    }
+                }
+            }
             write_meta_to_file(commit_name, meta_set, args.overwrite, ProcedureFileKind::Master);
         } else {
             eprintln!("Failed to commit meta set {:?} to master, because that meta set doesn't exist in local!", commit_name);
