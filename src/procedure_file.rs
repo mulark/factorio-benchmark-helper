@@ -296,7 +296,7 @@ pub fn create_procedure_example() {
     write_procedure_to_file("test-000041-2", BenchmarkSet::default(), true, ProcedureFileKind::Local, true);
     write_meta_to_file("mulark.github.io maps", vec!("test-000041-1".to_string(), "test-000041-2".to_string()), true, ProcedureFileKind::Local);
     let single_map = Map::new("test-000046.dummy_load", "a hash", "a download link");
-    let single_mod = Mod::new("this mod", "this hash", "this version");
+    let single_mod = Mod::new("this mod", "this mod.zip", "this hash", "this version");
     let mut another_mod = single_mod.clone();
     another_mod.name = "something else".to_string();
 

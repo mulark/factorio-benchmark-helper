@@ -29,6 +29,8 @@ pub use fbh_paths::{
     fbh_results_database, fbh_save_dl_dir, initialize, fbh_known_hash_file, fbh_resave_dir,
 };
 
+pub mod performance_results;
+
 pub use crate::procedure_file::{
     BenchmarkSet,
     ProcedureKind,

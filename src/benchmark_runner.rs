@@ -1,5 +1,6 @@
 extern crate regex;
 
+use crate::util::performance_results::{CollectionData, BenchmarkData, VerboseData};
 use std::sync::Mutex;
 use std::fs::remove_dir_all;
 use std::fs::read_to_string;
@@ -51,12 +52,12 @@ pub struct SimpleBenchmarkParam {
     pub ticks: u32,
     pub runs: u32,
     pub sha256: String,
-    pub persist_data_to_db: bool,
+    pub persist_data_to_db: PersistDataToDB,
     pub collection_id: u32,
 }
 
 impl SimpleBenchmarkParam {
-    pub fn new(map_path: PathBuf, ticks: u32, runs: u32, persist_data_to_db: bool, sha256: String) -> SimpleBenchmarkParam {
+    pub fn new(map_path: PathBuf, ticks: u32, runs: u32, persist_data_to_db: PersistDataToDB, sha256: String) -> SimpleBenchmarkParam {
         SimpleBenchmarkParam {
             name: map_path.file_name().unwrap().to_string_lossy().to_string(),
             path: map_path,
@@ -67,6 +68,12 @@ impl SimpleBenchmarkParam {
             collection_id: 0,
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum PersistDataToDB {
+    True,
+    False,
 }
 
 #[derive(Debug)]
@@ -224,7 +231,7 @@ fn parse_stdout_for_errors(stdout: &str) {
 
 pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
     download_benchmark_deps_parallel(&sets);
-    for (name, set) in sets {
+    for (name, mut set) in sets {
         validate_benchmark_set_parameters(&set);
         for map in &set.maps {
             let fpath = fbh_save_dl_dir().join(map.name.clone());
@@ -244,13 +251,16 @@ pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
                 }
             }
         }
-        for indiv_mod in &set.mods {
-            let fpath = fbh_mod_dl_dir().join(indiv_mod.name.clone());
+        for indiv_mod in &mut set.mods {
+            if indiv_mod.file_name.is_empty() {
+                indiv_mod.file_name = format!("{}_{}.zip", indiv_mod.name, indiv_mod.version);
+            }
+            let fpath = fbh_mod_dl_dir().join(&indiv_mod.file_name);
             assert!(fpath.exists());
-            match std::fs::write(fbh_mod_use_dir().join(indiv_mod.name.clone()), &read(&fpath).unwrap()) {
+            match std::fs::write(fbh_mod_use_dir().join(&indiv_mod.file_name), &read(&fpath).unwrap()) {
                 Ok(_m) => (),
                 _ => {
-                    eprintln!("Failed to copy mod {:?} for use.", indiv_mod.name);
+                    eprintln!("Failed to copy mod {:?} for use.", indiv_mod.file_name);
                     exit(1);
                 }
             }
@@ -289,7 +299,7 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
                 fbh_save_dl_dir().join(&map.name),
                 NUMBER_ERROR_CHECKING_TICKS,
                 NUMBER_ERROR_CHECKING_RUNS,
-                false,
+                PersistDataToDB::False,
                 map.sha256.clone(),
             )
         );
@@ -298,14 +308,14 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
                 fbh_save_dl_dir().join(&map.name),
                 set.ticks,
                 set.runs,
-                true,
+                PersistDataToDB::True,
                 map.sha256.clone(),
             )
         );
     }
     for param in initial_error_check_params {
         println!("Checking errors for map: {:?}", param.path);
-        let this_duration = run_benchmark_single_map(param, 0);
+        let this_duration = run_benchmark_single_map(param, None);
         if let Some(duration) = this_duration {
             map_durations.push(duration)
         }
@@ -334,13 +344,13 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
         3, expected_total_benchmarking_run_overhead,
         3, expected_total_game_initialization_time);
     println!(
-        "Expecting benchmarks to take: {}:{:02}:{:02}",
+        "Expecting benchmarks to take: {}:{:02}:{:02.3}",
         hrs, mins, secs
     );
-    let collection_id = upload_collection(set_name);
-    for mut param in set_params {
-        param.collection_id = collection_id;
-        run_benchmark_single_map(param, collection_id);
+
+    let mut collection_data = CollectionData::default();
+    for param in set_params {
+        run_benchmark_single_map(param, Some(&mut collection_data));
     }
     let total_duration = now.elapsed().as_secs_f64();
     let hrs = (total_duration / 3600.0) as u64;
@@ -350,16 +360,29 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
         "Benchmarks took: {}:{:02}:{:02.3}",
         hrs, mins, secs
     );
+
+    let s = serde_json::to_string_pretty(&collection_data).unwrap();
+    let mut f = File::open("test.txt").unwrap();
+    write!(f, "{}" ,s);
+    panic!("end");
 }
 
-fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_id: u32) -> Option<BenchmarkDurationOverhead> {
+fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_data: Option<&mut CollectionData>) -> Option<BenchmarkDurationOverhead> {
     //tick is implied in timings dump
+    let mut bench_data = BenchmarkData::default();
+    {
+        bench_data.map_name = params.name;
+        bench_data.runs = params.runs;
+        bench_data.ticks = params.ticks;
+        bench_data.map_hash = params.sha256;
+    }
+
     let verbose_timings =
         "wholeUpdate,gameUpdate,circuitNetworkUpdate,transportLinesUpdate,\
          fluidsUpdate,entityUpdate,mapGenerator,electricNetworkUpdate,logisticManagerUpdate,\
          constructionManagerUpdate,pathFinder,trains,trainPathFinder,commander,chartRefresh,\
          luaGarbageIncremental,chartUpdate,scriptUpdate";
-    let benchmark_id = if params.persist_data_to_db { upload_benchmark(params.clone()) } else { 0 };
+
     let run_bench_cmd = Command::new(get_executable_path())
         .arg("--benchmark")
         .arg(&params.path)
@@ -373,6 +396,7 @@ fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_id: u32) ->
         .arg(fbh_mod_use_dir().to_str().unwrap())
         .output()
         .expect("");
+
     let bench_data_stdout_raw = String::from_utf8_lossy(&run_bench_cmd.stdout);
     let regex = &Regex::new(params.path.file_name().unwrap().to_str().unwrap()).unwrap();
     let captures = regex.captures(&bench_data_stdout_raw);
@@ -382,29 +406,78 @@ fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_id: u32) ->
     };
     parse_stdout_for_errors(&bench_data_stdout);
 
-    let benchmark_times =
-        parse_stdout_for_benchmark_time_breakdown(&bench_data_stdout, params.ticks, params.runs);
+    let benchmark_times = if params.persist_data_to_db == PersistDataToDB::False {
+        parse_stdout_for_benchmark_time_breakdown(&bench_data_stdout, params.ticks, params.runs)
+    } else {
+        None
+    };
 
     let mut run_index = 0;
     let mut line_index = 0;
 
-    let mut verbose_data: Vec<String> = Vec::with_capacity((params.ticks * params.runs) as usize);
+    let mut verbose_data_raw: Vec<String> = Vec::with_capacity((params.ticks * params.runs) as usize);
     for line in bench_data_stdout.lines() {
         let mut line: String = line.to_string();
-        if params.persist_data_to_db && VERBOSE_DATA_ROW_MATCH_PATTERN.is_match(&line) {
+        if params.persist_data_to_db == PersistDataToDB::True && VERBOSE_DATA_ROW_MATCH_PATTERN.is_match(&line) {
             if line_index % 1000 == 0 {
                 run_index += 1;
             }
-            line.push_str(&format!("{},{}\n", run_index, benchmark_id));
-            verbose_data.push(line.to_string());
+            line.push_str(&format!("{}", run_index));
+            verbose_data_raw.push(line.replace('t',""));
             line_index += 1;
             assert!(run_index > 0);
         }
     }
-    if params.persist_data_to_db {
+    if params.persist_data_to_db == PersistDataToDB::True {
         //We should have as many lines as ticks have been performed
-        assert_eq!((params.ticks * params.runs) as usize, verbose_data.len());
-        upload_verbose(verbose_data, benchmark_id, collection_id);
+        assert_eq!((params.ticks * params.runs) as usize, verbose_data_raw.len());
+        let verbose_data = parse_verbose_strings_into_structure(verbose_data_raw);
+        bench_data.verbose_data = verbose_data;
+        collection_data.unwrap().benchmarks.push(bench_data);
     }
     benchmark_times
+}
+
+fn parse_verbose_strings_into_structure(verbose_data_raw: Vec<String>) -> Vec<VerboseData> {
+    let mut verbose_data_holder = Vec::new();
+    for line in verbose_data_raw {
+        let mut verbose_data = VerboseData::default();
+        let temp_data_holder: Vec<_> = line.split(',').collect();
+        assert!(temp_data_holder.len() == 20);
+        verbose_data.tick_number                = temp_data_holder[0].parse().unwrap();
+        verbose_data.wholeUpdate                = temp_data_holder[1].parse().unwrap();
+        verbose_data.gameUpdate                 = temp_data_holder[2].parse().unwrap();
+        verbose_data.circuitNetworkUpdate       = temp_data_holder[3].parse().unwrap();
+        verbose_data.transportLinesUpdate       = temp_data_holder[4].parse().unwrap();
+        verbose_data.fluidsUpdate               = temp_data_holder[5].parse().unwrap();
+        verbose_data.entityUpdate               = temp_data_holder[6].parse().unwrap();
+        verbose_data.mapGenerator               = temp_data_holder[7].parse().unwrap();
+        verbose_data.electricNetworkUpdate      = temp_data_holder[8].parse().unwrap();
+        verbose_data.logisticManagerUpdate      = temp_data_holder[9].parse().unwrap();
+        verbose_data.constructionManagerUpdate  = temp_data_holder[10].parse().unwrap();
+        verbose_data.pathFinder                 = temp_data_holder[11].parse().unwrap();
+        verbose_data.trains                     = temp_data_holder[12].parse().unwrap();
+        verbose_data.trainPathFinder            = temp_data_holder[13].parse().unwrap();
+        verbose_data.commander                  = temp_data_holder[14].parse().unwrap();
+        verbose_data.chartRefresh               = temp_data_holder[15].parse().unwrap();
+        verbose_data.luaGarbageIncremental      = temp_data_holder[16].parse().unwrap();
+        verbose_data.chartUpdate                = temp_data_holder[17].parse().unwrap();
+        verbose_data.scriptUpdate               = temp_data_holder[18].parse().unwrap();
+        verbose_data.run_index                  = temp_data_holder[19].parse().unwrap();
+        verbose_data_holder.push(verbose_data);
+    }
+    verbose_data_holder
+}
+
+#[test]
+fn test_string_parse() {
+    let verbose_data_raw = vec!("0,7860184,7845014,30,270,670,5530068,490,2227775,0,900,0,390,0,770,0,1010,450,1040,1".to_string());
+    parse_verbose_strings_into_structure(verbose_data_raw);
+}
+
+#[test]
+#[should_panic]
+fn test_string_parse_expect_fail() {
+    let verbose_data_raw = vec!("0,7860184,7845014,30,270,670,5530068,490,2227775,0,900,0,390,0,770,0,1010,450,1040,1\n".to_string());
+    parse_verbose_strings_into_structure(verbose_data_raw);
 }
