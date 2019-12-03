@@ -99,7 +99,7 @@ fn load_top_level_from_file(file_type: ProcedureFileKind) -> Option<TopLevel> {
         ProcedureFileKind::Local => {
             if fbh_procedure_json_local_file().exists() {
                 let json: Option<TopLevel> = serde_json::from_slice(
-                    &read(fbh_procedure_json_local_file()).expect("")
+                    &read(fbh_procedure_json_local_file()).unwrap()
                 ).unwrap_or_default();
                 return json;
             }
@@ -107,7 +107,7 @@ fn load_top_level_from_file(file_type: ProcedureFileKind) -> Option<TopLevel> {
         ProcedureFileKind::Master => {
             if fbh_procedure_json_master_file().exists() {
                 let json: Option<TopLevel> = serde_json::from_slice(
-                    &read(fbh_procedure_json_master_file()).expect("")
+                    &read(fbh_procedure_json_master_file()).unwrap()
                 ).unwrap_or_default();
                 return json;
             }
@@ -138,7 +138,7 @@ pub fn print_all_procedures() {
     println!("Local: ");
     print_procedures(ProcedureKind::Both, ProcedureFileKind::Local);
     println!("Master:");
-    print_procedures(ProcedureKind::Both, ProcedureFileKind::Local);
+    print_procedures(ProcedureKind::Both, ProcedureFileKind::Master);
 }
 
 pub fn read_procedure_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<BenchmarkSet> {
@@ -286,6 +286,7 @@ fn load_known_map_hashes() -> Vec<String> {
     ).unwrap_or_default()
 }
 
+#[allow(dead_code)]
 pub fn create_procedure_example() {
     let mut set = BenchmarkSet::default();
     set.maps = vec!(Map::new("name","hash","dl"));
