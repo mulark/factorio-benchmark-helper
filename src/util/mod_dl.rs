@@ -11,14 +11,17 @@ const MOD_PORTAL_API_URL: &str = "https://mods.factorio.com/api/mods/";
 #[derive(Debug, Serialize, Deserialize, Clone, PartialOrd, Ord, Eq)]
 pub struct Mod {
     pub name: String,
+    #[serde(default)]
+    pub file_name: String,
     pub version: String,
     pub sha1: String,
 }
 
 impl Mod {
-    pub fn new(name: &str, version: &str, hash: &str) -> Mod {
+    pub fn new(name: &str, file_name: &str, version: &str, hash: &str) -> Mod {
         Mod {
             name: name.to_string(),
+            file_name: file_name.to_string(),
             version: version.to_string(),
             sha1: hash.to_string(),
         }
@@ -41,8 +44,8 @@ struct ModMetaInfoHolder {
 
 #[derive(Debug, Deserialize, Clone)]
 struct ModPortalReleaseHolder {
-    #[serde(skip)]
-    download_link: String,
+    #[serde(skip_serializing)]
+    download_url: String,
     file_name: String,
     version: String,
     sha1: String,
@@ -112,20 +115,11 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod], handles: &mut Vec<JoinHandle<()>>) 
                     {
                         println!("Downloading Mod: {}", filename);
                         let mod_url = format!("{}{}", MOD_PORTAL_API_URL, m.name);
-                        let meta_info_response: ModMetaInfoHolder = match reqwest::get(&mod_url) {
-                            Ok(mut m) => match m.json() {
-                                Ok(j) => j,
-                                Err(e) => {
-                                    eprintln!("Error {}", e);
-                                    eprintln!("{:?}", m);
-                                    exit(1);
-                                },
-                            }
-                            Err(e) => {
-                                eprintln!("Unexpected response! {}", e);
-                                exit(1);
-                            }
-                        };
+                        let resp_raw = reqwest::get(&mod_url);
+                        let mut meta_info_response = ModMetaInfoHolder{releases: Vec::new()};
+                        if let Ok(mut resp) = resp_raw {
+                            meta_info_response = resp.json().unwrap();
+                        }
                         if m.version.is_empty() {
                             for release in &meta_info_response.releases {
                                 m.version = compare_version_str(&release.version, &m.version);
@@ -133,7 +127,9 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod], handles: &mut Vec<JoinHandle<()>>) 
                         }
                         for release in meta_info_response.releases {
                             if release.version == m.version {
-                                let dl_req = format!("{}{}?username={}&token={}",MOD_PORTAL_URL,release.download_link, username, token);
+                                assert!(!username.is_empty());
+                                assert!(!token.is_empty());
+                                let dl_req = format!("{}{}?username={}&token={}",MOD_PORTAL_URL,release.download_url, username, token);
 
                                 let mut resp = match reqwest::get(&dl_req) {
                                     Ok(r) => r,
@@ -143,10 +139,21 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod], handles: &mut Vec<JoinHandle<()>>) 
                                     },
                                 };
                                 if resp.status().as_u16() == 200 {
+                                    let fpath = fbh_mod_dl_dir().join(&release.file_name);
+                                    if fpath.exists() {
+                                        match std::fs::remove_file(&fpath) {
+                                            Ok(_) => (),
+                                            Err(e) => {
+                                                eprintln!("Mod exists in local directory but we couldn't remove it!");
+                                                eprintln!("Reason: {}", e);
+                                                exit(1);
+                                            },
+                                        }
+                                    }
                                     let mut file = OpenOptions::new()
                                         .write(true)
                                         .create(true)
-                                        .open(fbh_mod_dl_dir().join(&release.file_name))
+                                        .open(fpath)
                                         .unwrap();
                                     match resp.copy_to(&mut file) {
                                         Ok(_) => (),
@@ -243,6 +250,7 @@ pub fn get_mod_info(mod_name: &str, mod_version: &str) -> Option<Mod> {
                         let mod_name = release.file_name.split('_').collect::<Vec<_>>()[0];
                         return Some(Mod {
                             name: mod_name.to_string(),
+                            file_name: release.file_name,
                             sha1: release.sha1,
                             version: release.version,
                         });
