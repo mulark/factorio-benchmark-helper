@@ -11,7 +11,13 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 extern crate sha2;
+extern crate bincode;
+extern crate lzma;
 
+use std::io::Read;
+use std::io::Write;
+use crate::util::performance_results::CollectionData;
+use std::fs::{File};
 use crate::procedure_file::is_known_map_hash;
 use crate::util::sha256sum;
 use crate::procedure_file::write_known_map_hash;
@@ -25,6 +31,8 @@ use crate::util::bulk_sha256;
 use std::env;
 use std::path::PathBuf;
 use std::process::exit;
+use std::time::Instant;
+use lzma::{LzmaWriter, LzmaReader};
 
 mod benchmark_runner;
 use benchmark_runner::{
@@ -46,10 +54,10 @@ use util::{
     prompt_until_allowed_val,
     prompt_until_allowed_val_in_range,
     prompt_until_empty_str,
-    read_procedure_from_file,
+    read_benchmark_set_from_file,
     trim_newline,
     UserArgs,
-    write_procedure_to_file,
+    write_benchmark_set_to_file,
     get_mod_info,
 };
 
@@ -68,6 +76,27 @@ fn main() {
             panic!(e);
         }
     }
+    /*
+    let now = Instant::now();
+    let s = std::fs::read_to_string("test.txt").unwrap();
+    let j: CollectionData = serde_json::from_str(&s).unwrap();
+    println!("now.elasped {:.03}", now.elapsed().as_millis() as f64 / 1000.0);
+    let bytes = bincode::serialize(&j).unwrap();
+    let mut f2 = File::create("test.txt.plain.xz").unwrap();
+    let mut f = LzmaWriter::new_compressor(&f2, 6).unwrap();
+    f.write_all(&bytes);
+    f.finish().unwrap();
+    println!("now.elasped {:.03}", now.elapsed().as_millis() as f64 / 1000.0);
+
+    let mut f2 = File::open("test.txt.plain.xz").unwrap();
+    let mut f3 = LzmaReader::new_decompressor(f2).unwrap();
+    let mut buf = Vec::new();
+    f3.read_to_end(&mut buf).unwrap();
+    let reser: CollectionData = bincode::deserialize(&buf).unwrap();
+
+    println!("now.elasped {:.03}", now.elapsed().as_millis() as f64 / 1000.0);
+    exit(0);*/
+
     let mut parsed_args = add_options_and_parse();
     execute_from_args(&mut parsed_args);
 }
@@ -151,8 +180,8 @@ fn perform_commit(args: &mut UserArgs) {
     let commit_name = args.commit_name.as_ref().unwrap();
     let commit_type = args.commit_type.as_ref().unwrap();
     if commit_type == &ProcedureKind::Benchmark {
-        if let Some(benchmark_set) =  read_procedure_from_file(commit_name, ProcedureFileKind::Local) {
-            write_procedure_to_file(commit_name, benchmark_set, args.overwrite, ProcedureFileKind::Master, false);
+        if let Some(benchmark_set) =  read_benchmark_set_from_file(commit_name, ProcedureFileKind::Local) {
+            write_benchmark_set_to_file(commit_name, benchmark_set, args.overwrite, ProcedureFileKind::Master, false);
             println!("Successfully committed {:?} to the master json file... Now submit a PR :)", commit_name);
             exit(0);
         } else {
@@ -166,7 +195,7 @@ fn perform_commit(args: &mut UserArgs) {
                 let meta_sets = get_metas_from_meta(commit_name.to_string(), ProcedureFileKind::Local);
                 let benchmark_sets = get_sets_from_meta(commit_name.to_string(), ProcedureFileKind::Local);
                 for (name, set) in benchmark_sets {
-                    write_procedure_to_file(&name, set, args.overwrite, ProcedureFileKind::Master, args.interactive)
+                    write_benchmark_set_to_file(&name, set, args.overwrite, ProcedureFileKind::Master, args.interactive)
                 }
                 for meta in meta_sets {
                     if let Some(members) = read_meta_from_file(&meta, ProcedureFileKind::Local) {
@@ -197,8 +226,8 @@ fn convert_args_to_benchmark_run(args: &mut UserArgs) -> HashMap<String, Benchma
     }
     let name = args.benchmark_set_name.as_ref().unwrap().to_owned();
     let mut hash_map = HashMap::default();
-    let local = read_procedure_from_file(&name, ProcedureFileKind::Local);
-    let master = read_procedure_from_file(&name, ProcedureFileKind::Master);
+    let local = read_benchmark_set_from_file(&name, ProcedureFileKind::Local);
+    let master = read_benchmark_set_from_file(&name, ProcedureFileKind::Master);
     if local.is_some() || master.is_some() {
         if local.is_some() && master.is_some() && local.clone().unwrap() != master.clone().unwrap() {
             println!("WARN: benchmark with name {:?} is present in both local and master, and they differ.", &name);
@@ -313,7 +342,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
     assert!(!benchmark.maps.is_empty());
     assert!(benchmark.runs > 0);
     assert!(benchmark.ticks > 0);
-    write_procedure_to_file(
+    write_benchmark_set_to_file(
         &set_name,
         benchmark,
         args.overwrite,

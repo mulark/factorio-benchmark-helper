@@ -33,8 +33,8 @@ pub use crate::procedure_file::{
     BenchmarkSet,
     ProcedureKind,
     ProcedureFileKind,
-    read_procedure_from_file,
-    write_procedure_to_file,
+    read_benchmark_set_from_file,
+    write_benchmark_set_to_file,
     read_meta_from_file,
     write_meta_to_file,
     print_all_procedures,
@@ -59,6 +59,8 @@ lazy_static! {
     static ref FACTORIO_EXECUTABLE_VERSION_LINE: Regex = Regex::new(r"Version: \d{1,2}\.\d{2,3}\.\d{2,3}.*\n").unwrap();
     //If Factorio ever goes to 3/4/4 digits for their versioning, this will break.
 }
+
+
 
 pub fn download_benchmark_deps_parallel(sets: &HashMap<String,BenchmarkSet>) {
     let mut handles = Vec::new();

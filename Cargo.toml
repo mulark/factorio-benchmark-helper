@@ -23,6 +23,8 @@ sha2 = "*"
 raw-cpuid = "*"
 clap = "*"
 nix = "*"
+bincode = "*"
+rust-lzma = "*"
 
 [profile.release]
 debug = 1

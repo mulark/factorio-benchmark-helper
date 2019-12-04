@@ -1,3 +1,4 @@
+use crate::procedure_file::update_master_json;
 use crate::util::{
     generic_read_configuration_setting,
     setup_database,
@@ -23,24 +24,7 @@ pub fn initialize() -> Result<(), std::io::Error> {
     if !fbh_mod_use_dir().exists() {
         std::fs::create_dir(fbh_mod_use_dir())?;
     }
-    if !fbh_procedure_json_master_file().exists() {
-        if let Ok(mut resp) = reqwest::get("https://raw.githubusercontent.com/mulark/factorio-benchmark-helper/master/procedures.json") {
-            if resp.status() == 200 {
-                let mut file = OpenOptions::new()
-                    .write(true)
-                    .create(true)
-                    .open(fbh_procedure_json_master_file())
-                    .unwrap();
-                match resp.copy_to(&mut file) {
-                    Ok(_) => (),
-                    Err(e) => {
-                        println!("Failed to write file to {:?}!", file);
-                        panic!(e);
-                    },
-                }
-            }
-        }
-    }
+    update_master_json();
     if !fbh_data_path().join("config.ini").exists() {
         fbh_init_config_file()?;
     }
