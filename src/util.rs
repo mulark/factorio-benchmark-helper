@@ -15,9 +15,7 @@ use core::str::FromStr;
 use std::process::exit;
 pub use database::{
     setup_database,
-    upload_verbose,
-    upload_collection,
-    upload_benchmark,
+    upload_to_db,
 };
 mod fbh_paths;
 use sha2::Digest;
@@ -239,7 +237,7 @@ pub fn bulk_sha256(paths: Vec<PathBuf>) -> Vec<(PathBuf, String)> {
     path_sha256_tuple_holder
 }
 
-pub fn query_system_info() -> String {
+pub fn query_system_cpuid() -> String {
     let cpuid = raw_cpuid::CpuId::new();
     cpuid.get_extended_function_info().as_ref().map_or_else(
             || "n/a",

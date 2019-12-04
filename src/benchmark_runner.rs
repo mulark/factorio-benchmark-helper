@@ -1,6 +1,8 @@
 extern crate regex;
 
-use crate::util::performance_results::{CollectionData, BenchmarkData, VerboseData};
+use crate::util::query_system_cpuid;
+use crate::util::FACTORIO_INFO;
+use crate::util::performance_results::{CollectionData, BenchmarkData};
 use std::sync::Mutex;
 use std::fs::remove_dir_all;
 use std::fs::read_to_string;
@@ -17,9 +19,7 @@ use crate::util::{
     fbh_save_dl_dir,
     fbh_mod_dl_dir,
     fbh_mod_use_dir,
-    upload_collection,
-    upload_benchmark,
-    upload_verbose,
+    upload_to_db,
 };
 use regex::Regex;
 use std::path::PathBuf;
@@ -349,9 +349,18 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     );
 
     let mut collection_data = CollectionData::default();
+    collection_data.benchmark_name = set_name.to_string();
+
+    let (version, os, exe_type) = FACTORIO_INFO.clone();
+    collection_data.factorio_version = version;
+    collection_data.os = os;
+    collection_data.executable_type = exe_type;
+    collection_data.cpuid = query_system_cpuid();
+
     for param in set_params {
         run_benchmark_single_map(param, Some(&mut collection_data));
     }
+
     let total_duration = now.elapsed().as_secs_f64();
     let hrs = (total_duration / 3600.0) as u64;
     let mins = ((total_duration % 3600.0) / 60.0) as u64;
@@ -360,11 +369,8 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
         "Benchmarks took: {}:{:02}:{:02.3}",
         hrs, mins, secs
     );
+    upload_to_db(collection_data);
 
-    let s = serde_json::to_string_pretty(&collection_data).unwrap();
-    let mut f = File::open("test.txt").unwrap();
-    write!(f, "{}" ,s);
-    panic!("end");
 }
 
 fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_data: Option<&mut CollectionData>) -> Option<BenchmarkDurationOverhead> {
@@ -415,7 +421,7 @@ fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_data: Optio
     let mut run_index = 0;
     let mut line_index = 0;
 
-    let mut verbose_data_raw: Vec<String> = Vec::with_capacity((params.ticks * params.runs) as usize);
+    let mut verbose_data: Vec<String> = Vec::with_capacity((params.ticks * params.runs) as usize);
     for line in bench_data_stdout.lines() {
         let mut line: String = line.to_string();
         if params.persist_data_to_db == PersistDataToDB::True && VERBOSE_DATA_ROW_MATCH_PATTERN.is_match(&line) {
@@ -423,61 +429,16 @@ fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_data: Optio
                 run_index += 1;
             }
             line.push_str(&format!("{}", run_index));
-            verbose_data_raw.push(line.replace('t',""));
+            verbose_data.push(line.replace('t',""));
             line_index += 1;
             assert!(run_index > 0);
         }
     }
     if params.persist_data_to_db == PersistDataToDB::True {
         //We should have as many lines as ticks have been performed
-        assert_eq!((params.ticks * params.runs) as usize, verbose_data_raw.len());
-        let verbose_data = parse_verbose_strings_into_structure(verbose_data_raw);
+        assert_eq!((params.ticks * params.runs) as usize, verbose_data.len());
         bench_data.verbose_data = verbose_data;
         collection_data.unwrap().benchmarks.push(bench_data);
     }
     benchmark_times
-}
-
-fn parse_verbose_strings_into_structure(verbose_data_raw: Vec<String>) -> Vec<VerboseData> {
-    let mut verbose_data_holder = Vec::new();
-    for line in verbose_data_raw {
-        let mut verbose_data = VerboseData::default();
-        let temp_data_holder: Vec<_> = line.split(',').collect();
-        assert!(temp_data_holder.len() == 20);
-        verbose_data.tick_number                = temp_data_holder[0].parse().unwrap();
-        verbose_data.wholeUpdate                = temp_data_holder[1].parse().unwrap();
-        verbose_data.gameUpdate                 = temp_data_holder[2].parse().unwrap();
-        verbose_data.circuitNetworkUpdate       = temp_data_holder[3].parse().unwrap();
-        verbose_data.transportLinesUpdate       = temp_data_holder[4].parse().unwrap();
-        verbose_data.fluidsUpdate               = temp_data_holder[5].parse().unwrap();
-        verbose_data.entityUpdate               = temp_data_holder[6].parse().unwrap();
-        verbose_data.mapGenerator               = temp_data_holder[7].parse().unwrap();
-        verbose_data.electricNetworkUpdate      = temp_data_holder[8].parse().unwrap();
-        verbose_data.logisticManagerUpdate      = temp_data_holder[9].parse().unwrap();
-        verbose_data.constructionManagerUpdate  = temp_data_holder[10].parse().unwrap();
-        verbose_data.pathFinder                 = temp_data_holder[11].parse().unwrap();
-        verbose_data.trains                     = temp_data_holder[12].parse().unwrap();
-        verbose_data.trainPathFinder            = temp_data_holder[13].parse().unwrap();
-        verbose_data.commander                  = temp_data_holder[14].parse().unwrap();
-        verbose_data.chartRefresh               = temp_data_holder[15].parse().unwrap();
-        verbose_data.luaGarbageIncremental      = temp_data_holder[16].parse().unwrap();
-        verbose_data.chartUpdate                = temp_data_holder[17].parse().unwrap();
-        verbose_data.scriptUpdate               = temp_data_holder[18].parse().unwrap();
-        verbose_data.run_index                  = temp_data_holder[19].parse().unwrap();
-        verbose_data_holder.push(verbose_data);
-    }
-    verbose_data_holder
-}
-
-#[test]
-fn test_string_parse() {
-    let verbose_data_raw = vec!("0,7860184,7845014,30,270,670,5530068,490,2227775,0,900,0,390,0,770,0,1010,450,1040,1".to_string());
-    parse_verbose_strings_into_structure(verbose_data_raw);
-}
-
-#[test]
-#[should_panic]
-fn test_string_parse_expect_fail() {
-    let verbose_data_raw = vec!("0,7860184,7845014,30,270,670,5530068,490,2227775,0,900,0,390,0,770,0,1010,450,1040,1\n".to_string());
-    parse_verbose_strings_into_structure(verbose_data_raw);
 }

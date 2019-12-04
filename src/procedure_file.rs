@@ -222,10 +222,10 @@ pub fn write_meta_to_file(name: &str, members: Vec<String>, force: bool, file_ki
         std::fs::write(file_path, j).unwrap();
     }
 }
-/*
-Returns a hashmap of all benchmark sets contained within this meta set, as well as the meta sets
-found recursively within meta sets contained within this meta set.
-*/
+
+
+// Returns a hashmap of all benchmark sets contained within this meta set, as well as the meta sets
+// found recursively within meta sets contained within this meta set.
 pub fn get_sets_from_meta(meta_set_key: String, source: ProcedureFileKind) -> HashMap<String, BenchmarkSet> {
     let mut current_sets = HashMap::new();
     let mut seen_keys = Vec::new();
