@@ -2,6 +2,7 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
+use crate::util::fbh_cache_path;
 use std::path::PathBuf;
 use crate::util::fbh_known_hash_file;
 use crate::util::prompt_until_allowed_val;
@@ -99,7 +100,7 @@ pub enum ProcedureFileKind {
 
 pub fn update_master_json() {
     if let Some(orig_top_level) = load_top_level_from_file(&ProcedureFileKind::Master) {
-        let new = fbh_procedure_json_master_file().join(".new");
+        let new = fbh_cache_path().join(".new.json");
         perform_master_json_dl(&new);
         if let Some(new_top_level) = load_top_level_from_file(&ProcedureFileKind::Custom(new)) {
             for (k, v) in new_top_level.benchmark_sets {
@@ -118,7 +119,6 @@ pub fn update_master_json() {
     } else {
         perform_master_json_dl(&fbh_procedure_json_master_file());
     }
-
 }
 
 fn perform_master_json_dl(file_to_write: &PathBuf) {
