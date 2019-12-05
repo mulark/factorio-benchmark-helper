@@ -407,7 +407,7 @@ fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_data: Optio
         .output()
         .expect("");
 
-    let bench_data_stdout_raw = String::from_utf8_lossy(&run_bench_cmd.stdout);
+    let bench_data_stdout_raw = String::from_utf8_lossy(&run_bench_cmd.stdout).replace("\r", "");
     let regex = &Regex::new(params.path.file_name().unwrap().to_str().unwrap()).unwrap();
     let captures = regex.captures(&bench_data_stdout_raw);
     let bench_data_stdout = match captures {
