@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 pub fn initialize() -> Result<(), std::io::Error> {
     if !fbh_data_path().exists() {
-        std::fs::create_dir(fbh_data_path())?;
+        std::fs::create_dir_all(fbh_data_path())?;
     }
     if !fbh_cache_path().exists() {
         std::fs::create_dir(fbh_cache_path())?;
@@ -24,7 +24,9 @@ pub fn initialize() -> Result<(), std::io::Error> {
     if !fbh_mod_use_dir().exists() {
         std::fs::create_dir(fbh_mod_use_dir())?;
     }
-    update_master_json();
+    if !fbh_procedure_directory().exists() {
+        std::fs::create_dir(fbh_procedure_directory())?;
+    }
     if !fbh_data_path().join("config.ini").exists() {
         fbh_init_config_file()?;
     }
@@ -37,6 +39,7 @@ pub fn initialize() -> Result<(), std::io::Error> {
     if !fbh_resave_dir().exists() {
         std::fs::create_dir(fbh_resave_dir())?;
     }
+    update_master_json();
     Ok(())
 }
 

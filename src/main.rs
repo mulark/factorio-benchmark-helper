@@ -12,11 +12,8 @@ extern crate serde;
 extern crate serde_json;
 extern crate sha2;
 extern crate bincode;
-extern crate lzma;
-extern crate flate2;
 
 use std::fs::read;
-use flate2::FlushDecompress;
 use std::io::Read;
 use std::io::Write;
 use crate::util::performance_results::CollectionData;
@@ -35,14 +32,13 @@ use std::env;
 use std::path::PathBuf;
 use std::process::exit;
 use std::time::Instant;
-use lzma::{LzmaWriter, LzmaReader};
-use flate2::Compression;
 
 mod benchmark_runner;
 use benchmark_runner::{
     run_benchmarks_multiple,
-    auto_resave,
 };
+#[cfg(target_os = "linux")]
+use benchmark_runner::auto_resave;
 
 mod procedure_file;
 mod util;
@@ -307,7 +303,8 @@ fn create_benchmark_from_args(args: &UserArgs) {
         exit(1);
     }
 
-    if cfg!(target_os = "linux") && args.resave {
+    if args.resave {
+        #[cfg(target_os = "linux")]
         resave_maps_with_paths(map_paths.clone());
     }
 
@@ -367,6 +364,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
     );
 }
 
+#[cfg(target_os = "linux")]
 fn resave_maps_with_paths(paths: Vec<PathBuf>) {
     let mut handles = Vec::new();
     for path in paths {

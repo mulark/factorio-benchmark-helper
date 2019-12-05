@@ -10,7 +10,7 @@ use crate::util::performance_results::*;
 
 pub const CREATE_SQL: &str = "
 BEGIN TRANSACTION;
-CREATE TABLE IF NOT EXISTS `collection2` (
+CREATE TABLE IF NOT EXISTS `collection` (
   `collection_id` integer NOT NULL PRIMARY KEY AUTOINCREMENT
 ,  `name` varchar(100)  NOT NULL
 ,  `factorio_version` varchar(10)  NOT NULL

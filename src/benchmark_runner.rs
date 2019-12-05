@@ -25,8 +25,11 @@ use regex::Regex;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Instant, Duration};
+#[cfg(target_os = "linux")]
 use nix::unistd::Pid;
+#[cfg(target_os = "linux")]
 use nix::sys::signal::{kill, Signal};
+#[cfg(target_os = "linux")]
 use nix::sys::wait::WaitStatus;
 
 static NUMBER_ERROR_CHECKING_TICKS: u32 = 300;
@@ -95,6 +98,7 @@ impl Default for BenchmarkDurationOverhead {
     }
 }
 
+#[cfg(target_os = "linux")]
 pub fn auto_resave(file_to_resave: PathBuf) -> Result<bool,std::io::Error> {
     println!("resaving {:?}", file_to_resave);
     if !cfg!(target_os = "linux") {
@@ -403,7 +407,7 @@ fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_data: Optio
         .output()
         .expect("");
 
-    let bench_data_stdout_raw = String::from_utf8_lossy(&run_bench_cmd.stdout);
+    let bench_data_stdout_raw = String::from_utf8_lossy(&run_bench_cmd.stdout).replace("\r", "");
     let regex = &Regex::new(params.path.file_name().unwrap().to_str().unwrap()).unwrap();
     let captures = regex.captures(&bench_data_stdout_raw);
     let bench_data_stdout = match captures {

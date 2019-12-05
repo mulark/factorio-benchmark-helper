@@ -103,19 +103,19 @@ fn get_factorio_path() -> PathBuf {
         .unwrap_or(true);
     if use_steam_dir {
         let base_dir = BaseDirs::new().unwrap();
-        if cfg!(Windows) {
-            PathBuf::from("C:")
-                .join("Program Files (x86)")
+        if cfg!(target_os = "linux") {
+            base_dir
+                .home_dir()
+                .join(".local")
+                .join("share")
                 .join("Steam")
                 .join("steamapps")
                 .join("common")
                 .join("Factorio")
                 .join("")
         } else {
-            base_dir
-                .home_dir()
-                .join(".local")
-                .join("share")
+            PathBuf::from("C:\\")
+                .join("Program Files (x86)")
                 .join("Steam")
                 .join("steamapps")
                 .join("common")
@@ -141,15 +141,15 @@ fn get_factorio_path() -> PathBuf {
 }
 
 pub fn get_executable_path() -> PathBuf {
-    if cfg!(Windows) {
+    if cfg!(target_os = "linux") {
+        get_factorio_path().join("bin")
+            .join("x64")
+            .join("factorio")
+    } else {
         get_factorio_path()
             .join("bin")
             .join("x64")
             .join("factorio.exe")
-    } else {
-        get_factorio_path().join("bin")
-            .join("x64")
-            .join("factorio")
     }
 }
 
