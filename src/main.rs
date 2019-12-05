@@ -13,7 +13,10 @@ extern crate serde_json;
 extern crate sha2;
 extern crate bincode;
 extern crate lzma;
+extern crate flate2;
 
+use std::fs::read;
+use flate2::FlushDecompress;
 use std::io::Read;
 use std::io::Write;
 use crate::util::performance_results::CollectionData;
@@ -33,6 +36,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::time::Instant;
 use lzma::{LzmaWriter, LzmaReader};
+use flate2::Compression;
 
 mod benchmark_runner;
 use benchmark_runner::{
@@ -76,6 +80,18 @@ fn main() {
             panic!(e);
         }
     }
+
+
+    /*
+    let mut decomp = flate2::read::ZlibDecoder::new(file);
+    decomp.flush().unwrap();
+    let mut buf = String::new();
+    decomp.read_to_string(&mut buf).unwrap();
+    panic!("{:?}", buf);
+    let mut out_buf = Vec::new();
+    //decomp.decompress(&buf, &mut out_buf, FlushDecompress::Finish).unwrap();
+    std::fs::write("test_unzipped", out_buf).unwrap();*/
+    panic!();
     /*
     let now = Instant::now();
     let s = std::fs::read_to_string("test.txt").unwrap();

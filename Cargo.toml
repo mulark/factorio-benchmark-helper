@@ -25,6 +25,7 @@ clap = "*"
 nix = "*"
 bincode = "*"
 rust-lzma = "*"
+flate2 = "*"
 
 [profile.release]
 debug = 1
