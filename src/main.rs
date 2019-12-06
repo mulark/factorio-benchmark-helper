@@ -76,39 +76,6 @@ fn main() {
             panic!(e);
         }
     }
-
-
-    /*
-    let mut decomp = flate2::read::ZlibDecoder::new(file);
-    decomp.flush().unwrap();
-    let mut buf = String::new();
-    decomp.read_to_string(&mut buf).unwrap();
-    panic!("{:?}", buf);
-    let mut out_buf = Vec::new();
-    //decomp.decompress(&buf, &mut out_buf, FlushDecompress::Finish).unwrap();
-    std::fs::write("test_unzipped", out_buf).unwrap();*/
-    panic!();
-    /*
-    let now = Instant::now();
-    let s = std::fs::read_to_string("test.txt").unwrap();
-    let j: CollectionData = serde_json::from_str(&s).unwrap();
-    println!("now.elasped {:.03}", now.elapsed().as_millis() as f64 / 1000.0);
-    let bytes = bincode::serialize(&j).unwrap();
-    let mut f2 = File::create("test.txt.plain.xz").unwrap();
-    let mut f = LzmaWriter::new_compressor(&f2, 6).unwrap();
-    f.write_all(&bytes);
-    f.finish().unwrap();
-    println!("now.elasped {:.03}", now.elapsed().as_millis() as f64 / 1000.0);
-
-    let mut f2 = File::open("test.txt.plain.xz").unwrap();
-    let mut f3 = LzmaReader::new_decompressor(f2).unwrap();
-    let mut buf = Vec::new();
-    f3.read_to_end(&mut buf).unwrap();
-    let reser: CollectionData = bincode::deserialize(&buf).unwrap();
-
-    println!("now.elasped {:.03}", now.elapsed().as_millis() as f64 / 1000.0);
-    exit(0);*/
-
     let mut parsed_args = add_options_and_parse();
     execute_from_args(&mut parsed_args);
 }
