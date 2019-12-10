@@ -355,10 +355,10 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     let mut collection_data = CollectionData::default();
     collection_data.benchmark_name = set_name.to_string();
 
-    let (version, os, exe_type) = FACTORIO_INFO.clone();
-    collection_data.factorio_version = version;
-    collection_data.os = os;
-    collection_data.executable_type = exe_type;
+    let info = FACTORIO_INFO.clone();
+    collection_data.factorio_version = info.version;
+    collection_data.os = info.operating_system;
+    collection_data.executable_type = info.platform;
     collection_data.cpuid = query_system_cpuid();
 
     for param in set_params {

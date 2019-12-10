@@ -1,6 +1,6 @@
 [package]
 name = "factorio-benchmark-helper"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["mulark <mulark11@gmail.com>"]
 edition = "2018"
 

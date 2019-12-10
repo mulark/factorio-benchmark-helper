@@ -13,6 +13,8 @@ extern crate serde_json;
 extern crate sha2;
 extern crate bincode;
 
+use crate::util::recompress_saves_parallel;
+use crate::util::recompress_save;
 use std::fs::read;
 use std::io::Read;
 use std::io::Write;
@@ -271,8 +273,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
     }
 
     if args.resave {
-        #[cfg(target_os = "linux")]
-        resave_maps_with_paths(map_paths.clone());
+        recompress_saves_parallel(map_paths.clone());
     }
 
     let path_to_sha256_tuple = bulk_sha256(map_paths);
@@ -331,30 +332,6 @@ fn create_benchmark_from_args(args: &UserArgs) {
     );
 }
 
-#[cfg(target_os = "linux")]
-fn resave_maps_with_paths(paths: Vec<PathBuf>) {
-    let mut handles = Vec::new();
-    for path in paths {
-        handles.push(std::thread::spawn(move|| {
-            let hash = sha256sum(path.clone());
-            if !is_known_map_hash(hash.clone()) {
-                if let Ok(b) = auto_resave(path) {
-                    if b {
-                        write_known_map_hash(hash);
-                    }
-                } else {
-                    panic!();
-                }
-            }
-        }));
-    }
-    if !handles.is_empty() {
-        for h in handles {
-            h.join().unwrap();
-        }
-    }
-}
-
 fn process_mod_list(raw_mod_list: String) -> Vec<Mod> {
     let mut found_mods = Vec::new();
     let mod_tuples = slice_mods_from_csv(&raw_mod_list);
@@ -370,7 +347,6 @@ fn process_mod_list(raw_mod_list: String) -> Vec<Mod> {
     }
     found_mods
 }
-
 
 fn slice_mods_from_csv(s: &str) -> Vec<(String, String)> {
     let mut vals = Vec::new();
@@ -394,7 +370,6 @@ fn slice_mods_from_csv(s: &str) -> Vec<(String, String)> {
     };
     vals
 }
-
 
 fn handle_map_dl_links(args: &UserArgs,google_drive_folder: &str, benchmark: &mut BenchmarkSet) {
     if !google_drive_folder.is_empty() {

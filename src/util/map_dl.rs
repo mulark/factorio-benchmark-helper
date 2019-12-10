@@ -78,7 +78,7 @@ pub fn fetch_map_deps_parallel(maps: &[Map], handles: &mut Vec<JoinHandle<()>>) 
                             download_save(&map.name, map.download_link);
                         } else {
                             println!("Found an existing map, checking sha256sum...", );
-                            sha256 = sha256sum(fbh_save_dl_dir().join(&filepath));
+                            sha256 = sha256sum(&fbh_save_dl_dir().join(&filepath));
                             if sha256 == map.sha256 && map.sha256 != "" {
                                 println!("Found correct sha256sum, skipping download.");
                             } else {
@@ -95,7 +95,7 @@ pub fn fetch_map_deps_parallel(maps: &[Map], handles: &mut Vec<JoinHandle<()>>) 
                     exit(1);
                 }
                 if filepath.is_file() {
-                    sha256 = sha256sum(fbh_save_dl_dir().join(&filepath));
+                    sha256 = sha256sum(&fbh_save_dl_dir().join(&filepath));
                     if sha256 != map.sha256 {
                         eprintln!("We downloaded map {} but it doesn't match the sha256sum we have on file?", &map.name);
                         eprintln!("sha256 in config: {}", map.sha256);

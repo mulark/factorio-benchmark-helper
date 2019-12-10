@@ -7,6 +7,8 @@ extern crate sha2;
 extern crate raw_cpuid;
 
 mod database;
+use crate::procedure_file::write_known_map_hash;
+use crate::procedure_file::is_known_map_hash;
 use std::collections::HashMap;
 use core::fmt::Debug;
 use std::io::stdin;
@@ -55,12 +57,10 @@ pub use map_dl::{Map, fetch_map_deps_parallel, get_download_links_from_google_dr
 
 lazy_static! {
     #[derive(Debug)]
-    pub static ref FACTORIO_INFO: (String, String, String) = get_factorio_info();
+    pub static ref FACTORIO_INFO: FactorioInfo = get_factorio_info();
     static ref FACTORIO_EXECUTABLE_VERSION_LINE: Regex = Regex::new(r"Version: \d{1,2}\.\d{2,3}\.\d{2,3}.*\n").unwrap();
     //If Factorio ever goes to 3/4/4 digits for their versioning, this will break.
 }
-
-
 
 pub fn download_benchmark_deps_parallel(sets: &HashMap<String,BenchmarkSet>) {
     let mut handles = Vec::new();
@@ -185,7 +185,14 @@ pub fn get_saves_directory() -> PathBuf {
     get_factorio_rw_directory().join("saves").join("")
 }
 
-fn get_factorio_info() -> (String, String, String) {
+#[derive(Default, Clone)]
+pub struct FactorioInfo {
+    pub version: String,
+    pub operating_system: String,
+    pub platform: String,
+}
+
+fn get_factorio_info() -> FactorioInfo {
     //Don't call this, use FACTORIO_VERSION instead
     let line = FACTORIO_EXECUTABLE_VERSION_LINE.captures(&String::from_utf8_lossy(&std::process::Command::new(get_executable_path())
         .arg("--version")
@@ -195,28 +202,26 @@ fn get_factorio_info() -> (String, String, String) {
     .unwrap()[0]
     .to_string();
     let split = line.split_whitespace();
-    let mut version = String::new();
-    let mut os = String::new();
-    let mut platform = String::new();
 
+    let mut info_holder = FactorioInfo::default();
     for (i,s) in split.enumerate() {
         match i {
-            1 => (version = s.to_string()),
+            1 => (info_holder.version = s.to_string()),
             4 => ({
-                os = s.to_string();
-                os.pop();
+                info_holder.operating_system = s.to_string();
+                info_holder.operating_system.pop();
             }),
             5 => ({
-                platform = s.to_string();
-                platform.pop();
+                info_holder.platform = s.to_string();
+                info_holder.platform.pop();
             }),
             _ => (),
         }
     }
-    (version, os, platform)
+    info_holder
 }
 
-pub fn sha256sum(file_path: PathBuf) -> String {
+pub fn sha256sum(file_path: &PathBuf) -> String {
     let mut f = File::open(file_path).unwrap();
     let mut buf = Vec::new();
     f.read_to_end(&mut buf).unwrap();
@@ -228,7 +233,7 @@ pub fn bulk_sha256(paths: Vec<PathBuf>) -> Vec<(PathBuf, String)> {
     let mut path_sha256_tuple_holder = Vec::new();
     for path in paths {
         handle_holder.push(std::thread::spawn(move || {
-            let sha256 = sha256sum(path.clone());
+            let sha256 = sha256sum(&path);
             (path, sha256)
         }));
     }
@@ -308,5 +313,100 @@ pub fn prompt_until_allowed_val_in_range<T: FromStr + PartialEq + PartialOrd + D
             }
         }
         eprintln!("Unrecognized option {:?}.\t Must be in range {:?}.", input, range);
+    }
+}
+
+fn path_of_7z_install() -> Option<PathBuf> {
+    let exe_name = if cfg!(target_os = "linux") { "7z" } else { "7z.exe" };
+
+    let mut found_path: Option<PathBuf> = None;
+
+    if let Some(paths) = std::env::var_os("PATH") {
+        for path in std::env::split_paths(&paths) {
+            let full_path = path.join(&exe_name);
+            if full_path.is_file() {
+                found_path = Some(full_path);
+                break;
+            }
+        }
+    }
+    if found_path.is_none() && !cfg!(target_os = "linux") {
+        let possible_other = PathBuf::from("C:\\")
+            .join("Program Files")
+            .join("7-Zip")
+            .join("7z.exe");
+        if possible_other.exists() {
+            found_path = Some(possible_other);
+        }
+    }
+    found_path
+}
+
+pub fn recompress_save(save: &PathBuf) {
+    if save.exists() {
+        if let Some(ext) =  save.extension() {
+            if ext == "zip" {
+                if let Some(exe_7z) = path_of_7z_install() {
+                    println!("Recompressing save {:?}", &save);
+
+                    // Delete the preview image, saving 100-800KB from the few samples I've seen
+                    if let Ok(mut process) = std::process::Command::new(&exe_7z)
+                        .arg("d").arg(&save).arg("preview.jpg").arg("preview.png").arg("-r")
+                        .stdout(std::process::Stdio::null()).spawn()
+                    {
+                        if let Ok(exit_code) = process.wait() {
+                            if !exit_code.success() {
+                                unreachable!("7z is installed, save exists, but removing preview image from save failed!");
+                            }
+                        }
+                    }
+
+                    let decompress_dir = fbh_cache_path().join("resave");
+                    std::fs::remove_dir_all(&decompress_dir).ok();
+                    let mut process = std::process::Command::new(&exe_7z)
+                        .arg("x")
+                        .arg(format!("-o{}", &decompress_dir.to_string_lossy()))
+                        .arg(&save)
+                        .stdout(std::process::Stdio::null())
+                        .spawn()
+                        .expect("")
+                        ;
+                    process.wait().unwrap();
+
+                    std::fs::remove_file(&save).ok();
+                    let mut process = std::process::Command::new(&exe_7z)
+                        .arg("a")
+                        .arg(&save)
+                        .arg(format!("{}/{}", decompress_dir.to_string_lossy(), save.file_stem().unwrap().to_str().unwrap()))
+                        .stdout(std::process::Stdio::null())
+                        .spawn()
+                        .expect("")
+                        ;
+                    process.wait().unwrap();
+                    std::fs::remove_dir_all(&decompress_dir.join(save.file_stem().unwrap())).ok();
+                }
+            }
+        }
+    }
+}
+
+pub fn recompress_saves_parallel(saves: Vec<PathBuf>) {
+    if path_of_7z_install().is_some() {
+        let mut handles: Vec<_> = Vec::new();
+        for save in saves {
+            handles.push(std::thread::spawn(move || {
+                let pre_sha256 = sha256sum(&save);
+                if !is_known_map_hash(pre_sha256) {
+                    recompress_save(&save);
+                    let post_sha256 = sha256sum(&save);
+                    write_known_map_hash(post_sha256);
+                }
+            }));
+        }
+        for handle in handles {
+            handle.join().unwrap();
+        }
+    } else {
+        eprintln!("Could not find optional dependency 7z to recompress saves.");
     }
 }

@@ -329,7 +329,7 @@ dependencies = [
 
 [[package]]
 name = "factorio-benchmark-helper"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "bincode 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
