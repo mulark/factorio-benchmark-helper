@@ -15,29 +15,17 @@ extern crate sha2;
 
 use crate::procedure_file::get_metas_from_meta;
 use crate::procedure_file::get_sets_from_meta;
-use crate::procedure_file::is_known_map_hash;
 use crate::procedure_file::read_meta_from_file;
-use crate::procedure_file::write_known_map_hash;
 use crate::procedure_file::write_meta_to_file;
 use crate::util::bulk_sha256;
-use crate::util::performance_results::CollectionData;
-use crate::util::recompress_save;
 use crate::util::recompress_saves_parallel;
-use crate::util::sha256sum;
 use regex::Regex;
 use std::collections::HashMap;
 use std::env;
-use std::fs::read;
-use std::fs::File;
-use std::io::Read;
-use std::io::Write;
 use std::path::PathBuf;
 use std::process::exit;
-use std::time::Instant;
 
 mod benchmark_runner;
-#[cfg(target_os = "linux")]
-use benchmark_runner::auto_resave;
 use benchmark_runner::run_benchmarks_multiple;
 
 mod procedure_file;
@@ -87,12 +75,8 @@ fn execute_from_args(mut args: &mut UserArgs) {
             println!("4: Create a new benchmark.");
             println!("5: Create a new metabenchmark.");
             match prompt_until_allowed_val(&[1, 2, 3, 4, 5]) {
-                1 => {
-                    args.commit_flag = true;
-                }
-                2 => {
-                    args.run_benchmark = true;
-                }
+                1 => args.commit_flag = true,
+                2 => args.run_benchmark = true,
                 3 => args.run_meta = true,
                 4 => args.create_benchmark = true,
                 5 => args.create_meta = true,
