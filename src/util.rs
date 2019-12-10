@@ -1,59 +1,49 @@
 extern crate directories;
 extern crate ini;
+extern crate raw_cpuid;
 extern crate regex;
 extern crate reqwest;
 extern crate sha1;
 extern crate sha2;
-extern crate raw_cpuid;
 
 mod database;
-use crate::procedure_file::write_known_map_hash;
 use crate::procedure_file::is_known_map_hash;
-use std::collections::HashMap;
+use crate::procedure_file::write_known_map_hash;
 use core::fmt::Debug;
+use core::str::FromStr;
+pub use database::{setup_database, upload_to_db};
+use std::collections::HashMap;
 use std::io::stdin;
 use std::ops::Range;
-use core::str::FromStr;
 use std::process::exit;
-pub use database::{
-    setup_database,
-    upload_to_db,
-};
 mod fbh_paths;
-use sha2::Digest;
-use std::fs::{File};
-use std::io::{Read};
 pub use fbh_paths::{
-    fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir, fbh_mod_use_dir,
-    fbh_procedure_json_local_file, fbh_procedure_json_master_file, fbh_read_configuration_setting,
-    fbh_results_database, fbh_save_dl_dir, initialize, fbh_known_hash_file, fbh_resave_dir,
+    fbh_cache_path, fbh_config_file, fbh_data_path, fbh_known_hash_file, fbh_mod_dl_dir,
+    fbh_mod_use_dir, fbh_procedure_json_local_file, fbh_procedure_json_master_file,
+    fbh_read_configuration_setting, fbh_resave_dir, fbh_results_database, fbh_save_dl_dir,
+    initialize,
 };
+use sha2::Digest;
+use std::fs::File;
+use std::io::Read;
 
 pub mod performance_results;
 
 pub use crate::procedure_file::{
-    BenchmarkSet,
+    print_all_procedures, read_benchmark_set_from_file, read_meta_from_file,
+    write_benchmark_set_to_file, write_meta_to_file, BenchmarkSet, ProcedureFileKind,
     ProcedureKind,
-    ProcedureFileKind,
-    read_benchmark_set_from_file,
-    write_benchmark_set_to_file,
-    read_meta_from_file,
-    write_meta_to_file,
-    print_all_procedures,
 };
-use directories::{BaseDirs};
+use directories::BaseDirs;
 use ini::Ini;
 use regex::Regex;
 use std::path::PathBuf;
 mod args;
-pub use args::{
-    add_options_and_parse,
-    UserArgs,
-};
+pub use args::{add_options_and_parse, UserArgs};
 mod mod_dl;
-pub use mod_dl::{Mod, fetch_mod_deps_parallel, get_mod_info};
+pub use mod_dl::{fetch_mod_deps_parallel, get_mod_info, Mod};
 mod map_dl;
-pub use map_dl::{Map, fetch_map_deps_parallel, get_download_links_from_google_drive_by_filelist};
+pub use map_dl::{fetch_map_deps_parallel, get_download_links_from_google_drive_by_filelist, Map};
 
 lazy_static! {
     #[derive(Debug)]
@@ -62,7 +52,7 @@ lazy_static! {
     //If Factorio ever goes to 3/4/4 digits for their versioning, this will break.
 }
 
-pub fn download_benchmark_deps_parallel(sets: &HashMap<String,BenchmarkSet>) {
+pub fn download_benchmark_deps_parallel(sets: &HashMap<String, BenchmarkSet>) {
     let mut handles = Vec::new();
     let mut mods = Vec::new();
     let mut maps = Vec::new();
@@ -91,7 +81,7 @@ pub fn generic_read_configuration_setting(file: PathBuf, key: &str) -> Option<St
     match Ini::load_from_file(file) {
         Ok(i) => {
             return i.get_from::<String>(None, key).map(String::from);
-        },
+        }
         Err(_e) => return None,
     };
 }
@@ -123,7 +113,10 @@ fn get_factorio_path() -> PathBuf {
                 .join("")
         }
     } else {
-        match fbh_read_configuration_setting("factorio-path").unwrap_or_default().parse::<PathBuf>() {
+        match fbh_read_configuration_setting("factorio-path")
+            .unwrap_or_default()
+            .parse::<PathBuf>()
+        {
             Ok(path) => {
                 if path.is_dir() {
                     path
@@ -142,9 +135,7 @@ fn get_factorio_path() -> PathBuf {
 
 pub fn get_executable_path() -> PathBuf {
     if cfg!(target_os = "linux") {
-        get_factorio_path().join("bin")
-            .join("x64")
-            .join("factorio")
+        get_factorio_path().join("bin").join("x64").join("factorio")
     } else {
         get_factorio_path()
             .join("bin")
@@ -194,27 +185,34 @@ pub struct FactorioInfo {
 
 fn get_factorio_info() -> FactorioInfo {
     //Don't call this, use FACTORIO_VERSION instead
-    let line = FACTORIO_EXECUTABLE_VERSION_LINE.captures(&String::from_utf8_lossy(&std::process::Command::new(get_executable_path())
-        .arg("--version")
-        .output()
-        .expect("")
-        .stdout))
-    .unwrap()[0]
-    .to_string();
+    let line = FACTORIO_EXECUTABLE_VERSION_LINE
+        .captures(&String::from_utf8_lossy(
+            &std::process::Command::new(get_executable_path())
+                .arg("--version")
+                .output()
+                .expect("")
+                .stdout,
+        ))
+        .unwrap()[0]
+        .to_string();
     let split = line.split_whitespace();
 
     let mut info_holder = FactorioInfo::default();
-    for (i,s) in split.enumerate() {
+    for (i, s) in split.enumerate() {
         match i {
             1 => (info_holder.version = s.to_string()),
-            4 => ({
-                info_holder.operating_system = s.to_string();
-                info_holder.operating_system.pop();
-            }),
-            5 => ({
-                info_holder.platform = s.to_string();
-                info_holder.platform.pop();
-            }),
+            4 => {
+                ({
+                    info_holder.operating_system = s.to_string();
+                    info_holder.operating_system.pop();
+                })
+            }
+            5 => {
+                ({
+                    info_holder.platform = s.to_string();
+                    info_holder.platform.pop();
+                })
+            }
             _ => (),
         }
     }
@@ -246,10 +244,15 @@ pub fn bulk_sha256(paths: Vec<PathBuf>) -> Vec<(PathBuf, String)> {
 
 pub fn query_system_cpuid() -> String {
     let cpuid = raw_cpuid::CpuId::new();
-    cpuid.get_extended_function_info().as_ref().map_or_else(
+    cpuid
+        .get_extended_function_info()
+        .as_ref()
+        .map_or_else(
             || "n/a",
             |extfuninfo| extfuninfo.processor_brand_string().unwrap_or("unreadable"),
-        ).trim().to_string()
+        )
+        .trim()
+        .to_string()
 }
 
 pub fn trim_newline(s: &mut String) {
@@ -295,11 +298,16 @@ pub fn prompt_until_allowed_val<T: FromStr + PartialEq + Debug>(allowed_vals: &[
                 return m;
             }
         }
-        eprintln!("Unrecognized option {:?}.\tAllowed values are: {:?}. Note: case insensitive.", input, allowed_vals);
+        eprintln!(
+            "Unrecognized option {:?}.\tAllowed values are: {:?}. Note: case insensitive.",
+            input, allowed_vals
+        );
     }
 }
 
-pub fn prompt_until_allowed_val_in_range<T: FromStr + PartialEq + PartialOrd + Debug>(range: Range<T>) -> T {
+pub fn prompt_until_allowed_val_in_range<T: FromStr + PartialEq + PartialOrd + Debug>(
+    range: Range<T>,
+) -> T {
     let mut input = String::new();
     loop {
         input.clear();
@@ -312,12 +320,19 @@ pub fn prompt_until_allowed_val_in_range<T: FromStr + PartialEq + PartialOrd + D
                 return m;
             }
         }
-        eprintln!("Unrecognized option {:?}.\t Must be in range {:?}.", input, range);
+        eprintln!(
+            "Unrecognized option {:?}.\t Must be in range {:?}.",
+            input, range
+        );
     }
 }
 
 fn path_of_7z_install() -> Option<PathBuf> {
-    let exe_name = if cfg!(target_os = "linux") { "7z" } else { "7z.exe" };
+    let exe_name = if cfg!(target_os = "linux") {
+        "7z"
+    } else {
+        "7z.exe"
+    };
 
     let mut found_path: Option<PathBuf> = None;
 
@@ -344,15 +359,20 @@ fn path_of_7z_install() -> Option<PathBuf> {
 
 pub fn recompress_save(save: &PathBuf) {
     if save.exists() {
-        if let Some(ext) =  save.extension() {
+        if let Some(ext) = save.extension() {
             if ext == "zip" {
                 if let Some(exe_7z) = path_of_7z_install() {
                     println!("Recompressing save {:?}", &save);
 
                     // Delete the preview image, saving 100-800KB from the few samples I've seen
                     if let Ok(mut process) = std::process::Command::new(&exe_7z)
-                        .arg("d").arg(&save).arg("preview.jpg").arg("preview.png").arg("-r")
-                        .stdout(std::process::Stdio::null()).spawn()
+                        .arg("d")
+                        .arg(&save)
+                        .arg("preview.jpg")
+                        .arg("preview.png")
+                        .arg("-r")
+                        .stdout(std::process::Stdio::null())
+                        .spawn()
                     {
                         if let Ok(exit_code) = process.wait() {
                             if !exit_code.success() {
@@ -369,19 +389,21 @@ pub fn recompress_save(save: &PathBuf) {
                         .arg(&save)
                         .stdout(std::process::Stdio::null())
                         .spawn()
-                        .expect("")
-                        ;
+                        .expect("");
                     process.wait().unwrap();
 
                     std::fs::remove_file(&save).ok();
                     let mut process = std::process::Command::new(&exe_7z)
                         .arg("a")
                         .arg(&save)
-                        .arg(format!("{}/{}", decompress_dir.to_string_lossy(), save.file_stem().unwrap().to_str().unwrap()))
+                        .arg(format!(
+                            "{}/{}",
+                            decompress_dir.to_string_lossy(),
+                            save.file_stem().unwrap().to_str().unwrap()
+                        ))
                         .stdout(std::process::Stdio::null())
                         .spawn()
-                        .expect("")
-                        ;
+                        .expect("");
                     process.wait().unwrap();
                     std::fs::remove_dir_all(&decompress_dir.join(save.file_stem().unwrap())).ok();
                 }

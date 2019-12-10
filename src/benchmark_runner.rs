@@ -1,36 +1,31 @@
 extern crate regex;
 
+use crate::util::fbh_resave_dir;
+use crate::util::performance_results::{BenchmarkData, CollectionData};
 use crate::util::query_system_cpuid;
 use crate::util::FACTORIO_INFO;
-use crate::util::performance_results::{CollectionData, BenchmarkData};
-use std::sync::Mutex;
-use std::fs::remove_dir_all;
-use std::fs::read_to_string;
-use std::io::Write;
-use std::fs::remove_file;
-use crate::util::fbh_resave_dir;
-use std::collections::HashMap;
-use std::process::exit;
-use std::fs::{read, File};
 use crate::util::{
-    get_executable_path,
-    BenchmarkSet,
-    download_benchmark_deps_parallel,
-    fbh_save_dl_dir,
-    fbh_mod_dl_dir,
-    fbh_mod_use_dir,
-    upload_to_db,
+    download_benchmark_deps_parallel, fbh_mod_dl_dir, fbh_mod_use_dir, fbh_save_dl_dir,
+    get_executable_path, upload_to_db, BenchmarkSet,
 };
-use regex::Regex;
-use std::path::PathBuf;
-use std::process::{Command, Stdio};
-use std::time::{Instant, Duration};
-#[cfg(target_os = "linux")]
-use nix::unistd::Pid;
 #[cfg(target_os = "linux")]
 use nix::sys::signal::{kill, Signal};
 #[cfg(target_os = "linux")]
 use nix::sys::wait::WaitStatus;
+#[cfg(target_os = "linux")]
+use nix::unistd::Pid;
+use regex::Regex;
+use std::collections::HashMap;
+use std::fs::read_to_string;
+use std::fs::remove_dir_all;
+use std::fs::remove_file;
+use std::fs::{read, File};
+use std::io::Write;
+use std::path::PathBuf;
+use std::process::exit;
+use std::process::{Command, Stdio};
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 static NUMBER_ERROR_CHECKING_TICKS: u32 = 300;
 static NUMBER_ERROR_CHECKING_RUNS: u32 = 3;
@@ -60,7 +55,13 @@ pub struct SimpleBenchmarkParam {
 }
 
 impl SimpleBenchmarkParam {
-    pub fn new(map_path: PathBuf, ticks: u32, runs: u32, persist_data_to_db: PersistDataToDB, sha256: String) -> SimpleBenchmarkParam {
+    pub fn new(
+        map_path: PathBuf,
+        ticks: u32,
+        runs: u32,
+        persist_data_to_db: PersistDataToDB,
+        sha256: String,
+    ) -> SimpleBenchmarkParam {
         SimpleBenchmarkParam {
             name: map_path.file_name().unwrap().to_string_lossy().to_string(),
             path: map_path,
@@ -99,7 +100,7 @@ impl Default for BenchmarkDurationOverhead {
 }
 
 #[cfg(target_os = "linux")]
-pub fn auto_resave(file_to_resave: PathBuf) -> Result<bool,std::io::Error> {
+pub fn auto_resave(file_to_resave: PathBuf) -> Result<bool, std::io::Error> {
     println!("resaving {:?}", file_to_resave);
     if !cfg!(target_os = "linux") {
         panic!("auto_resave is not supported on Windows!");
@@ -107,14 +108,24 @@ pub fn auto_resave(file_to_resave: PathBuf) -> Result<bool,std::io::Error> {
     if !fbh_resave_dir().exists() {
         std::fs::create_dir(fbh_resave_dir())?;
     }
-    let local_config_file_path = fbh_resave_dir().join(format!("{}{}", file_to_resave.file_name().unwrap().to_str().unwrap(), ".ini"));
+    let local_config_file_path = fbh_resave_dir().join(format!(
+        "{}{}",
+        file_to_resave.file_name().unwrap().to_str().unwrap(),
+        ".ini"
+    ));
     let mut local_config_file = File::create(&local_config_file_path).unwrap();
-    let local_write_dir = fbh_resave_dir().join(file_to_resave.file_name().unwrap()).join("");
+    let local_write_dir = fbh_resave_dir()
+        .join(file_to_resave.file_name().unwrap())
+        .join("");
     let local_mods_dir = local_write_dir.join("mods");
     let local_logfile = local_write_dir.join("factorio-current.log");
     writeln!(local_config_file, "[path]")?;
     writeln!(local_config_file, "read-data=__PATH__system-read-data__")?;
-    writeln!(local_config_file, "write-data={}", local_write_dir.to_str().unwrap())?;
+    writeln!(
+        local_config_file,
+        "write-data={}",
+        local_write_dir.to_str().unwrap()
+    )?;
     writeln!(local_config_file, "[other]")?;
     writeln!(local_config_file, "autosave-compression-level=maximum")?;
     let port: u32;
@@ -261,7 +272,10 @@ pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
             }
             let fpath = fbh_mod_dl_dir().join(&indiv_mod.file_name);
             assert!(fpath.exists());
-            match std::fs::write(fbh_mod_use_dir().join(&indiv_mod.file_name), &read(&fpath).unwrap()) {
+            match std::fs::write(
+                fbh_mod_use_dir().join(&indiv_mod.file_name),
+                &read(&fpath).unwrap(),
+            ) {
                 Ok(_m) => (),
                 _ => {
                     eprintln!("Failed to copy mod {:?} for use.", indiv_mod.file_name);
@@ -273,7 +287,11 @@ pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
     }
 }
 
-fn parse_stdout_for_benchmark_time_breakdown(bench_data_stdout: &str, ticks: u32, runs: u32) -> Option<BenchmarkDurationOverhead> {
+fn parse_stdout_for_benchmark_time_breakdown(
+    bench_data_stdout: &str,
+    ticks: u32,
+    runs: u32,
+) -> Option<BenchmarkDurationOverhead> {
     let mut benchmark_time: BenchmarkDurationOverhead = BenchmarkDurationOverhead::default();
     benchmark_time.initialization_time =
         parse_logline_time_to_f64(bench_data_stdout, INITIALIZATION_TIME_PATTERN.clone())?;
@@ -298,24 +316,20 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     let mut initial_error_check_params = Vec::new();
     let mut set_params = Vec::new();
     for map in &set.maps {
-        initial_error_check_params.push(
-            SimpleBenchmarkParam::new(
-                fbh_save_dl_dir().join(&map.name),
-                NUMBER_ERROR_CHECKING_TICKS,
-                NUMBER_ERROR_CHECKING_RUNS,
-                PersistDataToDB::False,
-                map.sha256.clone(),
-            )
-        );
-        set_params.push(
-            SimpleBenchmarkParam::new(
-                fbh_save_dl_dir().join(&map.name),
-                set.ticks,
-                set.runs,
-                PersistDataToDB::True,
-                map.sha256.clone(),
-            )
-        );
+        initial_error_check_params.push(SimpleBenchmarkParam::new(
+            fbh_save_dl_dir().join(&map.name),
+            NUMBER_ERROR_CHECKING_TICKS,
+            NUMBER_ERROR_CHECKING_RUNS,
+            PersistDataToDB::False,
+            map.sha256.clone(),
+        ));
+        set_params.push(SimpleBenchmarkParam::new(
+            fbh_save_dl_dir().join(&map.name),
+            set.ticks,
+            set.runs,
+            PersistDataToDB::True,
+            map.sha256.clone(),
+        ));
     }
     for param in initial_error_check_params {
         println!("Checking errors for map: {:?}", param.path);
@@ -369,15 +383,14 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     let hrs = (total_duration / 3600.0) as u64;
     let mins = ((total_duration % 3600.0) / 60.0) as u64;
     let secs = (total_duration % 3600.0) % 60.0;
-    println!(
-        "Benchmarks took: {}:{:02}:{:02.3}",
-        hrs, mins, secs
-    );
+    println!("Benchmarks took: {}:{:02}:{:02.3}", hrs, mins, secs);
     upload_to_db(collection_data);
-
 }
 
-fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_data: Option<&mut CollectionData>) -> Option<BenchmarkDurationOverhead> {
+fn run_benchmark_single_map(
+    params: SimpleBenchmarkParam,
+    collection_data: Option<&mut CollectionData>,
+) -> Option<BenchmarkDurationOverhead> {
     //tick is implied in timings dump
     let mut bench_data = BenchmarkData::default();
     {
@@ -428,12 +441,14 @@ fn run_benchmark_single_map(params: SimpleBenchmarkParam, collection_data: Optio
     let mut verbose_data: Vec<String> = Vec::with_capacity((params.ticks * params.runs) as usize);
     for line in bench_data_stdout.lines() {
         let mut line: String = line.to_string();
-        if params.persist_data_to_db == PersistDataToDB::True && VERBOSE_DATA_ROW_MATCH_PATTERN.is_match(&line) {
+        if params.persist_data_to_db == PersistDataToDB::True
+            && VERBOSE_DATA_ROW_MATCH_PATTERN.is_match(&line)
+        {
             if line_index % 1000 == 0 {
                 run_index += 1;
             }
             line.push_str(&format!("{}", run_index));
-            verbose_data.push(line.replace('t',""));
+            verbose_data.push(line.replace('t', ""));
             line_index += 1;
             assert!(run_index > 0);
         }

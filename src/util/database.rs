@@ -1,12 +1,12 @@
 extern crate rusqlite;
 
-use std::process::exit;
-use std::sync::Mutex;
 use crate::util::fbh_results_database;
-use rusqlite::{Connection};
+use crate::util::performance_results::*;
+use rusqlite::Connection;
 use std::fs;
 use std::fs::OpenOptions;
-use crate::util::performance_results::*;
+use std::process::exit;
+use std::sync::Mutex;
 
 pub const CREATE_SQL: &str = "
 BEGIN TRANSACTION;
@@ -90,12 +90,15 @@ pub fn upload_to_db(collection_data: CollectionData) {
         collection_data.cpuid,
     );
 
-    let combined_sql = format!("BEGIN TRANSACTION; INSERT INTO collection({}) VALUES ({});",collection_header, csv_collection);
+    let combined_sql = format!(
+        "BEGIN TRANSACTION; INSERT INTO collection({}) VALUES ({});",
+        collection_header, csv_collection
+    );
     match database.execute_batch(&combined_sql) {
         Ok(_) => (),
         Err(e) => {
             eprintln!("Failed to insert collection data to database!");
-            eprintln!("{}",e);
+            eprintln!("{}", e);
             eprintln!("{:?}", combined_sql);
             exit(1);
         }
@@ -106,18 +109,17 @@ pub fn upload_to_db(collection_data: CollectionData) {
     for benchmark in collection_data.benchmarks {
         let csv_benchmark = format!(
             "{:?},{:?},{:?},{:?},{:?}",
-            benchmark.map_name,
-            benchmark.runs,
-            benchmark.ticks,
-            benchmark.map_hash,
-            collection_id,
+            benchmark.map_name, benchmark.runs, benchmark.ticks, benchmark.map_hash, collection_id,
         );
-        let combined_sql = format!("INSERT INTO benchmark({}) VALUES ({});", benchmark_header, csv_benchmark);
+        let combined_sql = format!(
+            "INSERT INTO benchmark({}) VALUES ({});",
+            benchmark_header, csv_benchmark
+        );
         match database.execute_batch(&combined_sql) {
             Ok(_) => (),
             Err(e) => {
                 eprintln!("Failed to insert benchmark data to database!");
-                eprintln!("{}",e);
+                eprintln!("{}", e);
                 eprintln!("{:?}", combined_sql);
                 exit(1);
             }
@@ -130,18 +132,31 @@ pub fn upload_to_db(collection_data: CollectionData) {
              luaGarbageIncremental,chartUpdate,scriptUpdate,run_index,benchmark_id";
         let mut combined_sql = String::new();
         for line in benchmark.verbose_data {
-            combined_sql.push_str(&format!("INSERT INTO verbose({}) VALUES ({},{});\n", verbose_header, line, benchmark_id));
+            combined_sql.push_str(&format!(
+                "INSERT INTO verbose({}) VALUES ({},{});\n",
+                verbose_header, line, benchmark_id
+            ));
         }
         combined_sql.push_str("COMMIT;");
         match database.execute_batch(&combined_sql) {
             Ok(_) => (),
             Err(e) => {
                 eprintln!("Failed to insert data to database!");
-                eprintln!("{}",e);
-                database.execute_batch(&format!("DELETE FROM benchmark where benchmark_id = {}", benchmark_id)).expect("");
-                database.execute_batch(&format!("DELETE FROM collection where collection_id = {}:", collection_id)).expect("");
+                eprintln!("{}", e);
+                database
+                    .execute_batch(&format!(
+                        "DELETE FROM benchmark where benchmark_id = {}",
+                        benchmark_id
+                    ))
+                    .expect("");
+                database
+                    .execute_batch(&format!(
+                        "DELETE FROM collection where collection_id = {}:",
+                        collection_id
+                    ))
+                    .expect("");
                 exit(1);
-             }
+            }
         }
     }
 }

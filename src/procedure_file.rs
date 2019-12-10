@@ -3,18 +3,18 @@ extern crate serde;
 extern crate serde_json;
 
 use crate::util::fbh_cache_path;
-use std::path::PathBuf;
 use crate::util::fbh_known_hash_file;
 use crate::util::prompt_until_allowed_val;
-use std::fmt::Debug;
+use crate::util::{fbh_procedure_json_local_file, fbh_procedure_json_master_file, Map, Mod};
 use core::str::FromStr;
-use std::collections::HashMap;
-use std::process::exit;
-use std::fs::read;
-use crate::util::{fbh_procedure_json_local_file ,fbh_procedure_json_master_file, Map, Mod};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::fmt::Debug;
+use std::fs::read;
 use std::fs::OpenOptions;
+use std::path::PathBuf;
+use std::process::exit;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TopLevel {
@@ -41,7 +41,10 @@ impl TopLevel {
 
 impl Default for TopLevel {
     fn default() -> TopLevel {
-        TopLevel {benchmark_sets: BTreeMap::new(), meta_sets: BTreeMap::new()}
+        TopLevel {
+            benchmark_sets: BTreeMap::new(),
+            meta_sets: BTreeMap::new(),
+        }
     }
 }
 
@@ -56,7 +59,11 @@ pub struct BenchmarkSet {
 impl PartialEq for BenchmarkSet {
     fn eq(&self, cmp: &Self) -> bool {
         let mut ret = true;
-        if self.ticks == cmp.ticks && self.runs == cmp.runs && self.maps.len() == cmp.maps.len() && self.mods.len() == cmp.mods.len() {
+        if self.ticks == cmp.ticks
+            && self.runs == cmp.runs
+            && self.maps.len() == cmp.maps.len()
+            && self.mods.len() == cmp.mods.len()
+        {
             for i in 0..self.maps.len() {
                 if self.maps[i] != cmp.maps[i] {
                     ret = false;
@@ -122,7 +129,9 @@ pub fn update_master_json() {
 }
 
 fn perform_master_json_dl(file_to_write: &PathBuf) {
-    if let Ok(mut resp) = reqwest::get("https://raw.githubusercontent.com/mulark/factorio-benchmark-helper/master/master.json") {
+    if let Ok(mut resp) = reqwest::get(
+        "https://raw.githubusercontent.com/mulark/factorio-benchmark-helper/master/master.json",
+    ) {
         if resp.status() == 200 {
             let mut file = OpenOptions::new()
                 .write(true)
@@ -134,7 +143,7 @@ fn perform_master_json_dl(file_to_write: &PathBuf) {
                 Err(e) => {
                     println!("Failed to write file to {:?}!", file);
                     panic!(e);
-                },
+                }
             }
         }
     }
@@ -144,25 +153,24 @@ fn load_top_level_from_file(file_type: &ProcedureFileKind) -> Option<TopLevel> {
     match file_type {
         ProcedureFileKind::Local => {
             if fbh_procedure_json_local_file().exists() {
-                let json: Option<TopLevel> = serde_json::from_slice(
-                    &read(fbh_procedure_json_local_file()).unwrap()
-                ).unwrap_or_default();
+                let json: Option<TopLevel> =
+                    serde_json::from_slice(&read(fbh_procedure_json_local_file()).unwrap())
+                        .unwrap_or_default();
                 return json;
             }
         }
         ProcedureFileKind::Master => {
             if fbh_procedure_json_master_file().exists() {
-                let json: Option<TopLevel> = serde_json::from_slice(
-                    &read(fbh_procedure_json_master_file()).unwrap()
-                ).unwrap_or_default();
+                let json: Option<TopLevel> =
+                    serde_json::from_slice(&read(fbh_procedure_json_master_file()).unwrap())
+                        .unwrap_or_default();
                 return json;
             }
         }
         ProcedureFileKind::Custom(p) => {
             if p.exists() {
-                let json: Option<TopLevel> = serde_json::from_slice(
-                    &read(p).unwrap()
-                ).unwrap_or_default();
+                let json: Option<TopLevel> =
+                    serde_json::from_slice(&read(p).unwrap()).unwrap_or_default();
                 return json;
             }
         }
@@ -172,7 +180,7 @@ fn load_top_level_from_file(file_type: &ProcedureFileKind) -> Option<TopLevel> {
 
 impl FromStr for ProcedureKind {
     type Err = String;
-    fn from_str(s: &str) -> Result<ProcedureKind,Self::Err> {
+    fn from_str(s: &str) -> Result<ProcedureKind, Self::Err> {
         match s.to_lowercase().as_str() {
             "benchmark" => Ok(ProcedureKind::Benchmark),
             "meta" => Ok(ProcedureKind::Meta),
@@ -195,11 +203,14 @@ pub fn print_all_procedures() {
     print_procedures(ProcedureKind::Both, ProcedureFileKind::Master);
 }
 
-pub fn read_benchmark_set_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<BenchmarkSet> {
+pub fn read_benchmark_set_from_file(
+    name: &str,
+    file_kind: ProcedureFileKind,
+) -> Option<BenchmarkSet> {
     match load_top_level_from_file(&file_kind) {
         Some(m) => {
             if m.benchmark_sets.contains_key(name) {
-                return Some(m.benchmark_sets[name].clone())
+                return Some(m.benchmark_sets[name].clone());
             }
         }
         _ => return None,
@@ -207,7 +218,13 @@ pub fn read_benchmark_set_from_file(name: &str, file_kind: ProcedureFileKind) ->
     None
 }
 
-pub fn write_benchmark_set_to_file(name: &str, set: BenchmarkSet, force: bool, file_kind: ProcedureFileKind, interactive: bool) {
+pub fn write_benchmark_set_to_file(
+    name: &str,
+    set: BenchmarkSet,
+    force: bool,
+    file_kind: ProcedureFileKind,
+    interactive: bool,
+) {
     let mut top_level;
     match load_top_level_from_file(&file_kind) {
         Some(m) => {
@@ -226,16 +243,21 @@ pub fn write_benchmark_set_to_file(name: &str, set: BenchmarkSet, force: bool, f
         if interactive {
             println!("Procedure already exists, overwrite?");
             match prompt_until_allowed_val(&["y".to_string(), "n".to_string()]).as_str() {
-                "y" => ({
-                    top_level.benchmark_sets.insert(name.to_string(), set);
-                    let j = serde_json::to_string_pretty(&top_level).unwrap();
-                    std::fs::write(file_path, j).unwrap();
-                }),
+                "y" => {
+                    ({
+                        top_level.benchmark_sets.insert(name.to_string(), set);
+                        let j = serde_json::to_string_pretty(&top_level).unwrap();
+                        std::fs::write(file_path, j).unwrap();
+                    })
+                }
                 "n" => (),
                 _ => unreachable!("interactive answer not y or n, but how?"),
             }
         } else {
-            eprintln!("Cannot write procedure to file, {:?} already exists! Maybe use --overwrite?", name);
+            eprintln!(
+                "Cannot write procedure to file, {:?} already exists! Maybe use --overwrite?",
+                name
+            );
             exit(1);
         }
     } else {
@@ -249,7 +271,7 @@ pub fn read_meta_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<V
     match load_top_level_from_file(&file_kind) {
         Some(m) => {
             if m.meta_sets.contains_key(name) {
-                return Some(m.meta_sets[name].clone())
+                return Some(m.meta_sets[name].clone());
             }
         }
         _ => return None,
@@ -257,7 +279,12 @@ pub fn read_meta_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<V
     None
 }
 
-pub fn write_meta_to_file(name: &str, members: Vec<String>, force: bool, file_kind: ProcedureFileKind) {
+pub fn write_meta_to_file(
+    name: &str,
+    members: Vec<String>,
+    force: bool,
+    file_kind: ProcedureFileKind,
+) {
     let mut top_level;
     match load_top_level_from_file(&file_kind) {
         Some(m) => top_level = m,
@@ -279,10 +306,12 @@ pub fn write_meta_to_file(name: &str, members: Vec<String>, force: bool, file_ki
     }
 }
 
-
 // Returns a hashmap of all benchmark sets contained within this meta set, as well as the meta sets
 // found recursively within meta sets contained within this meta set.
-pub fn get_sets_from_meta(meta_set_key: String, source: ProcedureFileKind) -> HashMap<String, BenchmarkSet> {
+pub fn get_sets_from_meta(
+    meta_set_key: String,
+    source: ProcedureFileKind,
+) -> HashMap<String, BenchmarkSet> {
     let mut current_sets = HashMap::new();
     let mut seen_keys = Vec::new();
     let top_level = load_top_level_from_file(&source).unwrap();
@@ -290,12 +319,22 @@ pub fn get_sets_from_meta(meta_set_key: String, source: ProcedureFileKind) -> Ha
     current_sets
 }
 
-fn walk_meta_recursive_for_benchmarks(key: String, top_level: &TopLevel, seen_keys: &mut Vec<String>, current_benchmark_sets: &mut HashMap<String, BenchmarkSet>) {
+fn walk_meta_recursive_for_benchmarks(
+    key: String,
+    top_level: &TopLevel,
+    seen_keys: &mut Vec<String>,
+    current_benchmark_sets: &mut HashMap<String, BenchmarkSet>,
+) {
     if !seen_keys.contains(&key) {
         if top_level.meta_sets.contains_key(&key) {
             seen_keys.push(key.clone());
             for k in &top_level.meta_sets[&key] {
-                walk_meta_recursive_for_benchmarks(k.to_string(), &top_level, seen_keys, current_benchmark_sets);
+                walk_meta_recursive_for_benchmarks(
+                    k.to_string(),
+                    &top_level,
+                    seen_keys,
+                    current_benchmark_sets,
+                );
             }
         }
         if top_level.benchmark_sets.contains_key(&key) {
@@ -304,15 +343,28 @@ fn walk_meta_recursive_for_benchmarks(key: String, top_level: &TopLevel, seen_ke
     }
 }
 
-pub fn get_metas_from_meta(meta_set_key: String, file_source_type: ProcedureFileKind) -> Vec<String> {
+pub fn get_metas_from_meta(
+    meta_set_key: String,
+    file_source_type: ProcedureFileKind,
+) -> Vec<String> {
     let mut seen_keys = Vec::new();
     let mut current_meta_sets = Vec::new();
     let top_level = load_top_level_from_file(&file_source_type).unwrap();
-    walk_meta_recursive_for_metas(meta_set_key, &top_level, &mut seen_keys, &mut current_meta_sets);
+    walk_meta_recursive_for_metas(
+        meta_set_key,
+        &top_level,
+        &mut seen_keys,
+        &mut current_meta_sets,
+    );
     current_meta_sets
 }
 
-fn walk_meta_recursive_for_metas(key: String, top_level: &TopLevel, seen_keys: &mut Vec<String>, current_meta_sets: &mut Vec<String>) {
+fn walk_meta_recursive_for_metas(
+    key: String,
+    top_level: &TopLevel,
+    seen_keys: &mut Vec<String>,
+    current_meta_sets: &mut Vec<String>,
+) {
     if !seen_keys.contains(&key) && top_level.meta_sets.contains_key(&key) {
         seen_keys.push(key.clone());
         for k in &top_level.meta_sets[&key] {
@@ -337,20 +389,29 @@ pub fn is_known_map_hash(s: String) -> bool {
 }
 
 fn load_known_map_hashes() -> Vec<String> {
-    serde_json::from_slice(
-        &read(fbh_known_hash_file()).expect("")
-    ).unwrap_or_default()
+    serde_json::from_slice(&read(fbh_known_hash_file()).expect("")).unwrap_or_default()
 }
 
 #[allow(dead_code)]
 pub fn create_procedure_example() {
     let mut set = BenchmarkSet::default();
-    set.maps = vec!(Map::new("name","hash","dl"));
+    set.maps = vec![Map::new("name", "hash", "dl")];
     set.runs = 100;
     set.ticks = 40;
     write_benchmark_set_to_file("test-000041-1", set, true, ProcedureFileKind::Local, false);
-    write_benchmark_set_to_file("test-000041-2", BenchmarkSet::default(), true, ProcedureFileKind::Local, true);
-    write_meta_to_file("mulark.github.io maps", vec!("test-000041-1".to_string(), "test-000041-2".to_string()), true, ProcedureFileKind::Local);
+    write_benchmark_set_to_file(
+        "test-000041-2",
+        BenchmarkSet::default(),
+        true,
+        ProcedureFileKind::Local,
+        true,
+    );
+    write_meta_to_file(
+        "mulark.github.io maps",
+        vec!["test-000041-1".to_string(), "test-000041-2".to_string()],
+        true,
+        ProcedureFileKind::Local,
+    );
     let single_map = Map::new("test-000046.dummy_load", "a hash", "a download link");
     let single_mod = Mod::new("this mod", "this mod.zip", "this hash", "this version");
     let mut another_mod = single_mod.clone();

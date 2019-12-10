@@ -1,8 +1,10 @@
-use std::process::exit;
-use crate::util::{fbh_read_configuration_setting, fbh_save_dl_dir, get_saves_directory, sha256sum};
+use crate::util::{
+    fbh_read_configuration_setting, fbh_save_dl_dir, get_saves_directory, sha256sum,
+};
 use reqwest;
 use serde::{Deserialize, Serialize};
-use std::fs::{OpenOptions};
+use std::fs::OpenOptions;
+use std::process::exit;
 use std::thread::JoinHandle;
 
 lazy_static! {
@@ -11,7 +13,6 @@ lazy_static! {
         String::from("forums.factorio.com"),
     );
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone, Ord, Eq, PartialOrd)]
 pub struct Map {
@@ -108,7 +109,9 @@ pub fn fetch_map_deps_parallel(maps: &[Map], handles: &mut Vec<JoinHandle<()>>) 
     }
 }
 
-fn download_shared_folder_file_listing_and_parse(drive_folder_url: &str) -> Option<DriveFolderListing> {
+fn download_shared_folder_file_listing_and_parse(
+    drive_folder_url: &str,
+) -> Option<DriveFolderListing> {
     if !drive_folder_url.contains("drive.google.com") || drive_folder_url.is_empty() {
         eprintln!("You provided a link that isn't part of the drive.google.com domain");
         return None;
@@ -145,7 +148,11 @@ fn download_shared_folder_file_listing_and_parse(drive_folder_url: &str) -> Opti
             } else if resp.status() == 403 {
                 eprintln!("Failed to fetch google drive folder due to 403 forbidden! (Check your api key and that the folder is shared)");
             } else {
-                eprintln!("Failed to fetch google drive folder due to an unknown response: {}", resp.status());            }
+                eprintln!(
+                    "Failed to fetch google drive folder due to an unknown response: {}",
+                    resp.status()
+                );
+            }
         }
     } else {
         eprintln!("Couldn't get a google drive api key from your config.ini file.");
@@ -154,7 +161,10 @@ fn download_shared_folder_file_listing_and_parse(drive_folder_url: &str) -> Opti
     None
 }
 
-pub fn get_download_links_from_google_drive_by_filelist(filenames_to_find: Vec<String>, drive_folder_url: &str) -> Option<Vec<(String, String)>> {
+pub fn get_download_links_from_google_drive_by_filelist(
+    filenames_to_find: Vec<String>,
+    drive_folder_url: &str,
+) -> Option<Vec<(String, String)>> {
     if let Some(file_listing) = download_shared_folder_file_listing_and_parse(drive_folder_url) {
         let mut links_to_dl = Vec::new();
         for drive_file in file_listing.files {
@@ -173,7 +183,10 @@ pub fn get_download_links_from_google_drive_by_filelist(filenames_to_find: Vec<S
 
 fn download_save(save_name: &str, url: String) {
     if url.is_empty() {
-        eprintln!("Could not download map {} because a download link was not defined!", save_name);
+        eprintln!(
+            "Could not download map {} because a download link was not defined!",
+            save_name
+        );
         exit(1);
     }
     let mut whitelisted_url = false;
@@ -183,7 +196,10 @@ fn download_save(save_name: &str, url: String) {
         }
     }
     if !whitelisted_url {
-        println!("Warning, downloads from this domain have not been verified to work.\n{}", url);
+        println!(
+            "Warning, downloads from this domain have not been verified to work.\n{}",
+            url
+        );
     }
     let mut resp = match reqwest::get(&url) {
         Ok(r) => r,
@@ -219,7 +235,10 @@ fn download_save(save_name: &str, url: String) {
             }
         }
     } else {
-        eprintln!("Error: We recieved a bad response. Status code: {}", resp.status().as_u16());
+        eprintln!(
+            "Error: We recieved a bad response. Status code: {}",
+            resp.status().as_u16()
+        );
         exit(1);
     }
 }

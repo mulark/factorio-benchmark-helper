@@ -1,6 +1,6 @@
-use std::process::exit;
 use serde::{Deserialize, Serialize};
 use std::fs::{read, File, OpenOptions};
+use std::process::exit;
 use std::thread::JoinHandle;
 
 use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory};
@@ -210,13 +210,16 @@ fn convert_version_str_to_vec(version: &str) -> Vec<u32> {
             if let Ok(u) = u.parse::<u32>() {
                 vers.push(u);
             } else {
-                eprintln!("Error: Could not parse version string {} as a valid version!", version);
+                eprintln!(
+                    "Error: Could not parse version string {} as a valid version!",
+                    version
+                );
                 exit(1);
             }
         }
     }
     if vers.len() > 3 {
-        eprintln!("Error: Mod versions can have at most 3 sections!", );
+        eprintln!("Error: Mod versions can have at most 3 sections!",);
         exit(1);
     }
     if vers.is_empty() {

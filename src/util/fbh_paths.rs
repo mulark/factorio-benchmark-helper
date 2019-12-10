@@ -1,9 +1,6 @@
 use crate::procedure_file::update_master_json;
-use crate::util::{
-    generic_read_configuration_setting,
-    setup_database,
-};
-use directories::{ProjectDirs};
+use crate::util::{generic_read_configuration_setting, setup_database};
+use directories::ProjectDirs;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
@@ -83,7 +80,10 @@ fn fbh_init_config_file() -> Result<(), std::io::Error> {
         )?;
         writeln!(file, "google-drive-api-key=")?;
         writeln!(file)?;
-        writeln!(file, "; Automatically resave maps when creating a benchmark?")?;
+        writeln!(
+            file,
+            "; Automatically resave maps when creating a benchmark?"
+        )?;
         writeln!(file, "; Does nothing on Windows (currently)")?;
         writeln!(file, "auto-resave=true")?;
     }

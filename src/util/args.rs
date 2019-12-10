@@ -1,15 +1,13 @@
+use crate::procedure_file::print_all_procedures;
 use crate::util::fbh_paths::fbh_config_file;
 use crate::util::prompt_until_allowed_val;
-use crate::procedure_file::print_all_procedures;
-use crate::util::{
-    ProcedureKind,
-};
-use std::process::exit;
-use crate::FACTORIO_BENCHMARK_HELPER_VERSION;
+use crate::util::ProcedureKind;
 use crate::FACTORIO_BENCHMARK_HELPER_NAME;
+use crate::FACTORIO_BENCHMARK_HELPER_VERSION;
 use clap::ArgMatches;
-use clap::{Arg,App,AppSettings};
+use clap::{App, AppSettings, Arg};
 use ini::Ini;
+use std::process::exit;
 
 #[derive(Debug)]
 pub struct UserArgs {
@@ -171,7 +169,13 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
 
     if args.contains_key("benchmark") {
         arguments.run_benchmark = true;
-        arguments.benchmark_set_name = Some(args["benchmark"].vals[0].to_str().unwrap().trim().to_string());
+        arguments.benchmark_set_name = Some(
+            args["benchmark"].vals[0]
+                .to_str()
+                .unwrap()
+                .trim()
+                .to_string(),
+        );
     }
 
     if args.contains_key("meta") {
@@ -181,7 +185,13 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
 
     if args.contains_key("create-benchmark") {
         arguments.create_benchmark = true;
-        arguments.benchmark_set_name = Some(args["create-benchmark"].vals[0].to_str().unwrap().trim().to_string());
+        arguments.benchmark_set_name = Some(
+            args["create-benchmark"].vals[0]
+                .to_str()
+                .unwrap()
+                .trim()
+                .to_string(),
+        );
     }
 
     if args.contains_key("pattern") {
@@ -203,23 +213,37 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
     }
 
     if args.contains_key("google-drive-folder") {
-        let url = args["google-drive-folder"].vals[0].to_str().unwrap().trim().to_string();
+        let url = args["google-drive-folder"].vals[0]
+            .to_str()
+            .unwrap()
+            .trim()
+            .to_string();
         if url.contains("drive.google.com") {
             arguments.google_drive_folder = Some(url);
         }
     }
 
     if args.contains_key("mods") {
-        let collect_as_csv: String = args["mods"].vals.iter().map(|x| x.to_str().unwrap().trim()).collect();
+        let collect_as_csv: String = args["mods"]
+            .vals
+            .iter()
+            .map(|x| x.to_str().unwrap().trim())
+            .collect();
         arguments.mods_dirty = Some(collect_as_csv);
     }
 
     if args.contains_key("create-meta") {
         arguments.create_meta = true;
-        let collect_as_csv: String = args["create-meta"].vals[1..].iter().map(|x| x.to_str().unwrap().trim()).collect();
+        let collect_as_csv: String = args["create-meta"].vals[1..]
+            .iter()
+            .map(|x| x.to_str().unwrap().trim())
+            .collect();
         arguments.meta_set_members = Some(collect_as_csv);
 
-        let name = args["create-meta"].vals[0].to_str().unwrap().replace(',', "");
+        let name = args["create-meta"].vals[0]
+            .to_str()
+            .unwrap()
+            .replace(',', "");
         arguments.meta_set_name = Some(name);
     }
 
@@ -231,7 +255,10 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
             arguments.commit_type = Some(commit_type);
         } else if arguments.interactive {
             println!("You failed to set a valid type from args, and are running interactively, enter a commit type. types: benchmark, meta");
-            arguments.commit_type = Some(prompt_until_allowed_val(&[ProcedureKind::Benchmark, ProcedureKind::Meta]));
+            arguments.commit_type = Some(prompt_until_allowed_val(&[
+                ProcedureKind::Benchmark,
+                ProcedureKind::Meta,
+            ]));
         } else {
             unreachable!("Illegal commit type found!");
         }
@@ -242,7 +269,11 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
     }
 
     let i = Ini::load_from_file(fbh_config_file()).unwrap();
-    if let Ok(b) = i.get_from::<String>(None, "auto-resave").unwrap_or_default().parse::<bool>() {
+    if let Ok(b) = i
+        .get_from::<String>(None, "auto-resave")
+        .unwrap_or_default()
+        .parse::<bool>()
+    {
         arguments.resave = b;
     }
     arguments
@@ -250,15 +281,17 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
 
 fn try_parse_nonzero_u32(s: &str) -> Option<u32> {
     match s.parse::<u32>() {
-        Ok(u) => if u != 0 {
-            return Some(u)
-        } else {
-            eprintln!("Parsed arg not allowd to be 0!");
-            exit(1);
+        Ok(u) => {
+            if u != 0 {
+                return Some(u);
+            } else {
+                eprintln!("Parsed arg not allowd to be 0!");
+                exit(1);
+            }
         }
         _ => {
             eprintln!("Failed to process --runs as u32");
             exit(1);
-        },
+        }
     };
 }
