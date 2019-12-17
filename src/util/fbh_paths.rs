@@ -33,9 +33,6 @@ pub fn initialize() -> Result<(), std::io::Error> {
     if !fbh_known_hash_file().exists() {
         std::fs::File::create(fbh_known_hash_file())?;
     }
-    if !fbh_resave_dir().exists() {
-        std::fs::create_dir(fbh_resave_dir())?;
-    }
     update_master_json();
     Ok(())
 }
@@ -50,10 +47,6 @@ pub fn fbh_procedure_json_master_file() -> PathBuf {
 
 pub fn fbh_procedure_json_local_file() -> PathBuf {
     fbh_procedure_directory().join("local.json")
-}
-
-pub fn fbh_resave_dir() -> PathBuf {
-    fbh_cache_path().join("resave")
 }
 
 fn fbh_init_config_file() -> Result<(), std::io::Error> {

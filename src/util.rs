@@ -20,7 +20,7 @@ mod fbh_paths;
 pub use fbh_paths::{
     fbh_cache_path, fbh_config_file, fbh_data_path, fbh_known_hash_file, fbh_mod_dl_dir,
     fbh_mod_use_dir, fbh_procedure_json_local_file, fbh_procedure_json_master_file,
-    fbh_read_configuration_setting, fbh_resave_dir, fbh_results_database, fbh_save_dl_dir,
+    fbh_read_configuration_setting, fbh_results_database, fbh_save_dl_dir,
     initialize,
 };
 use sha2::Digest;
@@ -412,23 +412,26 @@ pub fn recompress_save(save: &PathBuf) {
     }
 }
 
-pub fn recompress_saves_parallel(saves: Vec<PathBuf>) {
-    if path_of_7z_install().is_some() {
-        let mut handles: Vec<_> = Vec::new();
-        for save in saves {
-            handles.push(std::thread::spawn(move || {
-                let pre_sha256 = sha256sum(&save);
-                if !is_known_map_hash(pre_sha256) {
-                    recompress_save(&save);
-                    let post_sha256 = sha256sum(&save);
-                    write_known_map_hash(post_sha256);
-                }
-            }));
-        }
-        for handle in handles {
-            handle.join().unwrap();
-        }
-    } else {
-        eprintln!("Could not find optional dependency 7z to recompress saves.");
+pub fn recompress_saves_parallel(saves: Vec<PathBuf>, resave: bool) -> Vec<(PathBuf, String)> {
+    let mut hash_holder = Vec::new();
+    let mut handles: Vec<_> = Vec::new();
+
+    for save in saves {
+        handles.push(std::thread::spawn(move || {
+            let pre_sha256 = sha256sum(&save);
+            if path_of_7z_install().is_some() && !is_known_map_hash(&pre_sha256) && resave  {
+                recompress_save(&save);
+                let post_sha256 = sha256sum(&save);
+                write_known_map_hash(&post_sha256);
+                (save, post_sha256)
+            } else {
+                (save, pre_sha256)
+            }
+        }));
     }
+    for handle in handles {
+        hash_holder.push(handle.join().unwrap());
+    }
+
+    hash_holder
 }

@@ -112,7 +112,7 @@ pub fn update_master_json() {
         if let Some(new_top_level) = load_top_level_from_file(&ProcedureFileKind::Custom(new)) {
             for (k, v) in new_top_level.benchmark_sets {
                 if orig_top_level.benchmark_sets.contains_key(&k) {
-                    println!("Automatically updating benchmark set {:?}", &k);
+                    //println!("Automatically updating benchmark set {:?}", &k);
                 }
                 write_benchmark_set_to_file(&k, v, true, ProcedureFileKind::Master, false);
             }
@@ -374,18 +374,18 @@ fn walk_meta_recursive_for_metas(
     }
 }
 
-pub fn write_known_map_hash(s: String) {
+pub fn write_known_map_hash(s: &str) {
     let mut hashes = load_known_map_hashes();
-    hashes.push(s);
+    hashes.push(s.to_string());
     hashes.sort();
     hashes.dedup();
     let j = serde_json::to_string_pretty(&hashes).unwrap();
     std::fs::write(fbh_known_hash_file(), j).unwrap();
 }
 
-pub fn is_known_map_hash(s: String) -> bool {
+pub fn is_known_map_hash(s: &str) -> bool {
     let hashes = load_known_map_hashes();
-    hashes.contains(&s)
+    hashes.iter().any(|inner_hash| inner_hash == s)
 }
 
 fn load_known_map_hashes() -> Vec<String> {

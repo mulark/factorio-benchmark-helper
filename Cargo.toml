@@ -22,7 +22,6 @@ sha1 = "*"
 sha2 = "*"
 raw-cpuid = "*"
 clap = "*"
-nix = "*"
 bincode = "*"
 
 [profile.release]

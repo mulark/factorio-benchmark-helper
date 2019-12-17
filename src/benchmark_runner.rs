@@ -1,31 +1,18 @@
 extern crate regex;
 
-use crate::util::fbh_resave_dir;
 use crate::util::performance_results::{BenchmarkData, CollectionData};
-use crate::util::query_system_cpuid;
-use crate::util::FACTORIO_INFO;
 use crate::util::{
     download_benchmark_deps_parallel, fbh_mod_dl_dir, fbh_mod_use_dir, fbh_save_dl_dir,
-    get_executable_path, upload_to_db, BenchmarkSet,
+    get_executable_path, upload_to_db, BenchmarkSet, FACTORIO_INFO, query_system_cpuid,
 };
-#[cfg(target_os = "linux")]
-use nix::sys::signal::{kill, Signal};
-#[cfg(target_os = "linux")]
-use nix::sys::wait::WaitStatus;
-#[cfg(target_os = "linux")]
-use nix::unistd::Pid;
 use regex::Regex;
 use std::collections::HashMap;
-use std::fs::read_to_string;
-use std::fs::remove_dir_all;
-use std::fs::remove_file;
-use std::fs::{read, File};
-use std::io::Write;
+use std::fs::read;
 use std::path::PathBuf;
 use std::process::exit;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::Mutex;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 static NUMBER_ERROR_CHECKING_TICKS: u32 = 300;
 static NUMBER_ERROR_CHECKING_RUNS: u32 = 3;

@@ -6,7 +6,6 @@ extern crate clap;
 extern crate directories;
 extern crate getopts;
 extern crate glob;
-extern crate nix;
 extern crate regex;
 extern crate reqwest;
 extern crate serde;
@@ -17,7 +16,6 @@ use crate::procedure_file::get_metas_from_meta;
 use crate::procedure_file::get_sets_from_meta;
 use crate::procedure_file::read_meta_from_file;
 use crate::procedure_file::write_meta_to_file;
-use crate::util::bulk_sha256;
 use crate::util::recompress_saves_parallel;
 use regex::Regex;
 use std::collections::HashMap;
@@ -116,7 +114,7 @@ fn perform_commit(args: &mut UserArgs) {
                     ProcedureKind::Meta,
                 ]));
             } else {
-                eprintln!("Cannot commmit to master.json because commit type is nothing!");
+                eprintln!("Cannot commit to master.json because commit type is nothing!");
                 exit(1);
             }
         }
@@ -128,7 +126,7 @@ fn perform_commit(args: &mut UserArgs) {
                 );
                 println!("The available sets are: ");
             } else {
-                eprintln!("Cannot commmit to master.json because commit name is nothing!");
+                eprintln!("Cannot commit to master.json because commit name is nothing!");
                 exit(1);
             }
         }
@@ -208,7 +206,7 @@ fn convert_args_to_benchmark_run(args: &mut UserArgs) -> HashMap<String, Benchma
             println!("Enter name of a benchmark you wish to run.");
             prompt_until_empty_str(false);
         } else {
-            unreachable!("Cannot have gotten where without interactive or --benchmark");
+            unreachable!("Cannot have gotten here without interactive or --benchmark");
         }
     }
     let name = args.benchmark_set_name.as_ref().unwrap().to_owned();
@@ -285,17 +283,19 @@ fn create_benchmark_from_args(args: &UserArgs) {
     if map_paths.is_empty() {
         eprintln!("Supplied pattern found no maps!");
         exit(1);
+    } else {
+        println!("Found the following maps:");
+        println!("{:?}", map_paths);
     }
 
-    if args.resave {
-        recompress_saves_parallel(map_paths.clone());
-    }
 
-    let path_to_sha256_tuple = bulk_sha256(map_paths);
+    let path_to_sha256_tuple = recompress_saves_parallel(map_paths.clone(), args.resave);
     for (a_map, the_hash) in path_to_sha256_tuple {
         let map_struct = Map::new(a_map.file_name().unwrap().to_str().unwrap(), &the_hash, "");
         benchmark.maps.push(map_struct);
     }
+
+
 
     if args.ticks.is_some() {
         benchmark.ticks = args.ticks.unwrap();
@@ -365,6 +365,9 @@ fn process_mod_list(raw_mod_list: String) -> Vec<Mod> {
 
 fn slice_mods_from_csv(s: &str) -> Vec<(String, String)> {
     let mut vals = Vec::new();
+    if s.is_empty() {
+        return vals;
+    }
     for indiv_mod in s.split(',') {
         let mut indiv_mod_owned = indiv_mod.to_owned();
         if indiv_mod_owned.ends_with('_') {
