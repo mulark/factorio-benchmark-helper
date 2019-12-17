@@ -78,7 +78,8 @@ pub fn setup_database(create_new_db: bool) -> Connection {
 }
 
 pub fn upload_to_db(collection_data: CollectionData) {
-    let database = DB_CONNECTION.lock().unwrap();
+    let mut database = DB_CONNECTION.lock().unwrap();
+    let mut transacter = database.transaction().unwrap();
 
     let collection_header = "name,factorio_version,platform,executable_type,cpuid";
     let csv_collection = format!(
@@ -90,8 +91,8 @@ pub fn upload_to_db(collection_data: CollectionData) {
         collection_data.cpuid,
     );
 
-    let combined_sql = format!("BEGIN TRANSACTION; INSERT INTO collection({}) VALUES ({});",collection_header, csv_collection);
-    match database.execute_batch(&combined_sql) {
+    let combined_sql = format!("INSERT INTO collection({}) VALUES ({});",collection_header, csv_collection);
+    match transacter.execute_batch(&combined_sql) {
         Ok(_) => (),
         Err(e) => {
             eprintln!("Failed to insert collection data to database!");
@@ -100,10 +101,11 @@ pub fn upload_to_db(collection_data: CollectionData) {
             exit(1);
         }
     }
-    let collection_id = database.last_insert_rowid() as u32;
+    let collection_id = transacter.last_insert_rowid() as u32;
 
     let benchmark_header = "map_name,runs,ticks,map_hash,collection_id";
     for benchmark in collection_data.benchmarks {
+        let save_point = transacter.savepoint().unwrap();
         let csv_benchmark = format!(
             "{:?},{:?},{:?},{:?},{:?}",
             benchmark.map_name,
@@ -113,7 +115,7 @@ pub fn upload_to_db(collection_data: CollectionData) {
             collection_id,
         );
         let combined_sql = format!("INSERT INTO benchmark({}) VALUES ({});", benchmark_header, csv_benchmark);
-        match database.execute_batch(&combined_sql) {
+        match save_point.execute_batch(&combined_sql) {
             Ok(_) => (),
             Err(e) => {
                 eprintln!("Failed to insert benchmark data to database!");
@@ -122,7 +124,7 @@ pub fn upload_to_db(collection_data: CollectionData) {
                 exit(1);
             }
         }
-        let benchmark_id = database.last_insert_rowid() as u32;
+        let benchmark_id = save_point.last_insert_rowid() as u32;
         let verbose_header =
             "tick_number,wholeUpdate,gameUpdate,circuitNetworkUpdate,transportLinesUpdate,\
              fluidsUpdate,entityUpdate,mapGenerator,electricNetworkUpdate,logisticManagerUpdate,\
@@ -132,18 +134,17 @@ pub fn upload_to_db(collection_data: CollectionData) {
         for line in benchmark.verbose_data {
             combined_sql.push_str(&format!("INSERT INTO verbose({}) VALUES ({},{});\n", verbose_header, line, benchmark_id));
         }
-        combined_sql.push_str("COMMIT;");
-        match database.execute_batch(&combined_sql) {
-            Ok(_) => (),
+        match save_point.execute_batch(&combined_sql) {
+            Ok(_) => {
+            },
             Err(e) => {
                 eprintln!("Failed to insert data to database!");
                 eprintln!("{}",e);
-                database.execute_batch(&format!("DELETE FROM benchmark where benchmark_id = {}", benchmark_id)).expect("");
-                database.execute_batch(&format!("DELETE FROM collection where collection_id = {}:", collection_id)).expect("");
                 exit(1);
              }
         }
     }
+    transacter.commit().unwrap();
 }
 
 fn create_tables_in_db(database: &Connection) {

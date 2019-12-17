@@ -3,7 +3,6 @@
 extern crate lazy_static;
 extern crate clap;
 extern crate directories;
-extern crate getopts;
 extern crate glob;
 extern crate nix;
 extern crate regex;
