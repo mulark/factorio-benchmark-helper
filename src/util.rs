@@ -150,19 +150,20 @@ fn get_factorio_rw_directory() -> PathBuf {
             .parse::<bool>()
             .unwrap_or(true);
     if use_system_rw_directories {
-        if cfg!(Windows) {
-            // %appdata%\Roaming\
-            BaseDirs::new()
-                .unwrap()
-                .data_dir()
-                .join("Factorio")
-                .join("")
-        } else {
+        if cfg!(target_os = "linux") {
             // ~/.factorio/
             BaseDirs::new()
                 .unwrap()
                 .home_dir()
                 .join(".factorio")
+                .join("")
+
+        } else {
+            // %appdata%\Roaming\
+            BaseDirs::new()
+                .unwrap()
+                .data_dir()
+                .join("Factorio")
                 .join("")
         }
     } else {
