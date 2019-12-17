@@ -91,16 +91,8 @@ pub fn upload_to_db(collection_data: CollectionData) {
         collection_data.cpuid,
     );
 
-<<<<<<< HEAD
-    let combined_sql = format!(
-        "BEGIN TRANSACTION; INSERT INTO collection({}) VALUES ({});",
-        collection_header, csv_collection
-    );
-    match database.execute_batch(&combined_sql) {
-=======
     let combined_sql = format!("INSERT INTO collection({}) VALUES ({});",collection_header, csv_collection);
     match transacter.execute_batch(&combined_sql) {
->>>>>>> 5721f5108766e594b666649686d125fb69007874
         Ok(_) => (),
         Err(e) => {
             eprintln!("Failed to insert collection data to database!");
@@ -122,12 +114,7 @@ pub fn upload_to_db(collection_data: CollectionData) {
             "INSERT INTO benchmark({}) VALUES ({});",
             benchmark_header, csv_benchmark
         );
-<<<<<<< HEAD
-        match database.execute_batch(&combined_sql) {
-=======
-        let combined_sql = format!("INSERT INTO benchmark({}) VALUES ({});", benchmark_header, csv_benchmark);
         match save_point.execute_batch(&combined_sql) {
->>>>>>> 5721f5108766e594b666649686d125fb69007874
             Ok(_) => (),
             Err(e) => {
                 eprintln!("Failed to insert benchmark data to database!");
@@ -154,23 +141,7 @@ pub fn upload_to_db(collection_data: CollectionData) {
             },
             Err(e) => {
                 eprintln!("Failed to insert data to database!");
-<<<<<<< HEAD
-                eprintln!("{}", e);
-                database
-                    .execute_batch(&format!(
-                        "DELETE FROM benchmark where benchmark_id = {}",
-                        benchmark_id
-                    ))
-                    .expect("");
-                database
-                    .execute_batch(&format!(
-                        "DELETE FROM collection where collection_id = {}:",
-                        collection_id
-                    ))
-                    .expect("");
-=======
                 eprintln!("{}",e);
->>>>>>> 5721f5108766e594b666649686d125fb69007874
                 exit(1);
             }
         }
