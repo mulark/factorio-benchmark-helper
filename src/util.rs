@@ -7,8 +7,6 @@ extern crate sha1;
 extern crate sha2;
 
 mod database;
-use crate::procedure_file::is_known_map_hash;
-use crate::procedure_file::write_known_map_hash;
 use core::fmt::Debug;
 use core::str::FromStr;
 pub use database::{setup_database, upload_to_db};
@@ -362,8 +360,6 @@ pub fn recompress_save(save: &PathBuf) {
         if let Some(ext) = save.extension() {
             if ext == "zip" {
                 if let Some(exe_7z) = path_of_7z_install() {
-                    println!("Recompressing save {:?}", &save);
-
                     // Delete the preview image, saving 100-800KB from the few samples I've seen
                     if let Ok(mut process) = std::process::Command::new(&exe_7z)
                         .arg("d")
@@ -392,16 +388,15 @@ pub fn recompress_save(save: &PathBuf) {
                         .expect("");
                     process.wait().unwrap();
 
-                    std::fs::remove_file(&save).ok();
+                    let to_save_to = fbh_save_dl_dir().join(save.file_name().unwrap());
+                    std::fs::remove_file(fbh_save_dl_dir().join(save.file_name().unwrap())).ok();
                     let mut process = std::process::Command::new(&exe_7z)
                         .arg("a")
                         .arg(&save)
-                        .arg(format!(
-                            "{}/{}",
-                            decompress_dir.to_string_lossy(),
-                            save.file_stem().unwrap().to_str().unwrap()
-                        ))
+                        .arg(to_save_to.to_str().unwrap())
+                        .arg(&decompress_dir.join(to_save_to.file_stem().unwrap()))
                         .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
                         .spawn()
                         .expect("");
                     process.wait().unwrap();
@@ -414,24 +409,18 @@ pub fn recompress_save(save: &PathBuf) {
 
 pub fn recompress_saves_parallel(saves: Vec<PathBuf>, resave: bool) -> Vec<(PathBuf, String)> {
     let mut hash_holder = Vec::new();
-    let mut handles: Vec<_> = Vec::new();
 
-    for save in saves {
-        handles.push(std::thread::spawn(move || {
-            let pre_sha256 = sha256sum(&save);
-            if path_of_7z_install().is_some() && !is_known_map_hash(&pre_sha256) && resave  {
-                recompress_save(&save);
-                let post_sha256 = sha256sum(&save);
-                write_known_map_hash(&post_sha256);
-                (save, post_sha256)
-            } else {
-                (save, pre_sha256)
-            }
-        }));
+    let initial_tuple = bulk_sha256(saves);
+    if !resave {
+        return initial_tuple
     }
-    for handle in handles {
-        hash_holder.push(handle.join().unwrap());
+    for (save, _hash) in initial_tuple {
+        if path_of_7z_install().is_some() {
+            recompress_save(&save);
+            let post_sha256 = sha256sum(&save);
+            //write_known_map_hash(&post_sha256);
+            hash_holder.push((save, post_sha256));
+        }
     }
-
     hash_holder
 }

@@ -285,17 +285,14 @@ fn create_benchmark_from_args(args: &UserArgs) {
         exit(1);
     } else {
         println!("Found the following maps:");
-        println!("{:?}", map_paths);
+        for map in &map_paths {
+            println!("{:?}", map);
+        }
     }
-
-
-    let path_to_sha256_tuple = recompress_saves_parallel(map_paths.clone(), args.resave);
-    for (a_map, the_hash) in path_to_sha256_tuple {
-        let map_struct = Map::new(a_map.file_name().unwrap().to_str().unwrap(), &the_hash, "");
-        benchmark.maps.push(map_struct);
-    }
-
-
+    let resave = args.resave;
+    let handle = std::thread::spawn(move || {
+        recompress_saves_parallel(map_paths.clone(), resave)
+    });
 
     if args.ticks.is_some() {
         benchmark.ticks = args.ticks.unwrap();
@@ -332,6 +329,15 @@ fn create_benchmark_from_args(args: &UserArgs) {
         println!("Enter a comma separated list of mods, empty for vanilla. Special response \"__CURRENT__\" will add currently enabled mods.");
         let raw_mod_list = prompt_until_empty_str(true);
         benchmark.mods = process_mod_list(raw_mod_list);
+    }
+
+    if !args.interactive && args.resave {
+        println!("Finalizing resaving...");
+    }
+    let path_to_sha256_tuple = handle.join().unwrap();
+    for (a_map, the_hash) in path_to_sha256_tuple {
+        let map_struct = Map::new(a_map.file_name().unwrap().to_str().unwrap(), &the_hash, "");
+        benchmark.maps.push(map_struct);
     }
 
     assert!(!set_name.is_empty());

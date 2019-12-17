@@ -3,7 +3,6 @@ extern crate serde;
 extern crate serde_json;
 
 use crate::util::fbh_cache_path;
-use crate::util::fbh_known_hash_file;
 use crate::util::prompt_until_allowed_val;
 use crate::util::{fbh_procedure_json_local_file, fbh_procedure_json_master_file, Map, Mod};
 use core::str::FromStr;
@@ -372,24 +371,6 @@ fn walk_meta_recursive_for_metas(
         }
         current_meta_sets.push(key);
     }
-}
-
-pub fn write_known_map_hash(s: &str) {
-    let mut hashes = load_known_map_hashes();
-    hashes.push(s.to_string());
-    hashes.sort();
-    hashes.dedup();
-    let j = serde_json::to_string_pretty(&hashes).unwrap();
-    std::fs::write(fbh_known_hash_file(), j).unwrap();
-}
-
-pub fn is_known_map_hash(s: &str) -> bool {
-    let hashes = load_known_map_hashes();
-    hashes.iter().any(|inner_hash| inner_hash == s)
-}
-
-fn load_known_map_hashes() -> Vec<String> {
-    serde_json::from_slice(&read(fbh_known_hash_file()).expect("")).unwrap_or_default()
 }
 
 #[allow(dead_code)]
