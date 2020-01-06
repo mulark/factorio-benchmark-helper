@@ -30,9 +30,6 @@ pub fn initialize() -> Result<(), std::io::Error> {
     if !fbh_results_database().exists() {
         setup_database(true);
     }
-    if !fbh_known_hash_file().exists() {
-        std::fs::File::create(fbh_known_hash_file())?;
-    }
     update_master_json();
     Ok(())
 }
@@ -113,10 +110,6 @@ pub fn fbh_mod_use_dir() -> PathBuf {
 
 pub fn fbh_save_dl_dir() -> PathBuf {
     fbh_cache_path().join("saves").join("")
-}
-
-pub fn fbh_known_hash_file() -> PathBuf {
-    fbh_cache_path().join("resaved_map_hashes.json")
 }
 
 pub fn fbh_config_file() -> PathBuf {
