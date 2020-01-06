@@ -124,8 +124,13 @@ pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
     download_benchmark_deps_parallel(&sets);
     for (name, mut set) in sets {
         validate_benchmark_set_parameters(&set);
+        let save_directory = if let Some(subdir) = &set.save_subdirectory {
+            fbh_save_dl_dir().join(subdir)
+        } else {
+            fbh_save_dl_dir()
+        };
         for map in &set.maps {
-            let fpath = fbh_save_dl_dir().join(map.name.clone());
+            let fpath = save_directory.join(map.name.clone());
             assert!(fpath.exists());
         }
         assert!(fbh_mod_use_dir().is_dir());
@@ -191,16 +196,21 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     let mut map_durations: Vec<BenchmarkDurationOverhead> = Vec::new();
     let mut initial_error_check_params = Vec::new();
     let mut set_params = Vec::new();
+    let save_directory = if let Some(subdir) = &set.save_subdirectory {
+        fbh_save_dl_dir().join(subdir)
+    } else {
+        fbh_save_dl_dir()
+    };
     for map in &set.maps {
         initial_error_check_params.push(SimpleBenchmarkParam::new(
-            fbh_save_dl_dir().join(&map.name),
+            save_directory.join(&map.name),
             NUMBER_ERROR_CHECKING_TICKS,
             NUMBER_ERROR_CHECKING_RUNS,
             PersistDataToDB::False,
             map.sha256.clone(),
         ));
         set_params.push(SimpleBenchmarkParam::new(
-            fbh_save_dl_dir().join(&map.name),
+            save_directory.join(&map.name),
             set.ticks,
             set.runs,
             PersistDataToDB::True,

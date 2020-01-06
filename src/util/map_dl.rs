@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::util::{
     fbh_read_configuration_setting, fbh_save_dl_dir, get_saves_directory, sha256sum,
 };
@@ -52,16 +53,21 @@ pub struct DriveFile {
     download_link: String,
 }
 
-pub fn fetch_map_deps_parallel(maps: &[Map], handles: &mut Vec<JoinHandle<()>>) {
+pub fn fetch_map_deps_parallel(maps: &[Map], handles: &mut Vec<JoinHandle<()>>, save_subdirectory: Option<PathBuf>) {
     let mut unique_maps: Vec<_> = maps.to_vec();
     unique_maps.sort();
     unique_maps.dedup();
     for map in unique_maps {
+        let save_subdirectory = save_subdirectory.clone();
         handles.push(std::thread::spawn(move ||
             {
                 let mut sha256;
-                let filepath = fbh_save_dl_dir().join(&map.name);
-                let alt_filepath = get_saves_directory().join(&map.name);
+                let (filepath, alt_filepath) = if let Some(subdir) = save_subdirectory {
+                    (fbh_save_dl_dir().join(&subdir).join(&map.name),
+                        get_saves_directory().join(&subdir).join(&map.name))
+                } else {
+                    (fbh_save_dl_dir().join(&map.name), get_saves_directory().join(&map.name))
+                };
                 if let Some(extension) = filepath.extension() {
                     if extension == "zip" {
                         if !filepath.is_file() && alt_filepath.is_file() {
@@ -76,15 +82,15 @@ pub fn fetch_map_deps_parallel(maps: &[Map], handles: &mut Vec<JoinHandle<()>>) 
                         }
                         if !filepath.is_file() {
                             println!("Could not find map in cache or Factorio save directory, doing download.");
-                            download_save(&map.name, map.download_link);
+                            download_save(&map.name, map.download_link, &filepath);
                         } else {
-                            println!("Found an existing map, checking sha256sum...", );
-                            sha256 = sha256sum(&fbh_save_dl_dir().join(&filepath));
+                            println!("Found an existing map, checking sha256sum... {:?}", &filepath);
+                            sha256 = sha256sum(&filepath);
                             if sha256 == map.sha256 && map.sha256 != "" {
                                 println!("Found correct sha256sum, skipping download.");
                             } else {
                                 println!("Found mismatched or empty sha256sum, performing download.");
-                                download_save(&map.name, map.download_link);
+                                download_save(&map.name, map.download_link, &filepath);
                             }
                         }
                     } else {
@@ -96,7 +102,7 @@ pub fn fetch_map_deps_parallel(maps: &[Map], handles: &mut Vec<JoinHandle<()>>) 
                     exit(1);
                 }
                 if filepath.is_file() {
-                    sha256 = sha256sum(&fbh_save_dl_dir().join(&filepath));
+                    sha256 = sha256sum(&filepath);
                     if sha256 != map.sha256 {
                         eprintln!("We downloaded map {} but it doesn't match the sha256sum we have on file?", &map.name);
                         eprintln!("sha256 in config: {}", map.sha256);
@@ -181,7 +187,7 @@ pub fn get_download_links_from_google_drive_by_filelist(
     None
 }
 
-fn download_save(save_name: &str, url: String) {
+fn download_save(save_name: &str, url: String, to_save_to_path: &PathBuf) {
     if url.is_empty() {
         eprintln!(
             "Could not download map {} because a download link was not defined!",
@@ -210,9 +216,8 @@ fn download_save(save_name: &str, url: String) {
         }
     };
     if resp.status().as_u16() == 200 {
-        let save_path = fbh_save_dl_dir().join(save_name);
-        if save_path.exists() {
-            match std::fs::remove_file(&save_path) {
+        if to_save_to_path.exists() {
+            match std::fs::remove_file(&to_save_to_path) {
                 Ok(()) => (),
                 Err(e) => {
                     eprintln!("A failure occured when trying to remove already existing map with mismatched hash");
@@ -221,10 +226,15 @@ fn download_save(save_name: &str, url: String) {
                 }
             }
         }
+        if let Err(e) = std::fs::create_dir_all(&to_save_to_path.parent().unwrap()) {
+            eprintln!("Could not create nested subdirectories in the Factorio Benchmark Helper cache directory");
+            eprintln!("{}", e);
+            exit(1);
+        }
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
-            .open(save_path)
+            .open(to_save_to_path)
             .unwrap();
         match resp.copy_to(&mut file) {
             Ok(_) => (),

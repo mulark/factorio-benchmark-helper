@@ -11,6 +11,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate sha2;
 
+use crate::util::fbh_save_dl_dir;
 use crate::procedure_file::get_metas_from_meta;
 use crate::procedure_file::get_sets_from_meta;
 use crate::procedure_file::read_meta_from_file;
@@ -18,6 +19,7 @@ use crate::procedure_file::write_meta_to_file;
 use crate::util::recompress_saves_parallel;
 use regex::Regex;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::env;
 use std::path::PathBuf;
 use std::process::exit;
@@ -276,11 +278,13 @@ fn create_benchmark_from_args(args: &UserArgs) {
         map_pattern = prompt_until_empty_str(true);
     } else {
         println!("WARN: A map pattern was not explictly defined, selecting all available maps.");
-        map_pattern = String::from("");
+        map_pattern = String::from("*");
     }
-    map_paths = get_map_paths_from_pattern(&map_pattern);
+    let holder = get_map_paths_from_pattern(&map_pattern);
+    map_paths = holder.0;
+    benchmark.save_subdirectory = holder.1;
     if map_paths.is_empty() {
-        eprintln!("Supplied pattern found no maps!");
+        eprintln!("Supplied pattern found no maps! {:?}", &map_pattern);
         exit(1);
     } else {
         println!("Found the following maps:");
@@ -468,7 +472,7 @@ pub fn slice_members_from_csv(s: &str) -> Vec<String> {
     vals
 }
 
-fn get_map_paths_from_pattern(initial_input: &str) -> Vec<PathBuf> {
+fn get_map_paths_from_pattern(initial_input: &str) -> (Vec<PathBuf>,Option<PathBuf>) {
     let mut input = initial_input.to_string();
     let mut map_paths = Vec::new();
     let save_directory = get_saves_directory();
@@ -476,10 +480,10 @@ fn get_map_paths_from_pattern(initial_input: &str) -> Vec<PathBuf> {
     if input == "*" {
         trim_newline(&mut input);
     }
-    if !input.is_empty() {
+    if !input.is_empty() && input.chars().last().unwrap_or_default() != '*' {
         input.push_str("*");
     }
-    let combined_pattern = &format!("{}*{}", save_directory.to_string_lossy(), input);
+    let combined_pattern = &format!("{}{}", save_directory.to_string_lossy(), input);
     let try_pattern = glob::glob(combined_pattern);
     if let Ok(m) = try_pattern {
         for item in m.filter_map(Result::ok) {
@@ -492,5 +496,45 @@ fn get_map_paths_from_pattern(initial_input: &str) -> Vec<PathBuf> {
             }
         }
     }
-    map_paths
+    let possible_subdir = find_map_subdirectory(&map_paths);
+    move_maps_to_cache(&map_paths, &possible_subdir);
+    (map_paths, possible_subdir)
+}
+
+fn find_map_subdirectory(paths: &[PathBuf]) -> Option<PathBuf> {
+    let base_save_dir = get_saves_directory().to_string_lossy().to_string();
+    let mut currently_seen_base_paths = HashSet::new();
+    for path in paths {
+        currently_seen_base_paths.insert(path.parent().unwrap());
+    }
+    if currently_seen_base_paths.len() == 1 {
+        let key = currently_seen_base_paths.drain().next().unwrap();
+        return Some(key.strip_prefix(&base_save_dir).unwrap().to_path_buf());
+    }
+    None
+}
+
+fn move_maps_to_cache(paths: &[PathBuf], subdir: &Option<PathBuf>) {
+    let save_to_dir = if let Some(subdir) = subdir {
+        fbh_save_dl_dir().join(subdir)
+    } else {
+        fbh_save_dl_dir()
+    };
+    for path in paths {
+        let dest_path = &save_to_dir.join(&path.file_name().unwrap());
+        let parent = dest_path.parent().unwrap();
+        if !parent.exists() {
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                eprintln!("Couldn't create a subdirectory {:?} due to {:?}", parent, e);
+                exit(1);
+            }
+        }
+        if let Err(e) = std::fs::copy(&path, dest_path) {
+            eprintln!("Failed to copy {:?} to {:?}", &path, &dest_path);
+            eprintln!("Reason: {}", e);
+            exit(1);
+        } else {
+            println!("Copied {:?} to {:?}", &path, &dest_path);
+        }
+    }
 }

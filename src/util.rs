@@ -16,7 +16,7 @@ use std::ops::Range;
 use std::process::exit;
 mod fbh_paths;
 pub use fbh_paths::{
-    fbh_cache_path, fbh_config_file, fbh_data_path, fbh_known_hash_file, fbh_mod_dl_dir,
+    fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir,
     fbh_mod_use_dir, fbh_procedure_json_local_file, fbh_procedure_json_master_file,
     fbh_read_configuration_setting, fbh_results_database, fbh_save_dl_dir,
     initialize,
@@ -58,18 +58,16 @@ pub fn download_benchmark_deps_parallel(sets: &HashMap<String, BenchmarkSet>) {
         for indiv_mod in set.mods.clone() {
             mods.push(indiv_mod);
         }
+        mods.sort();
+        mods.dedup();
+        fetch_mod_deps_parallel(&mods, &mut handles);
         for indiv_map in set.maps.clone() {
-            maps.push(indiv_map);
+            maps.push(indiv_map)
         }
+        maps.sort();
+        maps.dedup();
+        fetch_map_deps_parallel(&maps, &mut handles, set.save_subdirectory.clone());
     }
-    maps.sort();
-    maps.dedup();
-    mods.sort();
-    mods.dedup();
-
-    fetch_mod_deps_parallel(&mods, &mut handles);
-    fetch_map_deps_parallel(&maps, &mut handles);
-
     for handle in handles {
         handle.join().expect("");
     }

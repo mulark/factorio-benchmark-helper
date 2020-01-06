@@ -49,6 +49,8 @@ impl Default for TopLevel {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BenchmarkSet {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub save_subdirectory: Option<PathBuf>,
     pub mods: Vec<Mod>,
     pub maps: Vec<Map>,
     pub ticks: u32,
@@ -62,6 +64,7 @@ impl PartialEq for BenchmarkSet {
             && self.runs == cmp.runs
             && self.maps.len() == cmp.maps.len()
             && self.mods.len() == cmp.mods.len()
+            && self.save_subdirectory == cmp.save_subdirectory
         {
             for i in 0..self.maps.len() {
                 if self.maps[i] != cmp.maps[i] {
@@ -83,6 +86,7 @@ impl PartialEq for BenchmarkSet {
 impl Default for BenchmarkSet {
     fn default() -> BenchmarkSet {
         BenchmarkSet {
+            save_subdirectory: None,
             mods: Vec::new(),
             maps: Vec::new(),
             ticks: 0,
@@ -117,7 +121,7 @@ pub fn update_master_json() {
             }
             for (k, v) in new_top_level.meta_sets {
                 if orig_top_level.meta_sets.contains_key(&k) {
-                    println!("Automatically updating metaset {:?}", &k);
+                    //println!("Automatically updating metaset {:?}", &k);
                 }
                 write_meta_to_file(&k, v, true, ProcedureFileKind::Master);
             }
@@ -233,7 +237,7 @@ pub fn write_benchmark_set_to_file(
             top_level = TopLevel::default();
         }
     }
-    let file_path = match file_kind {
+    let procedure_file_path = match file_kind {
         ProcedureFileKind::Local => fbh_procedure_json_local_file(),
         ProcedureFileKind::Master => fbh_procedure_json_master_file(),
         ProcedureFileKind::Custom(p) => p,
@@ -246,7 +250,7 @@ pub fn write_benchmark_set_to_file(
                     ({
                         top_level.benchmark_sets.insert(name.to_string(), set);
                         let j = serde_json::to_string_pretty(&top_level).unwrap();
-                        std::fs::write(file_path, j).unwrap();
+                        std::fs::write(procedure_file_path, j).unwrap();
                     })
                 }
                 "n" => (),
@@ -262,7 +266,7 @@ pub fn write_benchmark_set_to_file(
     } else {
         top_level.benchmark_sets.insert(name.to_string(), set);
         let j = serde_json::to_string_pretty(&top_level).unwrap();
-        std::fs::write(file_path, j).unwrap();
+        std::fs::write(procedure_file_path, j).unwrap();
     }
 }
 
@@ -289,7 +293,7 @@ pub fn write_meta_to_file(
         Some(m) => top_level = m,
         _ => top_level = TopLevel::default(),
     }
-    let file_path = match file_kind {
+    let procedure_file_path = match file_kind {
         ProcedureFileKind::Local => fbh_procedure_json_local_file(),
         ProcedureFileKind::Master => fbh_procedure_json_master_file(),
         ProcedureFileKind::Custom(p) => p,
@@ -301,7 +305,7 @@ pub fn write_meta_to_file(
     } else {
         top_level.meta_sets.insert(name.to_string(), members);
         let j = serde_json::to_string_pretty(&top_level).unwrap();
-        std::fs::write(file_path, j).unwrap();
+        std::fs::write(procedure_file_path, j).unwrap();
     }
 }
 
@@ -400,6 +404,7 @@ pub fn create_procedure_example() {
 
     //let foo = BenchmarkSet{name: String::from("asdf"), pattern: String::from("asf"), mod_groups: vec!(modset), maps: vec!(single_map)};
     let single_benchmark_set = BenchmarkSet {
+        save_subdirectory: None,
         mods: vec![single_mod, another_mod],
         maps: vec![single_map],
         ticks: 100,
