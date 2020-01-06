@@ -253,6 +253,7 @@
       "runs": 10
     },
     "test-000042-4": {
+      "save_subdirectory": "test-000042/test-000042-4",
       "mods": [
         {
           "name": "item-entity-collision-box-remover",
