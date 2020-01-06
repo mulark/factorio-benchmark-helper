@@ -145,6 +145,7 @@ pub fn upload_to_db(collection_data: CollectionData) {
                 exit(1);
             }
         }
+        save_point.commit().unwrap();
     }
     transacter.commit().unwrap();
 }
