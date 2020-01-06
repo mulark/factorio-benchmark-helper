@@ -377,7 +377,7 @@ pub fn recompress_save(save: &PathBuf) {
                             }
                         }
                     }
-
+                    /*
                     let decompress_dir = fbh_cache_path().join("resave");
                     std::fs::remove_dir_all(&decompress_dir).ok();
                     let mut process = std::process::Command::new(&exe_7z)
@@ -402,6 +402,7 @@ pub fn recompress_save(save: &PathBuf) {
                         .expect("");
                     process.wait().unwrap();
                     std::fs::remove_dir_all(&decompress_dir.join(save.file_stem().unwrap())).ok();
+                    */
                 }
             }
         }
