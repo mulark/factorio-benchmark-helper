@@ -198,6 +198,7 @@
       "mods": [
         {
           "name": "item-entity-collision-mask-remover",
+          "file_name": "",
           "version": "0.0.1",
           "sha1": "a9f2e61c8a84f44d97b0b561f483588713179784"
         }
@@ -226,6 +227,7 @@
       "mods": [
         {
           "name": "item-entity-collision-box-remover",
+          "file_name": "",
           "version": "0.0.1",
           "sha1": "606316074592f48b136d3b4776bd5f1de323bf17"
         }
@@ -254,11 +256,13 @@
       "mods": [
         {
           "name": "item-entity-collision-box-remover",
+          "file_name": "",
           "version": "0.0.1",
           "sha1": "606316074592f48b136d3b4776bd5f1de323bf17"
         },
         {
           "name": "item-entity-collision-mask-remover",
+          "file_name": "",
           "version": "0.0.1",
           "sha1": "a9f2e61c8a84f44d97b0b561f483588713179784"
         }
@@ -284,6 +288,7 @@
       "runs": 10
     },
     "test-000046": {
+      "save_subdirectory": "test-000046",
       "mods": [],
       "maps": [
         {

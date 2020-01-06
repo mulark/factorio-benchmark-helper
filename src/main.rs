@@ -232,7 +232,7 @@ fn convert_args_to_meta_benchmark_runs(args: &UserArgs) -> HashMap<String, Bench
     let local = read_meta_from_file(&name, ProcedureFileKind::Local);
     let master = read_meta_from_file(&name, ProcedureFileKind::Master);
     if local.is_some() || master.is_some() {
-        if local.is_some() && master.is_some() && local.clone().unwrap() != master.clone().unwrap()
+        if local.is_some() && master.is_some() && local.unwrap() != master.clone().unwrap()
         {
             println!("WARN: meta set with name {:?} is present in both local and master, and they differ.", &name);
             println!("WARN: meta set is being ran from master.json");
