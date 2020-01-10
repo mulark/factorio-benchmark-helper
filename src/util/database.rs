@@ -140,7 +140,7 @@ pub fn upload_to_db(collection_data: CollectionData) {
             Ok(_) => {
             },
             Err(e) => {
-                eprintln!("Failed to insert data to database!");
+                eprintln!("Failed to insert verbose data to database!");
                 eprintln!("{}",e);
                 exit(1);
             }

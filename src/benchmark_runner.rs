@@ -130,7 +130,7 @@ pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
             fbh_save_dl_dir()
         };
         for map in &set.maps {
-            let fpath = save_directory.join(map.name.clone());
+            let fpath = save_directory.join(&map.name);
             assert!(fpath.exists());
         }
         assert!(fbh_mod_use_dir().is_dir());
@@ -247,8 +247,11 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
         3, (expected_total_tick_time/expected_total_duration)*100.0,
         3, expected_total_benchmarking_run_overhead,
         3, expected_total_game_initialization_time);
+
+    // 0 pad 2 characters if no decimals wanted
+    // 0 pad 6 characters for 3 decimal place seconds, since '.' counts as a character too.
     println!(
-        "Expecting benchmarks to take: {}:{:02}:{:02.3}",
+        "Expecting benchmarks to take: {}:{:02}:{:06.3}",
         hrs, mins, secs
     );
 
