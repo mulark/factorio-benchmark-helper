@@ -6,7 +6,8 @@ extern crate reqwest;
 extern crate sha1;
 extern crate sha2;
 
-mod database;
+pub mod database;
+pub mod performance_results;
 use core::fmt::Debug;
 use core::str::FromStr;
 pub use database::{setup_database, upload_to_db};
@@ -24,8 +25,6 @@ pub use fbh_paths::{
 use sha2::Digest;
 use std::fs::File;
 use std::io::Read;
-
-pub mod performance_results;
 
 pub use crate::procedure_file::{
     print_all_procedures, read_benchmark_set_from_file, read_meta_from_file,
@@ -214,6 +213,12 @@ fn get_factorio_info() -> FactorioInfo {
         }
     }
     info_holder
+}
+
+pub fn sha1sum(file_path: &PathBuf) -> String {
+    sha1::Sha1::from(std::fs::read(file_path).unwrap())
+        .digest()
+        .to_string()
 }
 
 pub fn sha256sum(file_path: &PathBuf) -> String {

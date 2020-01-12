@@ -333,10 +333,6 @@ fn create_benchmark_from_args(args: &UserArgs) {
         let raw_mod_list = prompt_until_empty_str(true);
         benchmark.mods = process_mod_list(raw_mod_list);
     }
-
-    if !args.interactive && args.resave {
-        println!("Finalizing resaving...");
-    }
     let path_to_sha256_tuple = handle.join().unwrap();
     for (a_map, the_hash) in path_to_sha256_tuple {
         let map_struct = Map::new(a_map.file_name().unwrap().to_str().unwrap(), &the_hash, "");
