@@ -333,7 +333,7 @@ fn run_benchmark_single_map(
         if params.persist_data_to_db == PersistDataToDB::True
             && VERBOSE_DATA_ROW_MATCH_PATTERN.is_match(&line)
         {
-            if line_index % 1000 == 0 {
+            if line_index % params.ticks == 0 {
                 run_index += 1;
             }
             line.push_str(&format!("{}", run_index));
