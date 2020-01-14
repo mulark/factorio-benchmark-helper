@@ -1,5 +1,6 @@
 extern crate regex;
 
+use crate::util::Mod;
 use crate::util::performance_results::{BenchmarkData, CollectionData};
 use crate::util::{
     download_benchmark_deps_parallel, fbh_mod_dl_dir, fbh_mod_use_dir, fbh_save_dl_dir,
@@ -122,7 +123,7 @@ fn parse_stdout_for_errors(stdout: &str) {
 
 pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
     download_benchmark_deps_parallel(&sets);
-    for (name, mut set) in sets {
+    for (name, set) in sets {
         validate_benchmark_set_parameters(&set);
         let save_directory = if let Some(subdir) = &set.save_subdirectory {
             fbh_save_dl_dir().join(subdir)
@@ -134,36 +135,6 @@ pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
             assert!(fpath.exists());
         }
         assert!(fbh_mod_use_dir().is_dir());
-        if let Ok(dir_list) = std::fs::read_dir(fbh_mod_use_dir()) {
-            for dir_entry_result in dir_list {
-                if let Ok(dir_entry) = dir_entry_result {
-                    match std::fs::remove_file(dir_entry.path()) {
-                        Ok(_) => (),
-                        _ => {
-                            eprintln!("Failed to remove a mod from the staging directory!");
-                            exit(1);
-                        }
-                    }
-                }
-            }
-        }
-        for indiv_mod in &mut set.mods {
-            if indiv_mod.file_name.is_empty() {
-                indiv_mod.file_name = format!("{}_{}.zip", indiv_mod.name, indiv_mod.version);
-            }
-            let fpath = fbh_mod_dl_dir().join(&indiv_mod.file_name);
-            assert!(fpath.exists());
-            match std::fs::write(
-                fbh_mod_use_dir().join(&indiv_mod.file_name),
-                &read(&fpath).unwrap(),
-            ) {
-                Ok(_m) => (),
-                _ => {
-                    eprintln!("Failed to copy mod {:?} for use.", indiv_mod.file_name);
-                    exit(1);
-                }
-            }
-        }
         run_factorio_benchmarks_from_set(&name, set);
     }
 }
@@ -201,6 +172,36 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     } else {
         fbh_save_dl_dir()
     };
+    if let Ok(dir_list) = std::fs::read_dir(fbh_mod_use_dir()) {
+        for dir_entry_result in dir_list {
+            if let Ok(dir_entry) = dir_entry_result {
+                match std::fs::remove_file(dir_entry.path()) {
+                    Ok(_) => (),
+                    _ => {
+                        eprintln!("Failed to remove a mod from the staging directory!");
+                        exit(1);
+                    }
+                }
+            }
+        }
+    }
+    for indiv_mod in &set.mods {
+        let mod_filename = if indiv_mod.file_name.is_empty() {
+            format!("{}_{}.zip", indiv_mod.name, indiv_mod.version)
+        } else {
+            indiv_mod.file_name.clone()
+        };
+        let cached_mods_dir = fbh_mod_dl_dir().join(&mod_filename);
+        let mods_use_dir = fbh_mod_use_dir().join(&mod_filename);
+        assert!(cached_mods_dir.exists());
+        match std::fs::write(&mods_use_dir, read(&cached_mods_dir).unwrap()) {
+            Ok(_m) => (),
+            _ => {
+                eprintln!("Failed to copy mod {:?} for use.", &mod_filename);
+                exit(1);
+            }
+        }
+    }
     for map in &set.maps {
         initial_error_check_params.push(SimpleBenchmarkParam::new(
             save_directory.join(&map.name),
@@ -219,7 +220,7 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     }
     for param in initial_error_check_params {
         println!("Checking errors for map: {:?}", param.path);
-        let this_duration = run_benchmark_single_map(param, None);
+        let this_duration = run_benchmark_single_map(param, None, &set.mods);
         if let Some(duration) = this_duration {
             map_durations.push(duration)
         }
@@ -242,11 +243,13 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     let hrs = (expected_total_duration / 3600.0) as u64;
     let mins = ((expected_total_duration % 3600.0) / 60.0) as u64;
     let secs = (expected_total_duration % 3600.0) % 60.0;
-    println!("Measured overhead: ticks {:.*}s ({:.*}%), runs {:.*}s, initialization {:.*}s",
+    println!("Measured overhead: ticks {:.*}s, runs {:.*}s, initialization {:.*}s",
         3, expected_total_tick_time,
-        3, (expected_total_tick_time/expected_total_duration)*100.0,
         3, expected_total_benchmarking_run_overhead,
-        3, expected_total_game_initialization_time);
+        3, expected_total_game_initialization_time,
+
+    );
+    println!("Benchmark efficiency ({:.*}%)", 3, (expected_total_tick_time/expected_total_duration)*100.0);
 
     // 0 pad 2 characters if no decimals wanted
     // 0 pad 6 characters for 3 decimal place seconds, since '.' counts as a character too.
@@ -265,7 +268,7 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     collection_data.cpuid = query_system_cpuid();
 
     for param in set_params {
-        run_benchmark_single_map(param, Some(&mut collection_data));
+        run_benchmark_single_map(param, Some(&mut collection_data), &set.mods);
     }
 
     let total_duration = now.elapsed().as_secs_f64();
@@ -279,6 +282,7 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
 fn run_benchmark_single_map(
     params: SimpleBenchmarkParam,
     collection_data: Option<&mut CollectionData>,
+    mods: &[Mod],
 ) -> Option<BenchmarkDurationOverhead> {
     //tick is implied in timings dump
     let mut bench_data = BenchmarkData::default();
@@ -308,6 +312,12 @@ fn run_benchmark_single_map(
         .arg(fbh_mod_use_dir().to_str().unwrap())
         .output()
         .expect("");
+
+    if let Ok(entries) = std::fs::read_dir(fbh_mod_use_dir()) {
+        // Number of entries == Count of all mods that should be enabled + the mod-list.json file
+        // Thus, stubtract one to account for mod-list.json
+        assert_eq!(entries.count() - 1, mods.len());
+    }
 
     let bench_data_stdout_raw = String::from_utf8_lossy(&run_bench_cmd.stdout).replace("\r", "");
     let regex = &Regex::new(params.path.file_name().unwrap().to_str().unwrap()).unwrap();
@@ -346,6 +356,7 @@ fn run_benchmark_single_map(
         //We should have as many lines as ticks have been performed
         assert_eq!((params.ticks * params.runs) as usize, verbose_data.len());
         bench_data.verbose_data = verbose_data;
+        bench_data.mods = mods.to_vec();
         collection_data.unwrap().benchmarks.push(bench_data);
     }
     benchmark_times
