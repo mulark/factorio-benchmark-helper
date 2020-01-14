@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use crate::util::Mod;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct CollectionData {
@@ -17,4 +18,5 @@ pub struct BenchmarkData {
     pub ticks: u32,
     pub map_hash: String,
     pub verbose_data: Vec<String>,
+    pub mods: Vec<Mod>
 }
