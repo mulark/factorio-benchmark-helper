@@ -257,8 +257,8 @@ fn convert_args_to_meta_benchmark_runs(args: &UserArgs) -> HashMap<String, Bench
 
 fn create_benchmark_from_args(args: &UserArgs) {
     let set_name;
-    let map_pattern;
     let mut google_drive_folder = String::from("");
+    let mut map_pattern;
     let map_paths;
     let mod_list;
     let mut benchmark = BenchmarkSet::default();
@@ -277,6 +277,9 @@ fn create_benchmark_from_args(args: &UserArgs) {
     } else if args.interactive {
         println!("No map pattern was defined, enter a pattern to search for maps, empty for all.");
         map_pattern = prompt_until_empty_str(true);
+        if map_pattern.is_empty() {
+            map_pattern = String::from("*");
+        }
     } else {
         println!("WARN: A map pattern was not explictly defined, selecting all available maps.");
         map_pattern = String::from("*");

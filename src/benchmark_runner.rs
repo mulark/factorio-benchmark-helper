@@ -275,7 +275,7 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     let hrs = (total_duration / 3600.0) as u64;
     let mins = ((total_duration % 3600.0) / 60.0) as u64;
     let secs = (total_duration % 3600.0) % 60.0;
-    println!("Benchmarks took: {}:{:02}:{:02.3}", hrs, mins, secs);
+    println!("Benchmarks took: {}:{:02}:{:06.3}", hrs, mins, secs);
     upload_to_db(collection_data);
 }
 
@@ -356,8 +356,9 @@ fn run_benchmark_single_map(
         //We should have as many lines as ticks have been performed
         assert_eq!((params.ticks * params.runs) as usize, verbose_data.len());
         bench_data.verbose_data = verbose_data;
-        bench_data.mods = mods.to_vec();
-        collection_data.unwrap().benchmarks.push(bench_data);
+        let collection_data = collection_data.unwrap();
+        collection_data.mods = mods.to_vec();
+        collection_data.benchmarks.push(bench_data);
     }
     benchmark_times
 }

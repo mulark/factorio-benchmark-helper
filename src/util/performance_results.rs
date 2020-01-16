@@ -9,6 +9,7 @@ pub struct CollectionData {
     pub executable_type: String,
     pub cpuid: String,
     pub benchmarks: Vec<BenchmarkData>,
+    pub mods: Vec<Mod>
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -18,5 +19,4 @@ pub struct BenchmarkData {
     pub ticks: u32,
     pub map_hash: String,
     pub verbose_data: Vec<String>,
-    pub mods: Vec<Mod>
 }

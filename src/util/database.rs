@@ -56,6 +56,27 @@ CREATE TABLE IF NOT EXISTS `verbose` (
 ,  `benchmark_id` integer  NOT NULL
 ,  CONSTRAINT `benchmark_verbose_ibfk_1` FOREIGN KEY (`benchmark_id`) REFERENCES `benchmark` (`benchmark_id`)
 );
+
+CREATE TABLE IF NOT EXISTS `mods` (
+`name` text NOT NULL
+,  `version` text NOT NULL
+,  `sha1` text NOT NULL
+,  UNIQUE(name, version, sha1) ON CONFLICT IGNORE
+);
+
+CREATE TABLE IF NOT EXISTS `collection_mods` (
+`collection_id` integer NOT NULL
+,  `sha1` varchar(100) NOT NULL
+,  CONSTRAINT `collection_mods_ibfk_1` FOREIGN KEY (`collection_id`) REFERENCES `collection` (`collection_id`)
+);
+
+CREATE VIEW IF NOT EXISTS `v_collection` AS
+SELECT collection.collection_id,collection.name,factorio_version,platform,executable_type,cpuid,mods.name,mods.version,mods.sha1
+from collection
+join collection_mods on collection.collection_id = collection_mods.collection_id
+join mods on collection_mods.sha1 = mods.sha1
+;
+
 COMMIT;
 ";
 
@@ -79,6 +100,30 @@ pub fn setup_database(create_new_db: bool) -> Connection {
 
 pub fn upload_to_db(collection_data: CollectionData) {
     let mut database = DB_CONNECTION.lock().unwrap();
+    {
+        // Not a transaction, but perf should be ok since we're not inserting a LOT of mods
+        for indiv_mod in &collection_data.mods {
+            //let save_point1 = save_point.savepoint().unwrap();
+            let mods_header = "name,version,sha1";
+            let combined_sql =
+                format!(
+                    "INSERT OR IGNORE INTO mods({}) VALUES ({:?},{:?},{:?});",
+                    mods_header,
+                    indiv_mod.name,
+                    indiv_mod.version,
+                    indiv_mod.sha1,
+                );
+            match database.execute_batch(&combined_sql) {
+                Ok(_) => (),
+                Err(e) => {
+                    eprintln!("Failed to insert mods data to database!");
+                    eprintln!("{}", e);
+                    eprintln!("{:?}", combined_sql);
+                    exit(1);
+                }
+            }
+        }
+    }
     let mut transacter = database.transaction().unwrap();
 
     let collection_header = "name,factorio_version,platform,executable_type,cpuid";
@@ -102,6 +147,22 @@ pub fn upload_to_db(collection_data: CollectionData) {
         }
     }
     let collection_id = transacter.last_insert_rowid() as u32;
+
+    for indiv_mod in &collection_data.mods {
+        let save_point2 = transacter.savepoint().unwrap();
+        match save_point2.execute_named(
+            "INSERT INTO collection_mods (collection_id, sha1) VALUES (:collection_id,:sha1)",
+            &[(":collection_id", &collection_id), (":sha1", &indiv_mod.sha1)]
+        ) {
+            Ok(_) => (),
+            Err(e) => {
+                eprintln!("Failed to insert collection_mods data to database!");
+                eprintln!("{}", e);
+                exit(1);
+            }
+        }
+        save_point2.commit().unwrap();
+    }
 
     let benchmark_header = "map_name,runs,ticks,map_hash,collection_id";
     for benchmark in collection_data.benchmarks {
