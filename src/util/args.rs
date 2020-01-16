@@ -22,7 +22,6 @@ pub struct UserArgs {
     pub pattern: Option<String>,
     pub ticks: Option<u32>,
     pub runs: Option<u32>,
-    pub google_drive_folder: Option<String>,
     pub mods_dirty: Option<String>,
 
     pub run_meta: bool,
@@ -50,7 +49,6 @@ impl Default for UserArgs {
             ticks: None,
             runs: None,
             pattern: None,
-            google_drive_folder: None,
             mods_dirty: None,
 
             run_meta: false,
@@ -210,17 +208,6 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
 
     if args.contains_key("runs") {
         arguments.runs = try_parse_nonzero_u32(args["runs"].vals[0].to_str().unwrap_or(""));
-    }
-
-    if args.contains_key("google-drive-folder") {
-        let url = args["google-drive-folder"].vals[0]
-            .to_str()
-            .unwrap()
-            .trim()
-            .to_string();
-        if url.contains("drive.google.com") {
-            arguments.google_drive_folder = Some(url);
-        }
     }
 
     if args.contains_key("mods") {

@@ -11,12 +11,13 @@ extern crate serde;
 extern crate serde_json;
 extern crate sha2;
 
+use crate::util::hash_saves;
+use crate::backblaze::upload_files_to_backblaze;
 use crate::util::fbh_save_dl_dir;
 use crate::procedure_file::get_metas_from_meta;
 use crate::procedure_file::get_sets_from_meta;
 use crate::procedure_file::read_meta_from_file;
 use crate::procedure_file::write_meta_to_file;
-use crate::util::recompress_saves_parallel;
 use regex::Regex;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -25,16 +26,18 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::cmp::Ordering;
 
+mod backblaze;
+
 mod benchmark_runner;
 use benchmark_runner::run_benchmarks_multiple;
 
 mod procedure_file;
 mod util;
 use util::{
-    add_options_and_parse, get_download_links_from_google_drive_by_filelist, get_mod_info,
+    add_options_and_parse, get_mod_info,
     get_saves_directory, prompt_until_allowed_val, prompt_until_allowed_val_in_range,
     prompt_until_empty_str, read_benchmark_set_from_file, trim_newline,
-    write_benchmark_set_to_file, BenchmarkSet, Map, Mod, ProcedureFileKind, ProcedureKind,
+    write_benchmark_set_to_file, BenchmarkSet, Mod, ProcedureFileKind, ProcedureKind,
     UserArgs,
 };
 
@@ -257,7 +260,6 @@ fn convert_args_to_meta_benchmark_runs(args: &UserArgs) -> HashMap<String, Bench
 
 fn create_benchmark_from_args(args: &UserArgs) {
     let set_name;
-    let mut google_drive_folder = String::from("");
     let mut map_pattern;
     let map_paths;
     let mod_list;
@@ -284,6 +286,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
         println!("WARN: A map pattern was not explictly defined, selecting all available maps.");
         map_pattern = String::from("*");
     }
+
     let holder = get_map_paths_from_pattern(&map_pattern);
     map_paths = holder.0;
     benchmark.save_subdirectory = holder.1;
@@ -296,10 +299,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
             println!("{:?}", map);
         }
     }
-    let resave = args.resave;
-    let handle = std::thread::spawn(move || {
-        recompress_saves_parallel(map_paths.clone(), resave)
-    });
+    let mut maps_hashmap = hash_saves(&map_paths, args.resave);
 
     if args.ticks.is_some() {
         benchmark.ticks = args.ticks.unwrap();
@@ -321,13 +321,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
         exit(1);
     }
 
-    if args.google_drive_folder.is_some() {
-        google_drive_folder = args.google_drive_folder.as_ref().unwrap().clone();
-    } else if args.interactive {
-        println!("Enter a shared google drive folder containing the maps of this benchmark set. (optional)");
-        google_drive_folder = prompt_until_empty_str(true);
-    }
-    handle_map_dl_links(args, &google_drive_folder, &mut benchmark);
+    handle_map_dl_links(args, &mut benchmark);
 
     if args.mods_dirty.is_some() {
         mod_list = process_mod_list(args.mods_dirty.as_ref().unwrap().clone());
@@ -337,16 +331,33 @@ fn create_benchmark_from_args(args: &UserArgs) {
         let raw_mod_list = prompt_until_empty_str(true);
         benchmark.mods = process_mod_list(raw_mod_list);
     }
-    let path_to_sha256_tuple = handle.join().unwrap();
-    for (a_map, the_hash) in path_to_sha256_tuple {
-        let map_struct = Map::new(a_map.file_name().unwrap().to_str().unwrap(), &the_hash, "");
-        benchmark.maps.push(map_struct);
-    }
+
+    println!("Attempting upload to Backblaze-b2...");
+
+    let save_subdirectory = benchmark.save_subdirectory.clone().unwrap_or_default();
+    let subdir = save_subdirectory.to_str().unwrap().to_owned();
+    match upload_files_to_backblaze(&subdir, &map_paths) {
+        Ok(uploaded_files) => {
+            for (filepath, dl_link) in uploaded_files {
+                let map = maps_hashmap.get_mut(&filepath).unwrap();
+                map.download_link = dl_link;
+            }
+        },
+        Err(msg) => {
+            eprintln!("Failed to upload to backblaze");
+            eprintln!("Reason: {}", msg);
+            eprintln!("Continuing without populating the map_dl field...");
+        }
+    };
+
+    benchmark.maps = maps_hashmap.values().map(|x| x.to_owned()).collect();
 
     assert!(!set_name.is_empty());
     assert!(!benchmark.maps.is_empty());
     assert!(benchmark.runs > 0);
     assert!(benchmark.ticks > 0);
+
+    println!("Writing benchmark json...", );
     write_benchmark_set_to_file(
         &set_name,
         benchmark,
@@ -354,6 +365,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
         ProcedureFileKind::Local,
         args.interactive,
     );
+
 }
 
 fn process_mod_list(raw_mod_list: String) -> Vec<Mod> {
@@ -398,30 +410,8 @@ fn slice_mods_from_csv(s: &str) -> Vec<(String, String)> {
     vals
 }
 
-fn handle_map_dl_links(args: &UserArgs, google_drive_folder: &str, benchmark: &mut BenchmarkSet) {
-    if !google_drive_folder.is_empty() {
-        if !google_drive_folder.starts_with("https://drive.google.com/drive/") {
-            eprintln!("Google Drive URL didn't match expected format!");
-            exit(1);
-        }
-        let map_names = benchmark.maps.clone().into_iter().map(|x| x.name).collect();
-        if let Some(resp) =
-            get_download_links_from_google_drive_by_filelist(map_names, &google_drive_folder)
-        {
-            for (fname, dl_link) in resp {
-                for mut map in &mut benchmark.maps {
-                    if map.name == fname {
-                        map.download_link = dl_link.clone();
-                    }
-                }
-            }
-            for map in &benchmark.maps {
-                if map.download_link.is_empty() {
-                    println!("WARN: you specified a google drive folder but we didn't find the map {:?} in it!", map.name);
-                }
-            }
-        }
-    } else if args.interactive {
+fn handle_map_dl_links(args: &UserArgs, benchmark: &mut BenchmarkSet) {
+    if args.interactive {
         println!("Specify map downloads individually?");
         if prompt_until_allowed_val(&["y".to_string(), "n".to_string()]) == "y" {
             for mut map in &mut benchmark.maps {
@@ -430,8 +420,6 @@ fn handle_map_dl_links(args: &UserArgs, google_drive_folder: &str, benchmark: &m
                 map.download_link = dl_link;
             }
         };
-    } else {
-        println!("WARN: google drive folder was not provided, skipping..");
     }
 }
 
@@ -545,5 +533,39 @@ fn move_maps_to_cache(paths: &[PathBuf], subdir: &Option<PathBuf>) {
         } else {
             println!("Copied {:?} to {:?}", &path, &dest_path);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::util::get_saves_directory;
+    use crate::execute_from_args;
+    use crate::UserArgs;
+    use std::fs::OpenOptions;
+    #[test]
+    fn test_create_benchmark() {
+        let mut args = UserArgs::default();
+        let to_save_to_path = get_saves_directory().join("this-is-a-test-generated-name-ignore-it.zip");
+        match reqwest::get("https://f000.backblazeb2.com/file/mulark-maps/this-is-a-test-generated-name-ignore-it.zip") {
+            Ok (mut resp) => {
+                let mut file = OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .open(&to_save_to_path)
+                    .unwrap();
+                resp.copy_to(&mut file).unwrap();
+            },
+            Err(e) => panic!(e),
+        }
+        args.resave = true;
+        args.create_benchmark = true;
+        args.benchmark_set_name = Some("this-is-a-test-generated-name-ignore-it".to_string());
+        args.ticks = Some(10);
+        args.runs = Some(10);
+        args.pattern = Some("this-is-a-test-generated-name-ignore-it".to_string());
+        args.mods_dirty = Some("region-cloner,creative-world-plus".to_string());
+        args.overwrite = true;
+        execute_from_args(&mut args);
+        std::fs::remove_file(to_save_to_path).unwrap();
     }
 }

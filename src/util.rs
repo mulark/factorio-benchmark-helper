@@ -40,7 +40,7 @@ pub use args::{add_options_and_parse, UserArgs};
 mod mod_dl;
 pub use mod_dl::{fetch_mod_deps_parallel, get_mod_info, Mod};
 mod map_dl;
-pub use map_dl::{fetch_map_deps_parallel, get_download_links_from_google_drive_by_filelist, Map};
+pub use map_dl::{fetch_map_deps_parallel, Map};
 
 lazy_static! {
     #[derive(Debug)]
@@ -228,7 +228,8 @@ pub fn sha256sum(file_path: &PathBuf) -> String {
     format!("{:x}", sha2::Sha256::digest(&buf))
 }
 
-pub fn bulk_sha256(paths: Vec<PathBuf>) -> Vec<(PathBuf, String)> {
+pub fn bulk_sha256(paths: &[PathBuf]) -> Vec<(PathBuf, String)> {
+    let paths = paths.to_vec();
     let mut handle_holder = Vec::new();
     let mut path_sha256_tuple_holder = Vec::new();
     for path in paths {
@@ -359,7 +360,8 @@ fn path_of_7z_install() -> Option<PathBuf> {
     found_path
 }
 
-pub fn recompress_save(save: &PathBuf) {
+/// Now a misnomer that means: remove the preview image from the zip file
+pub fn delete_preview_image_from_save(save: &PathBuf) {
     if save.exists() {
         if let Some(ext) = save.extension() {
             if ext == "zip" {
@@ -412,20 +414,17 @@ pub fn recompress_save(save: &PathBuf) {
     }
 }
 
-pub fn recompress_saves_parallel(saves: Vec<PathBuf>, resave: bool) -> Vec<(PathBuf, String)> {
-    let mut hash_holder = Vec::new();
+/// Returns a hashmap of all Factorio maps. The key for each map is its path
+pub fn hash_saves(saves: &[PathBuf], resave: bool) -> HashMap<PathBuf,Map> {
+    let mut map_holder = HashMap::new();
 
-    let initial_tuple = bulk_sha256(saves);
-    if !resave {
-        return initial_tuple
-    }
-    for (save, _hash) in initial_tuple {
-        if path_of_7z_install().is_some() {
-            recompress_save(&save);
-            let post_sha256 = sha256sum(&save);
-            //write_known_map_hash(&post_sha256);
-            hash_holder.push((save, post_sha256));
+    if path_of_7z_install().is_some() && resave {
+        for save in saves {
+            delete_preview_image_from_save(&save);
         }
     }
-    hash_holder
+    for (path, sha256) in bulk_sha256(&saves) {
+        map_holder.insert(path.clone(), Map::new(&path, &sha256, ""));
+    }
+    map_holder
 }
