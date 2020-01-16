@@ -23,6 +23,7 @@ use std::collections::HashSet;
 use std::env;
 use std::path::PathBuf;
 use std::process::exit;
+use std::cmp::Ordering;
 
 mod benchmark_runner;
 use benchmark_runner::run_benchmarks_multiple;
@@ -503,11 +504,20 @@ fn find_map_subdirectory(paths: &[PathBuf]) -> Option<PathBuf> {
     for path in paths {
         currently_seen_base_paths.insert(path.parent().unwrap());
     }
-    if currently_seen_base_paths.len() == 1 {
-        let key = currently_seen_base_paths.drain().next().unwrap();
-        return Some(key.strip_prefix(&base_save_dir).unwrap().to_path_buf());
+    match currently_seen_base_paths.len().cmp(&1) {
+        Ordering::Less => {
+            return None;
+        },
+        Ordering::Equal => {
+            let key = currently_seen_base_paths.drain().next().unwrap();
+            return Some(key.strip_prefix(&base_save_dir).unwrap().to_path_buf());
+        }
+        Ordering::Greater => {
+            eprintln!("More than 1 valid subdirectory was found with this pattern!");
+            eprintln!("This configuration is not allowed, either split this benchmark set into 2 sets or merge these subfolders.");
+            exit(1);
+        },
     }
-    None
 }
 
 fn move_maps_to_cache(paths: &[PathBuf], subdir: &Option<PathBuf>) {
