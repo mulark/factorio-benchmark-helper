@@ -486,13 +486,23 @@ pub fn upload_files_to_backblaze(file_subdirectory: & str, filepaths: &[PathBuf]
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+    use std::env::vars;
     use crate::backblaze::authorize_cfg;
+    use crate::backblaze::authorize;
     use crate::backblaze::b2_list_file_names;
     use reqwest::Client;
     #[test]
     fn list_files() {
         let client = Client::new();
-        let auth = authorize_cfg(&client).unwrap();
+        let vars = vars().collect::<HashMap<String,String>>();
+        let auth = if vars.contains_key("CI") && vars.contains_key("CONTINUOUS_INTEGRATION") {
+            let key_id = vars.get("TRAVIS-CI-B2-KEYID").unwrap();
+            let application_key = vars.get("TRAVIS-CI-B2-APPLICATIONKEY").unwrap();
+            authorize(&client, &key_id, &application_key)
+        } else {
+            authorize_cfg(&client)
+        }.unwrap();
         b2_list_file_names(&client, &auth, "").unwrap();
     }
 }

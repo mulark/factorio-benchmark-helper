@@ -539,14 +539,16 @@ fn move_maps_to_cache(paths: &[PathBuf], subdir: &Option<PathBuf>) {
 #[cfg(test)]
 mod tests {
     use crate::util::get_saves_directory;
+    use crate::util::initialize;
     use crate::execute_from_args;
     use crate::UserArgs;
     use std::fs::OpenOptions;
     #[test]
     fn test_create_benchmark() {
+        initialize().unwrap();
         let mut args = UserArgs::default();
         let to_save_to_path = get_saves_directory().join("this-is-a-test-generated-name-ignore-it.zip");
-        match reqwest::get("https://f000.backblazeb2.com/file/mulark-maps/this-is-a-test-generated-name-ignore-it.zip") {
+        match reqwest::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip") {
             Ok (mut resp) => {
                 let mut file = OpenOptions::new()
                     .write(true)
