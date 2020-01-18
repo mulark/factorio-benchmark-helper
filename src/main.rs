@@ -543,7 +543,7 @@ mod tests {
     use crate::execute_from_args;
     use crate::UserArgs;
     use std::fs::OpenOptions;
-    #[test]
+//    #[test]
     fn test_create_benchmark() {
         initialize().unwrap();
         let mut args = UserArgs::default();
