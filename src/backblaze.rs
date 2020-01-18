@@ -497,8 +497,8 @@ mod test {
         let client = Client::new();
         let vars = vars().collect::<HashMap<String,String>>();
         let auth = if vars.contains_key("CI") && vars.contains_key("CONTINUOUS_INTEGRATION") {
-            let key_id = vars.get("TRAVIS-CI-B2-KEYID").unwrap();
-            let application_key = vars.get("TRAVIS-CI-B2-APPLICATIONKEY").unwrap();
+            let key_id = vars.get("TRAVIS_CI_B2_KEYID").unwrap();
+            let application_key = vars.get("TRAVIS_CI_B2_APPLICATIONKEY").unwrap();
             authorize(&client, &key_id, &application_key)
         } else {
             authorize_cfg(&client)
