@@ -486,23 +486,55 @@ pub fn upload_files_to_backblaze(file_subdirectory: & str, filepaths: &[PathBuf]
 
 #[cfg(test)]
 mod test {
+    use crate::util::fbh_read_configuration_setting;
+    use crate::util::fbh_save_dl_dir;
+    use std::path::PathBuf;
+    use crate::backblaze::upload_files_to_backblaze;
+    use crate::backblaze::BackblazeErrorResponse;
+    use crate::backblaze::BackblazeAuth;
+    use std::fs::OpenOptions;
     use std::collections::HashMap;
     use std::env::vars;
     use crate::backblaze::authorize_cfg;
     use crate::backblaze::authorize;
     use crate::backblaze::b2_list_file_names;
     use reqwest::Client;
+    fn auth_test(client: &Client) -> Result<BackblazeAuth,BackblazeErrorResponse> {
+        let vars = vars().collect::<HashMap<String,String>>();
+        let key_id = if vars.get("TRAVIS_CI_B2_KEYID").is_some() {
+            vars.get("TRAVIS_CI_B2_KEYID").unwrap().to_string()
+        } else {
+            fbh_read_configuration_setting("TRAVIS_CI_B2_KEYID").unwrap()
+        };
+        let application_key = if vars.get("TRAVIS_CI_B2_APPLICATIONKEY").is_some() {
+            vars.get("TRAVIS_CI_B2_APPLICATIONKEY").unwrap().to_string()
+        } else {
+            fbh_read_configuration_setting("TRAVIS_CI_B2_APPLICATIONKEY").unwrap()
+        };
+        authorize(&client, &key_id, &application_key)
+    }
     #[test]
     fn list_files() {
         let client = Client::new();
-        let vars = vars().collect::<HashMap<String,String>>();
-        let auth = if vars.contains_key("CI") && vars.contains_key("CONTINUOUS_INTEGRATION") {
-            let key_id = vars.get("TRAVIS_CI_B2_KEYID").unwrap();
-            let application_key = vars.get("TRAVIS_CI_B2_APPLICATIONKEY").unwrap();
-            authorize(&client, &key_id, &application_key)
-        } else {
-            authorize_cfg(&client)
-        }.unwrap();
+        let auth = auth_test(&client).unwrap();
         b2_list_file_names(&client, &auth, "").unwrap();
+    }
+    #[test]
+    fn upload_file() {
+        match reqwest::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip") {
+            Ok (mut resp) => {
+                let to_save_to_path = fbh_save_dl_dir().join("this-is-a-test-generated-name-ignore-it.zip");
+
+                let mut file = OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .open(&to_save_to_path)
+                    .unwrap();
+                resp.copy_to(&mut file).unwrap();
+                upload_files_to_backblaze("", &[to_save_to_path.clone()]).unwrap();
+                std::fs::remove_file(&to_save_to_path).unwrap();
+            },
+            Err(e) => panic!(e),
+        }
     }
 }
