@@ -105,14 +105,10 @@ pub fn upload_to_db(collection_data: CollectionData) {
         for indiv_mod in &collection_data.mods {
             //let save_point1 = save_point.savepoint().unwrap();
             let mods_header = "name,version,sha1";
-            let combined_sql =
-                format!(
-                    "INSERT OR IGNORE INTO mods({}) VALUES ({:?},{:?},{:?});",
-                    mods_header,
-                    indiv_mod.name,
-                    indiv_mod.version,
-                    indiv_mod.sha1,
-                );
+            let combined_sql = format!(
+                "INSERT OR IGNORE INTO mods({}) VALUES ({:?},{:?},{:?});",
+                mods_header, indiv_mod.name, indiv_mod.version, indiv_mod.sha1,
+            );
             match database.execute_batch(&combined_sql) {
                 Ok(_) => (),
                 Err(e) => {
@@ -136,7 +132,10 @@ pub fn upload_to_db(collection_data: CollectionData) {
         collection_data.cpuid,
     );
 
-    let combined_sql = format!("INSERT INTO collection({}) VALUES ({});",collection_header, csv_collection);
+    let combined_sql = format!(
+        "INSERT INTO collection({}) VALUES ({});",
+        collection_header, csv_collection
+    );
     match transacter.execute_batch(&combined_sql) {
         Ok(_) => (),
         Err(e) => {
@@ -152,7 +151,10 @@ pub fn upload_to_db(collection_data: CollectionData) {
         let save_point2 = transacter.savepoint().unwrap();
         match save_point2.execute_named(
             "INSERT INTO collection_mods (collection_id, sha1) VALUES (:collection_id,:sha1)",
-            &[(":collection_id", &collection_id), (":sha1", &indiv_mod.sha1)]
+            &[
+                (":collection_id", &collection_id),
+                (":sha1", &indiv_mod.sha1),
+            ],
         ) {
             Ok(_) => (),
             Err(e) => {
@@ -198,11 +200,10 @@ pub fn upload_to_db(collection_data: CollectionData) {
             ));
         }
         match save_point.execute_batch(&combined_sql) {
-            Ok(_) => {
-            },
+            Ok(_) => {}
             Err(e) => {
                 eprintln!("Failed to insert verbose data to database!");
-                eprintln!("{}",e);
+                eprintln!("{}", e);
                 exit(1);
             }
         }

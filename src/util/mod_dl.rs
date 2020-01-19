@@ -82,14 +82,19 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod], mut handles: &mut Vec<JoinHandle<()
     //Only attempt to download unique mods from the sets. Skip base mod as it's special for vanilla.
     unique_mods.sort();
     unique_mods.dedup();
-    if !unique_mods.is_empty() && (user_data.token.is_empty() || user_data.username.is_empty()) {
-
-    }
-
+    
     let mut filename;
     for m in unique_mods {
         filename = if m.file_name.is_empty() {
-            format!("{}_{}.zip", m.name, if m.version.is_empty() {r"{latest}"} else {&m.version})
+            format!(
+                "{}_{}.zip",
+                m.name,
+                if m.version.is_empty() {
+                    r"{latest}"
+                } else {
+                    &m.version
+                }
+            )
         } else {
             m.file_name.clone()
         };
@@ -105,7 +110,9 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod], mut handles: &mut Vec<JoinHandle<()
                 fetch_single_mod(&user_data, filename, m, &mut handles);
             } else {
                 eprintln!("Couldn't read playerdata.json for service-username or service-token, downloading mods from the mod portal is not possible.");
-                eprintln!("If using the steam version try launching the game, and exiting normally once.");
+                eprintln!(
+                    "If using the steam version try launching the game, and exiting normally once."
+                );
                 eprintln!("Presently running a benchmark on the Steam version causes the playerdata.json file to get overwritten until you run non-headlessly again.");
                 exit(1);
             }
@@ -115,78 +122,91 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod], mut handles: &mut Vec<JoinHandle<()
     }
 }
 
-fn fetch_single_mod (user_data: &User, filename: String, mut m: Mod, handles: &mut Vec<JoinHandle<()>>) {
+fn fetch_single_mod(
+    user_data: &User,
+    filename: String,
+    mut m: Mod,
+    handles: &mut Vec<JoinHandle<()>>,
+) {
     let token = user_data.token.clone();
     let username = user_data.username.clone();
-    handles.push(std::thread::spawn(move ||
-        {
-            println!("Downloading Mod: {}", filename);
-            let mod_url = format!("{}{}", MOD_PORTAL_API_URL, m.name);
-            let resp_raw = reqwest::get(&mod_url);
-            let mut meta_info_response = ModMetaInfoHolder{releases: Vec::new()};
-            if let Ok(mut resp) = resp_raw {
-                meta_info_response = resp.json().unwrap();
-            }
-            if m.version.is_empty() {
-                for release in &meta_info_response.releases {
-                    m.version = compare_version_str(&release.version, &m.version);
-                }
-            }
-            for release in meta_info_response.releases {
-                if release.version == m.version {
-                    assert!(!username.is_empty());
-                    assert!(!token.is_empty());
-                    let dl_req = format!("{}{}?username={}&token={}",MOD_PORTAL_URL,release.download_url, username, token);
-
-                    let mut resp = match reqwest::get(&dl_req) {
-                        Ok(r) => r,
-                        Err(e) => {
-                            eprintln!("Failed to download mod: {}", release.file_name);
-                            panic!(e);
-                        },
-                    };
-                    if resp.status().as_u16() == 200 {
-                        let fpath = fbh_mod_dl_dir().join(&release.file_name);
-                        if fpath.exists() {
-                            match std::fs::remove_file(&fpath) {
-                                Ok(_) => (),
-                                Err(e) => {
-                                    eprintln!("Mod exists in local directory but we couldn't remove it!");
-                                    eprintln!("Reason: {}", e);
-                                    exit(1);
-                                },
-                            }
-                        }
-                        let mut file = OpenOptions::new()
-                            .write(true)
-                            .create(true)
-                            .open(fpath)
-                            .unwrap();
-                        match resp.copy_to(&mut file) {
-                            Ok(_) => (),
-                            Err(e) => {
-                                println!("Failed to write file to {:?}!", file);
-                                panic!(e);
-                            },
-                        }
-                    } else {
-                        panic!("Error: We recieved a bad response from the mod portal. Status code: {}", resp.status().as_u16());
-                    }
-                    let newly_dl_mod_sha1 = sha1sum(&fbh_mod_dl_dir().join(&release.file_name));
-                    if m.sha1 == "" {
-                        m.sha1 = newly_dl_mod_sha1.clone();
-                    }
-                    if newly_dl_mod_sha1 != m.sha1 {
-                        eprintln!("Recently downloaded mod {} hash mismatch!", m.name);
-                        eprintln!("sha1 in config: {}", m.sha1);
-                        eprintln!("sha1 of downloaded mod: {}", newly_dl_mod_sha1);
-                    }
-                    println!("Finished Downloading Mod: {}", &release.file_name);
-                    break;
-                }
+    handles.push(std::thread::spawn(move || {
+        println!("Downloading Mod: {}", filename);
+        let mod_url = format!("{}{}", MOD_PORTAL_API_URL, m.name);
+        let resp_raw = reqwest::get(&mod_url);
+        let mut meta_info_response = ModMetaInfoHolder {
+            releases: Vec::new(),
+        };
+        if let Ok(mut resp) = resp_raw {
+            meta_info_response = resp.json().unwrap();
+        }
+        if m.version.is_empty() {
+            for release in &meta_info_response.releases {
+                m.version = compare_version_str(&release.version, &m.version);
             }
         }
-    ));
+        for release in meta_info_response.releases {
+            if release.version == m.version {
+                assert!(!username.is_empty());
+                assert!(!token.is_empty());
+                let dl_req = format!(
+                    "{}{}?username={}&token={}",
+                    MOD_PORTAL_URL, release.download_url, username, token
+                );
+
+                let mut resp = match reqwest::get(&dl_req) {
+                    Ok(r) => r,
+                    Err(e) => {
+                        eprintln!("Failed to download mod: {}", release.file_name);
+                        panic!(e);
+                    }
+                };
+                if resp.status().as_u16() == 200 {
+                    let fpath = fbh_mod_dl_dir().join(&release.file_name);
+                    if fpath.exists() {
+                        match std::fs::remove_file(&fpath) {
+                            Ok(_) => (),
+                            Err(e) => {
+                                eprintln!(
+                                    "Mod exists in local directory but we couldn't remove it!"
+                                );
+                                eprintln!("Reason: {}", e);
+                                exit(1);
+                            }
+                        }
+                    }
+                    let mut file = OpenOptions::new()
+                        .write(true)
+                        .create(true)
+                        .open(fpath)
+                        .unwrap();
+                    match resp.copy_to(&mut file) {
+                        Ok(_) => (),
+                        Err(e) => {
+                            println!("Failed to write file to {:?}!", file);
+                            panic!(e);
+                        }
+                    }
+                } else {
+                    panic!(
+                        "Error: We recieved a bad response from the mod portal. Status code: {}",
+                        resp.status().as_u16()
+                    );
+                }
+                let newly_dl_mod_sha1 = sha1sum(&fbh_mod_dl_dir().join(&release.file_name));
+                if m.sha1 == "" {
+                    m.sha1 = newly_dl_mod_sha1.clone();
+                }
+                if newly_dl_mod_sha1 != m.sha1 {
+                    eprintln!("Recently downloaded mod {} hash mismatch!", m.name);
+                    eprintln!("sha1 in config: {}", m.sha1);
+                    eprintln!("sha1 of downloaded mod: {}", newly_dl_mod_sha1);
+                }
+                println!("Finished Downloading Mod: {}", &release.file_name);
+                break;
+            }
+        }
+    }));
 }
 
 pub fn compare_version_str(vers1: &str, vers2: &str) -> String {

@@ -17,10 +17,9 @@ use std::ops::Range;
 use std::process::exit;
 mod fbh_paths;
 pub use fbh_paths::{
-    fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir,
-    fbh_mod_use_dir, fbh_procedure_json_local_file, fbh_procedure_json_master_file,
-    fbh_read_configuration_setting, fbh_results_database, fbh_save_dl_dir,
-    initialize,
+    fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir, fbh_mod_use_dir,
+    fbh_procedure_json_local_file, fbh_procedure_json_master_file, fbh_read_configuration_setting,
+    fbh_results_database, fbh_save_dl_dir, initialize,
 };
 use sha2::Digest;
 use std::fs::File;
@@ -154,7 +153,6 @@ fn get_factorio_rw_directory() -> PathBuf {
                 .home_dir()
                 .join(".factorio")
                 .join("")
-
         } else {
             // %appdata%\Roaming\
             BaseDirs::new()
@@ -415,7 +413,7 @@ pub fn delete_preview_image_from_save(save: &PathBuf) {
 }
 
 /// Returns a hashmap of all Factorio maps. The key for each map is its path
-pub fn hash_saves(saves: &[PathBuf], resave: bool) -> HashMap<PathBuf,Map> {
+pub fn hash_saves(saves: &[PathBuf], resave: bool) -> HashMap<PathBuf, Map> {
     let mut map_holder = HashMap::new();
 
     if path_of_7z_install().is_some() && resave {

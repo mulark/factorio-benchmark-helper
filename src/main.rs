@@ -11,21 +11,21 @@ extern crate serde;
 extern crate serde_json;
 extern crate sha2;
 
-use std::collections::BTreeSet;
-use crate::util::hash_saves;
 use crate::backblaze::upload_files_to_backblaze;
-use crate::util::fbh_save_dl_dir;
 use crate::procedure_file::get_metas_from_meta;
 use crate::procedure_file::get_sets_from_meta;
 use crate::procedure_file::read_meta_from_file;
 use crate::procedure_file::write_meta_to_file;
+use crate::util::fbh_save_dl_dir;
+use crate::util::hash_saves;
 use regex::Regex;
+use std::cmp::Ordering;
+use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::env;
 use std::path::PathBuf;
 use std::process::exit;
-use std::cmp::Ordering;
 
 mod backblaze;
 
@@ -35,10 +35,9 @@ use benchmark_runner::run_benchmarks_multiple;
 mod procedure_file;
 mod util;
 use util::{
-    add_options_and_parse, get_mod_info,
-    get_saves_directory, prompt_until_allowed_val, prompt_until_allowed_val_in_range,
-    prompt_until_empty_str, read_benchmark_set_from_file, trim_newline,
-    write_benchmark_set_to_file, BenchmarkSet, Mod, ProcedureFileKind, ProcedureKind,
+    add_options_and_parse, get_mod_info, get_saves_directory, prompt_until_allowed_val,
+    prompt_until_allowed_val_in_range, prompt_until_empty_str, read_benchmark_set_from_file,
+    trim_newline, write_benchmark_set_to_file, BenchmarkSet, Mod, ProcedureFileKind, ProcedureKind,
     UserArgs,
 };
 
@@ -239,8 +238,7 @@ fn convert_args_to_meta_benchmark_runs(args: &UserArgs) -> HashMap<String, Bench
     let local = read_meta_from_file(&name, ProcedureFileKind::Local);
     let master = read_meta_from_file(&name, ProcedureFileKind::Master);
     if local.is_some() || master.is_some() {
-        if local.is_some() && master.is_some() && local.unwrap() != master.clone().unwrap()
-        {
+        if local.is_some() && master.is_some() && local.unwrap() != master.clone().unwrap() {
             println!("WARN: meta set with name {:?} is present in both local and master, and they differ.", &name);
             println!("WARN: meta set is being ran from master.json");
         }
@@ -343,7 +341,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
                 let map = maps_hashmap.get_mut(&filepath).unwrap();
                 map.download_link = dl_link;
             }
-        },
+        }
         Err(msg) => {
             eprintln!("Failed to upload to backblaze");
             eprintln!("Reason: {}", msg);
@@ -358,7 +356,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
     assert!(benchmark.runs > 0);
     assert!(benchmark.ticks > 0);
 
-    println!("Writing benchmark json...", );
+    println!("Writing benchmark json...");
     write_benchmark_set_to_file(
         &set_name,
         benchmark,
@@ -366,7 +364,6 @@ fn create_benchmark_from_args(args: &UserArgs) {
         ProcedureFileKind::Local,
         args.interactive,
     );
-
 }
 
 fn process_mod_list(raw_mod_list: String) -> BTreeSet<Mod> {
@@ -379,11 +376,11 @@ fn process_mod_list(raw_mod_list: String) -> BTreeSet<Mod> {
             match get_mod_info(&name, &vers) {
                 Some(m) => {
                     found_mods.insert(m);
-                },
+                }
                 _ => {
                     eprintln!("Error! Could not download mod {}", name);
                     exit(1);
-                },
+                }
             }
         };
     }
@@ -473,7 +470,7 @@ pub fn slice_members_from_csv(s: &str) -> BTreeSet<String> {
     vals
 }
 
-fn get_map_paths_from_pattern(initial_input: &str) -> (Vec<PathBuf>,Option<PathBuf>) {
+fn get_map_paths_from_pattern(initial_input: &str) -> (Vec<PathBuf>, Option<PathBuf>) {
     let mut input = initial_input.to_string();
     let mut map_paths = Vec::new();
     let save_directory = get_saves_directory();
@@ -511,7 +508,7 @@ fn find_map_subdirectory(paths: &[PathBuf]) -> Option<PathBuf> {
     match currently_seen_base_paths.len().cmp(&1) {
         Ordering::Less => {
             return None;
-        },
+        }
         Ordering::Equal => {
             let key = currently_seen_base_paths.drain().next().unwrap();
             return Some(key.strip_prefix(&base_save_dir).unwrap().to_path_buf());
@@ -520,7 +517,7 @@ fn find_map_subdirectory(paths: &[PathBuf]) -> Option<PathBuf> {
             eprintln!("More than 1 valid subdirectory was found with this pattern!");
             eprintln!("This configuration is not allowed, either split this benchmark set into 2 sets or merge these subfolders.");
             exit(1);
-        },
+        }
     }
 }
 
@@ -551,16 +548,17 @@ fn move_maps_to_cache(paths: &[PathBuf], subdir: &Option<PathBuf>) {
 
 #[cfg(test)]
 mod tests {
+    use crate::execute_from_args;
     use crate::util::get_saves_directory;
     use crate::util::initialize;
-    use crate::execute_from_args;
     use crate::UserArgs;
     use std::fs::OpenOptions;
-//    #[test]
+    //    #[test]
     fn test_create_benchmark() {
         initialize().unwrap();
         let mut args = UserArgs::default();
-        let to_save_to_path = get_saves_directory().join("this-is-a-test-generated-name-ignore-it.zip");
+        let to_save_to_path =
+            get_saves_directory().join("this-is-a-test-generated-name-ignore-it.zip");
         match reqwest::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip") {
             Ok (mut resp) => {
                 let mut file = OpenOptions::new()

@@ -1,6 +1,6 @@
-use std::collections::BTreeSet;
-use serde::{Deserialize, Serialize};
 use crate::util::Mod;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct CollectionData {

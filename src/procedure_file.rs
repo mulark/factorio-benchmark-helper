@@ -2,13 +2,13 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
-use std::collections::BTreeSet;
 use crate::util::fbh_cache_path;
 use crate::util::prompt_until_allowed_val;
 use crate::util::{fbh_procedure_json_local_file, fbh_procedure_json_master_file, Map, Mod};
 use core::str::FromStr;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::read;

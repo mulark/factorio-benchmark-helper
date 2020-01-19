@@ -1,10 +1,8 @@
-use std::path::PathBuf;
-use crate::util::{
-    fbh_save_dl_dir, get_saves_directory, sha256sum,
-};
+use crate::util::{fbh_save_dl_dir, get_saves_directory, sha256sum};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;
+use std::path::PathBuf;
 use std::process::exit;
 use std::thread::JoinHandle;
 
@@ -57,7 +55,11 @@ pub struct DriveFile {
     download_link: String,
 }
 
-pub fn fetch_map_deps_parallel(maps: &[Map], handles: &mut Vec<JoinHandle<()>>, save_subdirectory: Option<PathBuf>) {
+pub fn fetch_map_deps_parallel(
+    maps: &[Map],
+    handles: &mut Vec<JoinHandle<()>>,
+    save_subdirectory: Option<PathBuf>,
+) {
     let mut unique_maps: Vec<_> = maps.to_vec();
     unique_maps.sort();
     unique_maps.dedup();
