@@ -1,6 +1,7 @@
 {
   "benchmark_sets": {
     "UPS Wars 3 - 1M": {
+      "save_subdirectory": "UPS Wars 3 - 1M",
       "mods": [],
       "maps": [
         {
@@ -310,6 +311,7 @@
       "runs": 100
     },
     "test-000047": {
+      "save_subdirectory": "test-000047",
       "mods": [],
       "maps": [
         {
