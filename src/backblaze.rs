@@ -488,14 +488,12 @@ pub fn upload_files_to_backblaze(file_subdirectory: & str, filepaths: &[PathBuf]
 mod test {
     use crate::util::fbh_read_configuration_setting;
     use crate::util::fbh_save_dl_dir;
-    use std::path::PathBuf;
     use crate::backblaze::upload_files_to_backblaze;
     use crate::backblaze::BackblazeErrorResponse;
     use crate::backblaze::BackblazeAuth;
     use std::fs::OpenOptions;
     use std::collections::HashMap;
     use std::env::vars;
-    use crate::backblaze::authorize_cfg;
     use crate::backblaze::authorize;
     use crate::backblaze::b2_list_file_names;
     use reqwest::Client;
@@ -522,7 +520,7 @@ mod test {
     #[test]
     fn upload_file() {
         match reqwest::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip") {
-            Ok (mut resp) => {
+            Ok(mut resp) => {
                 let to_save_to_path = fbh_save_dl_dir().join("this-is-a-test-generated-name-ignore-it.zip");
 
                 let mut file = OpenOptions::new()

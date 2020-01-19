@@ -8,13 +8,12 @@ edition = "2018"
 regex = "*"
 directories = "*"
 rust-ini = "*"
-textwrap = "*"
 rusqlite = { version = "*", features = ["bundled"] }
 glob = "*"
 lazy_static = "*"
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
-reqwest = "*"
+reqwest = { version = "0.9.*"}
 sha1 = "*"
 sha2 = "*"
 raw-cpuid = "*"
