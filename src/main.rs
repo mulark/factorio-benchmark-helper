@@ -11,6 +11,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate sha2;
 
+use std::collections::BTreeSet;
 use crate::util::hash_saves;
 use crate::backblaze::upload_files_to_backblaze;
 use crate::util::fbh_save_dl_dir;
@@ -368,18 +369,23 @@ fn create_benchmark_from_args(args: &UserArgs) {
 
 }
 
-fn process_mod_list(raw_mod_list: String) -> Vec<Mod> {
-    let mut found_mods = Vec::new();
+fn process_mod_list(raw_mod_list: String) -> BTreeSet<Mod> {
+    let mut found_mods = BTreeSet::new();
     let mod_tuples = slice_mods_from_csv(&raw_mod_list);
     for (name, vers) in mod_tuples {
         if name == "__CURRENT__" {
             println!("it's a __CURRENT__! not yet implemented!",);
         } else {
             match get_mod_info(&name, &vers) {
-                Some(m) => (found_mods.push(m)),
-                _ => (eprintln!("Error! Could not download mod {}", name)),
+                Some(m) => {
+                    found_mods.insert(m);
+                },
+                _ => {
+                    eprintln!("Error! Could not download mod {}", name);
+                    exit(1);
+                },
             }
-        }
+        };
     }
     found_mods
 }
@@ -414,18 +420,25 @@ fn handle_map_dl_links(args: &UserArgs, benchmark: &mut BenchmarkSet) {
     if args.interactive {
         println!("Specify map downloads individually?");
         if prompt_until_allowed_val(&["y".to_string(), "n".to_string()]) == "y" {
-            for mut map in &mut benchmark.maps {
+            let mut maps_to_update = Vec::new();
+            for map in &mut benchmark.maps.iter() {
                 println!("Please enter a download link for the file {}", map.name);
                 let dl_link = prompt_until_empty_str(true);
-                map.download_link = dl_link;
+                let mut map2 = map.clone();
+                map2.download_link = dl_link;
+                maps_to_update.push(map2);
             }
-        };
+            benchmark.maps.clear();
+            for m in maps_to_update {
+                benchmark.maps.insert(m);
+            }
+        }
     }
 }
 
 fn create_meta_from_args(args: &UserArgs) {
     let meta_set_name;
-    let mut meta_set_members = Vec::new();
+    let mut meta_set_members = BTreeSet::new();
     if args.meta_set_name.is_some() {
         meta_set_name = args.meta_set_name.as_ref().unwrap().to_owned();
     } else if args.interactive {
@@ -452,10 +465,10 @@ fn create_meta_from_args(args: &UserArgs) {
     );
 }
 
-pub fn slice_members_from_csv(s: &str) -> Vec<String> {
-    let mut vals = Vec::new();
+pub fn slice_members_from_csv(s: &str) -> BTreeSet<String> {
+    let mut vals = BTreeSet::new();
     for member in s.split(',') {
-        vals.push(member.trim().to_string());
+        vals.insert(member.trim().to_string());
     }
     vals
 }

@@ -173,32 +173,34 @@
       "runs": 3
     },
     "test-000042-1": {
+      "save_subdirectory": "test-000042",
       "mods": [],
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
-          "sha256": "bed250df9e1bd769f4e82bce2d0e4f8e3fb7e2c531159aedeaf802302f2319e9",
-          "download_link": "https://drive.google.com/uc?id=1htLRVfKbQRvuXJwnVYHFhtAZL8Y1_aK5&export=download"
+          "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
-          "sha256": "5c16dfb31fdecbb7e1d7914840d214b1a387bfc8abeffcb6cab5ed3e95e19131",
-          "download_link": "https://drive.google.com/uc?id=1ySKz9MlPb1qW7KETONRYTqEk9Rp-CVqO&export=download"
+          "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
-          "sha256": "e85420109638826793750691457add5eeee6094a93a2f2683987bba546e0f95f",
-          "download_link": "https://drive.google.com/uc?id=1nHNwG8GzW2G5ugjra7kjnk_92kCjVnSz&export=download"
+          "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
       ],
       "ticks": 300,
       "runs": 10
     },
     "test-000042-2": {
+      "save_subdirectory": "test-000042",
       "mods": [
         {
           "name": "item-entity-collision-mask-remover",
-          "file_name": "",
+          "file_name": "item-entity-collision-mask-remover_0.0.1.zip",
           "version": "0.0.1",
           "sha1": "a9f2e61c8a84f44d97b0b561f483588713179784"
         }
@@ -206,28 +208,29 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
-          "sha256": "bed250df9e1bd769f4e82bce2d0e4f8e3fb7e2c531159aedeaf802302f2319e9",
-          "download_link": "https://drive.google.com/uc?id=1htLRVfKbQRvuXJwnVYHFhtAZL8Y1_aK5&export=download"
+          "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
-          "sha256": "5c16dfb31fdecbb7e1d7914840d214b1a387bfc8abeffcb6cab5ed3e95e19131",
-          "download_link": "https://drive.google.com/uc?id=1ySKz9MlPb1qW7KETONRYTqEk9Rp-CVqO&export=download"
+          "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
-          "sha256": "e85420109638826793750691457add5eeee6094a93a2f2683987bba546e0f95f",
-          "download_link": "https://drive.google.com/uc?id=1nHNwG8GzW2G5ugjra7kjnk_92kCjVnSz&export=download"
+          "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
       ],
       "ticks": 300,
       "runs": 10
     },
     "test-000042-3": {
+      "save_subdirectory": "test-000042",
       "mods": [
         {
           "name": "item-entity-collision-box-remover",
-          "file_name": "",
+          "file_name": "item-entity-collision-box-remover_0.0.1.zip",
           "version": "0.0.1",
           "sha1": "606316074592f48b136d3b4776bd5f1de323bf17"
         }
@@ -235,35 +238,35 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
-          "sha256": "bed250df9e1bd769f4e82bce2d0e4f8e3fb7e2c531159aedeaf802302f2319e9",
-          "download_link": "https://drive.google.com/uc?id=1htLRVfKbQRvuXJwnVYHFhtAZL8Y1_aK5&export=download"
+          "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
-          "sha256": "5c16dfb31fdecbb7e1d7914840d214b1a387bfc8abeffcb6cab5ed3e95e19131",
-          "download_link": "https://drive.google.com/uc?id=1ySKz9MlPb1qW7KETONRYTqEk9Rp-CVqO&export=download"
+          "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
-          "sha256": "e85420109638826793750691457add5eeee6094a93a2f2683987bba546e0f95f",
-          "download_link": "https://drive.google.com/uc?id=1nHNwG8GzW2G5ugjra7kjnk_92kCjVnSz&export=download"
+          "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
       ],
       "ticks": 300,
       "runs": 10
     },
     "test-000042-4": {
-      "save_subdirectory": "test-000042/test-000042-4",
+      "save_subdirectory": "test-000042",
       "mods": [
         {
           "name": "item-entity-collision-box-remover",
-          "file_name": "",
+          "file_name": "item-entity-collision-box-remover_0.0.1.zip",
           "version": "0.0.1",
           "sha1": "606316074592f48b136d3b4776bd5f1de323bf17"
         },
         {
           "name": "item-entity-collision-mask-remover",
-          "file_name": "",
+          "file_name": "item-entity-collision-mask-remover_0.0.1.zip",
           "version": "0.0.1",
           "sha1": "a9f2e61c8a84f44d97b0b561f483588713179784"
         }
@@ -271,18 +274,18 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
-          "sha256": "bed250df9e1bd769f4e82bce2d0e4f8e3fb7e2c531159aedeaf802302f2319e9",
-          "download_link": "https://drive.google.com/uc?id=1htLRVfKbQRvuXJwnVYHFhtAZL8Y1_aK5&export=download"
+          "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
-          "sha256": "5c16dfb31fdecbb7e1d7914840d214b1a387bfc8abeffcb6cab5ed3e95e19131",
-          "download_link": "https://drive.google.com/uc?id=1ySKz9MlPb1qW7KETONRYTqEk9Rp-CVqO&export=download"
+          "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
-          "sha256": "e85420109638826793750691457add5eeee6094a93a2f2683987bba546e0f95f",
-          "download_link": "https://drive.google.com/uc?id=1nHNwG8GzW2G5ugjra7kjnk_92kCjVnSz&export=download"
+          "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
       ],
       "ticks": 300,

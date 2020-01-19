@@ -116,9 +116,30 @@ enum BackblazeUploadState {
     Upload, // O(N)
 }
 
+/// Authorize with the Backblaze API using test credentials.
+/// These credentials can be found in the envs TRAVIS_CI_B2_KEYID & TRAVIS_CI_B2_APPLICATIONKEY
+/// or within the config.ini file under the same name.
+/// These fields are not written to the config.ini file normally.
+fn authorize_test(client: &Client) -> Result<BackblazeAuth,BackblazeErrorResponse> {
+    let vars = std::env::vars().collect::<HashMap<String,String>>();
+    let key_id = if vars.get("TRAVIS_CI_B2_KEYID").is_some() {
+        vars.get("TRAVIS_CI_B2_KEYID").unwrap().to_string()
+    } else {
+        fbh_read_configuration_setting("TRAVIS_CI_B2_KEYID").unwrap()
+    };
+    let application_key = if vars.get("TRAVIS_CI_B2_APPLICATIONKEY").is_some() {
+        vars.get("TRAVIS_CI_B2_APPLICATIONKEY").unwrap().to_string()
+    } else {
+        fbh_read_configuration_setting("TRAVIS_CI_B2_APPLICATIONKEY").unwrap()
+    };
+    authorize(&client, &key_id, &application_key)
+}
+
 /// Authorize with Backblaze API using keys found within config.ini
 fn authorize_cfg(client: &Client) -> Result<BackblazeAuth, BackblazeErrorResponse> {
-    if let Some(key_id) = fbh_read_configuration_setting("b2-backblaze-keyID") {
+    if cfg!(test) {
+        return authorize_test(&client)
+    } else if let Some(key_id) = fbh_read_configuration_setting("b2-backblaze-keyID") {
         if let Some(application_key) = fbh_read_configuration_setting("b2-backblaze-applicationKey") {
             if !key_id.is_empty() && !application_key.is_empty() {
                 return authorize(client, &key_id, &application_key)
@@ -486,35 +507,16 @@ pub fn upload_files_to_backblaze(file_subdirectory: & str, filepaths: &[PathBuf]
 
 #[cfg(test)]
 mod test {
-    use crate::util::fbh_read_configuration_setting;
+    use crate::backblaze::authorize_test;
     use crate::util::fbh_save_dl_dir;
     use crate::backblaze::upload_files_to_backblaze;
-    use crate::backblaze::BackblazeErrorResponse;
-    use crate::backblaze::BackblazeAuth;
     use std::fs::OpenOptions;
-    use std::collections::HashMap;
-    use std::env::vars;
-    use crate::backblaze::authorize;
     use crate::backblaze::b2_list_file_names;
     use reqwest::Client;
-    fn auth_test(client: &Client) -> Result<BackblazeAuth,BackblazeErrorResponse> {
-        let vars = vars().collect::<HashMap<String,String>>();
-        let key_id = if vars.get("TRAVIS_CI_B2_KEYID").is_some() {
-            vars.get("TRAVIS_CI_B2_KEYID").unwrap().to_string()
-        } else {
-            fbh_read_configuration_setting("TRAVIS_CI_B2_KEYID").unwrap()
-        };
-        let application_key = if vars.get("TRAVIS_CI_B2_APPLICATIONKEY").is_some() {
-            vars.get("TRAVIS_CI_B2_APPLICATIONKEY").unwrap().to_string()
-        } else {
-            fbh_read_configuration_setting("TRAVIS_CI_B2_APPLICATIONKEY").unwrap()
-        };
-        authorize(&client, &key_id, &application_key)
-    }
     #[test]
     fn list_files() {
         let client = Client::new();
-        let auth = auth_test(&client).unwrap();
+        let auth = authorize_test(&client).unwrap();
         b2_list_file_names(&client, &auth, "").unwrap();
     }
     #[test]
@@ -529,7 +531,11 @@ mod test {
                     .open(&to_save_to_path)
                     .unwrap();
                 resp.copy_to(&mut file).unwrap();
-                upload_files_to_backblaze("", &[to_save_to_path.clone()]).unwrap();
+                let uploaded = upload_files_to_backblaze("", &[to_save_to_path.clone()]).unwrap();
+                assert!(uploaded.len() == 1);
+                let (k,v) = uploaded.iter().next().unwrap();
+                assert_eq!(k, &to_save_to_path);
+                assert_eq!(v, "https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip");
                 std::fs::remove_file(&to_save_to_path).unwrap();
             },
             Err(e) => panic!(e),

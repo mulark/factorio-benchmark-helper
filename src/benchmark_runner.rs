@@ -1,5 +1,6 @@
 extern crate regex;
 
+use std::collections::BTreeSet;
 use crate::util::Mod;
 use crate::util::performance_results::{BenchmarkData, CollectionData};
 use crate::util::{
@@ -282,7 +283,7 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
 fn run_benchmark_single_map(
     params: SimpleBenchmarkParam,
     collection_data: Option<&mut CollectionData>,
-    mods: &[Mod],
+    mods: &BTreeSet<Mod>,
 ) -> Option<BenchmarkDurationOverhead> {
     //tick is implied in timings dump
     let mut bench_data = BenchmarkData::default();
@@ -357,7 +358,7 @@ fn run_benchmark_single_map(
         assert_eq!((params.ticks * params.runs) as usize, verbose_data.len());
         bench_data.verbose_data = verbose_data;
         let collection_data = collection_data.unwrap();
-        collection_data.mods = mods.to_vec();
+        collection_data.mods = mods.clone();
         collection_data.benchmarks.push(bench_data);
     }
     benchmark_times

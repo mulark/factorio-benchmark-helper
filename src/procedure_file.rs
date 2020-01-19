@@ -2,6 +2,7 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
+use std::collections::BTreeSet;
 use crate::util::fbh_cache_path;
 use crate::util::prompt_until_allowed_val;
 use crate::util::{fbh_procedure_json_local_file, fbh_procedure_json_master_file, Map, Mod};
@@ -18,7 +19,7 @@ use std::process::exit;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TopLevel {
     pub benchmark_sets: BTreeMap<String, BenchmarkSet>,
-    pub meta_sets: BTreeMap<String, Vec<String>>,
+    pub meta_sets: BTreeMap<String, BTreeSet<String>>,
 }
 
 impl TopLevel {
@@ -47,48 +48,22 @@ impl Default for TopLevel {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct BenchmarkSet {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub save_subdirectory: Option<PathBuf>,
-    pub mods: Vec<Mod>,
-    pub maps: Vec<Map>,
+    pub mods: BTreeSet<Mod>,
+    pub maps: BTreeSet<Map>,
     pub ticks: u32,
     pub runs: u32,
-}
-
-impl PartialEq for BenchmarkSet {
-    fn eq(&self, cmp: &Self) -> bool {
-        let mut ret = true;
-        if self.ticks == cmp.ticks
-            && self.runs == cmp.runs
-            && self.maps.len() == cmp.maps.len()
-            && self.mods.len() == cmp.mods.len()
-            && self.save_subdirectory == cmp.save_subdirectory
-        {
-            for i in 0..self.maps.len() {
-                if self.maps[i] != cmp.maps[i] {
-                    ret = false;
-                }
-            }
-            for i in 0..self.mods.len() {
-                if self.mods[i] != cmp.mods[i] {
-                    ret = false;
-                }
-            }
-        } else {
-            ret = false;
-        }
-        ret
-    }
 }
 
 impl Default for BenchmarkSet {
     fn default() -> BenchmarkSet {
         BenchmarkSet {
             save_subdirectory: None,
-            mods: Vec::new(),
-            maps: Vec::new(),
+            mods: BTreeSet::new(),
+            maps: BTreeSet::new(),
             ticks: 0,
             runs: 0,
         }
@@ -270,7 +245,7 @@ pub fn write_benchmark_set_to_file(
     }
 }
 
-pub fn read_meta_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<Vec<String>> {
+pub fn read_meta_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<BTreeSet<String>> {
     match load_top_level_from_file(&file_kind) {
         Some(m) => {
             if m.meta_sets.contains_key(name) {
@@ -284,7 +259,7 @@ pub fn read_meta_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<V
 
 pub fn write_meta_to_file(
     name: &str,
-    members: Vec<String>,
+    members: BTreeSet<String>,
     force: bool,
     file_kind: ProcedureFileKind,
 ) {

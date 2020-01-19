@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 use crate::util::Mod;
 
@@ -9,7 +10,7 @@ pub struct CollectionData {
     pub executable_type: String,
     pub cpuid: String,
     pub benchmarks: Vec<BenchmarkData>,
-    pub mods: Vec<Mod>
+    pub mods: BTreeSet<Mod>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
