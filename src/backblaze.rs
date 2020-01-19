@@ -570,6 +570,7 @@ mod test {
     fn upload_file() {
         match reqwest::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip") {
             Ok(mut resp) => {
+                std::fs::create_dir_all(fbh_save_dl_dir()).unwrap();
                 let to_save_to_path = fbh_save_dl_dir().join("this-is-a-test-generated-name-ignore-it.zip");
 
                 let mut file = OpenOptions::new()
