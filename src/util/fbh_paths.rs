@@ -56,6 +56,8 @@ struct ForwardCompatibilityConfigSettings {
     erase_preview_image: String,
     b2_backblaze_key_id: String,
     b2_backblaze_application_key: String,
+    travis_ci_b2_keyid: String,
+    travis_ci_b2_applicationkey: String,
 }
 
 fn load_forward_compatiblity_config_settings() -> ForwardCompatibilityConfigSettings {
@@ -82,6 +84,12 @@ fn load_forward_compatiblity_config_settings() -> ForwardCompatibilityConfigSett
         .to_string();
     settings.b2_backblaze_application_key = i
         .get_from_or::<&str>(None, "b2-backblaze-applicationKey", "")
+        .to_string();
+    settings.travis_ci_b2_keyid = i
+        .get_from_or::<&str>(None, "TRAVIS_CI_B2_KEYID", "")
+        .to_string();
+    settings.travis_ci_b2_applicationkey = i
+        .get_from_or::<&str>(None, "TRAVIS_CI_B2_APPLICATIONKEY", "")
         .to_string();
     settings
 }
@@ -151,6 +159,20 @@ fn fbh_init_config_file() -> Result<(), std::io::Error> {
                 "b2-backblaze-applicationKey={}",
                 prev_or_default_settings.b2_backblaze_application_key
             )?;
+            if !prev_or_default_settings.travis_ci_b2_keyid.is_empty() {
+                writeln!(file)?;
+                writeln!(file, "; For test use only")?;
+                writeln!(
+                    file,
+                    "TRAVIS_CI_B2_KEYID={}",
+                    prev_or_default_settings.travis_ci_b2_keyid
+                )?;
+                writeln!(
+                    file,
+                    "TRAVIS_CI_B2_APPLICATIONKEY={}",
+                    prev_or_default_settings.travis_ci_b2_applicationkey
+                )?;
+            }
         }
     }
     Ok(())
