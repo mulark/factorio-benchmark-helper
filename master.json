@@ -292,6 +292,36 @@
       "ticks": 300,
       "runs": 10
     },
+    "test-000042-5": {
+      "save_subdirectory": "test-000042",
+      "mods": [
+        {
+          "name": "item-entity-collision-box-and-mask-remover",
+          "file_name": "item-entity-collision-box-and-mask-remover_0.0.1.zip",
+          "version": "0.0.1",
+          "sha1": "48e238ae16be2bf0a290335395208020f0815f24"
+        }
+      ],
+      "maps": [
+        {
+          "name": "test-000042.diff_adv_tile.zip",
+          "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
+        },
+        {
+          "name": "test-000042.same_adv_tile.zip",
+          "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
+        },
+        {
+          "name": "test-000042.same_adv_tile_colliding.zip",
+          "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
+        }
+      ],
+      "ticks": 300,
+      "runs": 10
+    },
     "test-000046": {
       "save_subdirectory": "test-000046",
       "mods": [],
@@ -474,7 +504,8 @@
       "test-000042-1",
       "test-000042-2",
       "test-000042-3",
-      "test-000042-4"
+      "test-000042-4",
+      "test-000042-5"
     ]
   }
 }
