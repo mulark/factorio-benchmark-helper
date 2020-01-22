@@ -44,7 +44,7 @@ pub use map_dl::{fetch_map_deps_parallel, Map};
 lazy_static! {
     #[derive(Debug)]
     pub static ref FACTORIO_INFO: FactorioInfo = get_factorio_info();
-    static ref FACTORIO_EXECUTABLE_VERSION_LINE: Regex = Regex::new(r"Version: \d{1,2}\.\d{2,3}\.\d{2,3}.*\n").unwrap();
+    static ref FACTORIO_EXECUTABLE_VERSION_LINE: Regex = Regex::new(r"Version: \d{1,2}\.\d{1,3}\.\d{1,3}.*\n").unwrap();
     //If Factorio ever goes to 3/4/4 digits for their versioning, this will break.
 }
 
