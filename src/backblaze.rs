@@ -317,10 +317,11 @@ fn b2_upload_file(
                 _ => return Err(serde_json::from_str(&unparsed_json_response).unwrap()),
             }
         }
-        Err(e) => {
-            eprintln!("Failed to post file to Backblaze during initial submission");
-            panic!(e.to_string());
-        }
+        Err(e) => Err(BackblazeErrorResponse {
+            status: 0,
+            code: BackblazeErrorKind::SendError,
+            message: e.to_string(),
+        }),
     }
 }
 
@@ -374,8 +375,8 @@ fn collect_file_upload_instances(subdir: &str, filepaths: &[PathBuf]) -> Vec<Fil
 /// Performs upload attempt with the b2-backblaze-keyID and b2-backblaze-
 /// applicationKey found within your config.ini file.
 ///
-/// Upon a successful upload it returns Ok(String) containing the url to download
-/// the file from.
+/// Upon a successful upload it returns Ok((PathBuf, String)) containing the filepath
+/// of the uploaded file and the url to download the file from.
 ///
 /// The url returned does not use the file id, thus only the most recently uploaded
 /// file with the same name will be the one downloadable.
@@ -501,6 +502,10 @@ pub fn upload_files_to_backblaze(
                                 println!("{:?}", state);
                                 println!("{:?}", err_resp);
                                 match err_resp.status {
+                                    0 => {
+                                        //Sending error, probably try to get a new upload URL.
+                                        state = BackblazeUploadState::GetUploadUrl;
+                                    }
                                     400 => {
                                         return Err(format!(
                                             "Unrecoverable uploading error {:?}",
