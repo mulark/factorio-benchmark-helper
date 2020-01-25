@@ -19,6 +19,7 @@ sha2 = "*"
 raw-cpuid = "*"
 clap = "*"
 bincode = "*"
+percent-encoding = "*"
 
 [profile.release]
 debug = 1

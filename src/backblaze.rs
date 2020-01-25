@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
+use percent_encoding::percent_encode;
+use percent_encoding::DEFAULT_ENCODE_SET;
 
 const B2_AUTHORIZE_ACCOUNT_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
 
@@ -49,7 +51,7 @@ struct BackblazeAuthAllowed {
     capabilities: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 struct BackblazeGetUploadUrlResponse {
     bucketId: String,
     uploadUrl: String,
@@ -299,11 +301,12 @@ fn b2_upload_file(
     file: &FileUploadInstance,
 ) -> Result<BackblazeUploadFileResponse, BackblazeErrorResponse> {
     let mime_type = get_file_mimetype(&file.filepath);
+    let percent_encoded_filename = percent_encode(&file.relative_filename.as_bytes(), DEFAULT_ENCODE_SET).to_string();
 
     match client
         .post(&url_response.uploadUrl)
         .header("Authorization", &url_response.authorizationToken)
-        .header("X-Bz-File-Name", &file.relative_filename)
+        .header("X-Bz-File-Name", &percent_encoded_filename)
         .header("Content-Type", mime_type)
         .header("Content-Length", file.filepath.metadata().unwrap().len())
         .header("X-Bz-Content-Sha1", &file.sha1)
@@ -593,5 +596,18 @@ mod test {
             },
             Err(e) => panic!(e),
         }
+    }
+    #[test]
+    fn test_percent_encodedness() {
+        let mut resp = reqwest::get("https://f000.backblazeb2.com/file/cargo-test/Spa+ce/new+file.txt").unwrap();
+        let newfilepath = std::env::current_dir().unwrap().join("new file.txt");
+        let mut newfile = std::fs::OpenOptions::new().create(true).write(true).open(&newfilepath).unwrap();
+        resp.copy_to(&mut newfile).unwrap();
+        let uploaded = upload_files_to_backblaze("Spa ce", &[newfilepath.clone()]).unwrap();
+        assert!(uploaded.len() == 1);
+        let (k,v) = uploaded.iter().next().unwrap();
+        assert_eq!(k, &newfilepath);
+        assert_eq!(v, "https://f000.backblazeb2.com/file/cargo-test/Spa ce/new file.txt");
+        std::fs::remove_file(&newfilepath).unwrap();
     }
 }

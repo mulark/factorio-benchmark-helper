@@ -10,6 +10,7 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 extern crate sha2;
+extern crate percent_encoding;
 
 use crate::backblaze::upload_files_to_backblaze;
 use crate::procedure_file::get_metas_from_meta;
@@ -35,7 +36,7 @@ use benchmark_runner::run_benchmarks_multiple;
 mod procedure_file;
 mod util;
 use util::{
-    add_options_and_parse, get_mod_info, get_saves_directory, prompt_until_allowed_val,
+    add_options_and_parse, get_mod_info, factorio_save_directory, prompt_until_allowed_val,
     prompt_until_allowed_val_in_range, prompt_until_empty_str, read_benchmark_set_from_file,
     trim_newline, write_benchmark_set_to_file, BenchmarkSet, Mod, ProcedureFileKind, ProcedureKind,
     UserArgs,
@@ -473,7 +474,7 @@ pub fn slice_members_from_csv(s: &str) -> BTreeSet<String> {
 fn get_map_paths_from_pattern(initial_input: &str) -> (Vec<PathBuf>, Option<PathBuf>) {
     let mut input = initial_input.to_string();
     let mut map_paths = Vec::new();
-    let save_directory = get_saves_directory();
+    let save_directory = factorio_save_directory();
     assert!(save_directory.is_dir());
     if input == "*" {
         trim_newline(&mut input);
@@ -500,7 +501,7 @@ fn get_map_paths_from_pattern(initial_input: &str) -> (Vec<PathBuf>, Option<Path
 }
 
 fn find_map_subdirectory(paths: &[PathBuf]) -> Option<PathBuf> {
-    let base_save_dir = get_saves_directory().to_string_lossy().to_string();
+    let base_save_dir = factorio_save_directory().to_string_lossy().to_string();
     let mut currently_seen_base_paths = HashSet::new();
     for path in paths {
         currently_seen_base_paths.insert(path.parent().unwrap());
@@ -549,7 +550,7 @@ fn move_maps_to_cache(paths: &[PathBuf], subdir: &Option<PathBuf>) {
 #[cfg(test)]
 mod tests {
     use crate::execute_from_args;
-    use crate::util::get_saves_directory;
+    use crate::util::factorio_save_directory;
     use crate::util::initialize;
     use crate::UserArgs;
     use std::fs::OpenOptions;
@@ -558,7 +559,7 @@ mod tests {
         initialize().unwrap();
         let mut args = UserArgs::default();
         let to_save_to_path =
-            get_saves_directory().join("this-is-a-test-generated-name-ignore-it.zip");
+            factorio_save_directory().join("this-is-a-test-generated-name-ignore-it.zip");
         match reqwest::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip") {
             Ok (mut resp) => {
                 let mut file = OpenOptions::new()

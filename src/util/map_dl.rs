@@ -1,4 +1,4 @@
-use crate::util::{fbh_save_dl_dir, get_saves_directory, sha256sum};
+use crate::util::{fbh_save_dl_dir, factorio_save_directory, sha256sum};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;
@@ -10,7 +10,7 @@ lazy_static! {
     static ref WHITELISTED_DOMAINS: Vec<String> = vec!(
         String::from("drive.google.com"),
         String::from("forums.factorio.com"),
-        String::from(".backblaze.com")
+        String::from(".backblazeb2.com")
     );
 }
 
@@ -68,12 +68,11 @@ pub fn fetch_map_deps_parallel(
         handles.push(std::thread::spawn(move ||
             {
                 let mut sha256;
-                let (filepath, alt_filepath) = if let Some(subdir) = save_subdirectory {
-                    (fbh_save_dl_dir().join(&subdir).join(&map.name),
-                        get_saves_directory().join(&subdir).join(&map.name))
-                } else {
-                    (fbh_save_dl_dir().join(&map.name), get_saves_directory().join(&map.name))
-                };
+                let (filepath, alt_filepath) =
+                (
+                    fbh_save_dl_dir().join(&save_subdirectory.as_ref().unwrap_or(&PathBuf::new())).join(&map.name),
+                    factorio_save_directory().join(&save_subdirectory.unwrap_or_default()).join(&map.name)
+                );
                 if let Some(extension) = filepath.extension() {
                     if extension == "zip" {
                         if !filepath.is_file() && alt_filepath.is_file() {
@@ -180,7 +179,7 @@ fn download_save(save_name: &str, url: String, to_save_to_path: &PathBuf) {
         }
     } else {
         eprintln!(
-            "Error: We recieved a bad response. Status code: {}",
+            "Error: We recieved a bad response during a map download. Status code: {}",
             resp.status().as_u16()
         );
         exit(1);
