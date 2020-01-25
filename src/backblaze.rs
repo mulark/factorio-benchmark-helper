@@ -11,7 +11,7 @@ use std::time::Duration;
 use percent_encoding::percent_encode;
 use percent_encoding::{CONTROLS,AsciiSet};
 
-const PERCENT_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`').remove(b'\\');
+const PERCENT_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 
 const B2_AUTHORIZE_ACCOUNT_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
 
@@ -21,7 +21,9 @@ struct FileUploadInstance {
     filepath: PathBuf,
     sha256: String,
     sha1: String,
-    relative_filename: String, // The relative filename with included position within subfolders, if any
+    relative_filename: String,  // The relative filename with included position within subfolders
+                                // This uses forward slashes even on Windows because that's what
+                                // Backblaze B2 expects
     final_url: String,
     already_uploaded: bool,
     upload_response: Option<BackblazeUploadFileResponse>,
@@ -340,6 +342,7 @@ fn populate_final_urls(auth: &BackblazeAuth, files: &mut Vec<FileUploadInstance>
 /// There is no guarentee the file will be present.
 ///
 /// relative_file_name should include the subdirectories where this file will be found
+/// These relative subdirectories use forward slashes, even on Windows
 fn b2_download_url(auth: &BackblazeAuth, relative_file_name: &str) -> String {
     format!(
         "{}/file/{}/{}",
@@ -357,10 +360,8 @@ fn get_relative_filename(subdir: &str, filename: &str) -> String {
         } else {
             format!("{}{}", subdir, filename)
         }
-    } else if !subdir.ends_with('\\') {
-        format!("{}\\{}", subdir, filename)
     } else {
-        format!("{}{}", subdir, filename)
+        format!("{}/{}", subdir.replace("\\", ""), filename)
     }
 }
 
