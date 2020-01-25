@@ -166,7 +166,7 @@ fn get_factorio_rw_directory() -> PathBuf {
     }
 }
 
-pub fn get_saves_directory() -> PathBuf {
+pub fn factorio_save_directory() -> PathBuf {
     get_factorio_rw_directory().join("saves").join("")
 }
 
