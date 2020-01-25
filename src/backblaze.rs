@@ -9,7 +9,9 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
 use percent_encoding::percent_encode;
-use percent_encoding::DEFAULT_ENCODE_SET;
+use percent_encoding::{CONTROLS,AsciiSet};
+
+const PERCENT_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 
 const B2_AUTHORIZE_ACCOUNT_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
 
@@ -301,7 +303,7 @@ fn b2_upload_file(
     file: &FileUploadInstance,
 ) -> Result<BackblazeUploadFileResponse, BackblazeErrorResponse> {
     let mime_type = get_file_mimetype(&file.filepath);
-    let percent_encoded_filename = percent_encode(&file.relative_filename.as_bytes(), DEFAULT_ENCODE_SET).to_string();
+    let percent_encoded_filename = percent_encode(file.relative_filename.as_bytes(), PERCENT_ENCODE_SET).to_string();
 
     match client
         .post(&url_response.uploadUrl)
