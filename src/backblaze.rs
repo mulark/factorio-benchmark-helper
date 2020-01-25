@@ -11,7 +11,7 @@ use std::time::Duration;
 use percent_encoding::percent_encode;
 use percent_encoding::{CONTROLS,AsciiSet};
 
-const PERCENT_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
+const PERCENT_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`').remove(b'\\');
 
 const B2_AUTHORIZE_ACCOUNT_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
 
