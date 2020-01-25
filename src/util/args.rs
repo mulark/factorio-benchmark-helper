@@ -119,10 +119,6 @@ pub fn add_options_and_parse() -> UserArgs {
                 .long("runs")
                 .help("How many times each map should be benchmarked")
                 .value_name("RUNS"),
-            Arg::with_name("google-drive-folder")
-                .long("google-drive-folder")
-                .help("A link to a publicly shared google drive folder so that individual download links can be automatically filled")
-                .value_name("LINK"),
             Arg::with_name("mods")
                 .long("mods")
                 .help("A comma separated list of mods you wish to create this benchmark with. 'region-cloner' specifies the latest version of region cloner, whereas 'region-cloner_1.1.2' specifies that specific version.")
