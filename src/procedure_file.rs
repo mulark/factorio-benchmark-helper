@@ -2,6 +2,11 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
+use std::ops::Not;
+use crate::util::bulk_sha256;
+use crate::util::fbh_save_dl_dir;
+use crate::backblaze::upload_files_to_backblaze;
+use crate::util::download_benchmark_deps_parallel;
 use crate::util::fbh_cache_path;
 use crate::util::prompt_until_allowed_val;
 use crate::util::{fbh_procedure_json_local_file, fbh_procedure_json_master_file, Map, Mod};
@@ -75,6 +80,51 @@ pub enum ProcedureFileKind {
     Custom(PathBuf),
 }
 
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum ProcedureOverwrite {
+    True,
+    False,
+}
+
+impl From<bool> for ProcedureOverwrite {
+    fn from(b: bool) -> ProcedureOverwrite {
+        if b { ProcedureOverwrite::True } else { ProcedureOverwrite::False }
+    }
+}
+
+impl Not for ProcedureOverwrite {
+    type Output = ProcedureOverwrite;
+    fn not(self) -> Self::Output {
+        match self {
+            ProcedureOverwrite::True => ProcedureOverwrite::False,
+            ProcedureOverwrite::False => ProcedureOverwrite::True,
+        }
+    }
+}
+
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum ProcedureInteractive {
+    True,
+    False,
+}
+
+impl From<bool> for ProcedureInteractive {
+    fn from(b: bool) -> ProcedureInteractive {
+        if b { ProcedureInteractive::True } else { ProcedureInteractive::False }
+    }
+}
+
+impl Not for ProcedureInteractive {
+    type Output = ProcedureInteractive;
+    fn not(self) -> Self::Output {
+        match self {
+            ProcedureInteractive::True => ProcedureInteractive::False,
+            ProcedureInteractive::False => ProcedureInteractive::True,
+        }
+    }
+}
+
 pub fn update_master_json() {
     if let Some(orig_top_level) = load_top_level_from_file(&ProcedureFileKind::Master) {
         let new = fbh_cache_path().join(".new.json");
@@ -84,13 +134,13 @@ pub fn update_master_json() {
                 if orig_top_level.benchmark_sets.contains_key(&k) {
                     //println!("Automatically updating benchmark set {:?}", &k);
                 }
-                write_benchmark_set_to_file(&k, v, true, ProcedureFileKind::Master, false);
+                write_benchmark_set_to_file(&k, v, ProcedureOverwrite::True, ProcedureFileKind::Master, ProcedureInteractive::True);
             }
             for (k, v) in new_top_level.meta_sets {
                 if orig_top_level.meta_sets.contains_key(&k) {
                     //println!("Automatically updating metaset {:?}", &k);
                 }
-                write_meta_to_file(&k, v, true, ProcedureFileKind::Master);
+                write_meta_to_file(&k, v, true.into(), ProcedureFileKind::Master);
             }
         }
     } else {
@@ -191,9 +241,9 @@ pub fn read_benchmark_set_from_file(
 pub fn write_benchmark_set_to_file(
     name: &str,
     set: BenchmarkSet,
-    force: bool,
+    force: ProcedureOverwrite,
     file_kind: ProcedureFileKind,
-    interactive: bool,
+    interactive: ProcedureInteractive,
 ) {
     let mut top_level;
     match load_top_level_from_file(&file_kind) {
@@ -209,8 +259,8 @@ pub fn write_benchmark_set_to_file(
         ProcedureFileKind::Master => fbh_procedure_json_master_file(),
         ProcedureFileKind::Custom(p) => p,
     };
-    if top_level.benchmark_sets.contains_key(name) && !force {
-        if interactive {
+    if top_level.benchmark_sets.contains_key(name) && force == false.into() {
+        if interactive == ProcedureInteractive::True {
             println!("Procedure already exists, overwrite?");
             match prompt_until_allowed_val(&["y".to_string(), "n".to_string()]).as_str() {
                 "y" => {
@@ -252,7 +302,7 @@ pub fn read_meta_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<B
 pub fn write_meta_to_file(
     name: &str,
     members: BTreeSet<String>,
-    force: bool,
+    force: ProcedureOverwrite,
     file_kind: ProcedureFileKind,
 ) {
     let mut top_level;
@@ -266,7 +316,7 @@ pub fn write_meta_to_file(
         ProcedureFileKind::Custom(p) => p,
     };
 
-    if top_level.meta_sets.contains_key(name) && !force {
+    if top_level.meta_sets.contains_key(name) && force == false.into() {
         eprintln!("Cannot write procedure to master file, meta set {:?} already exists! Maybe use --overwrite?", name);
         exit(1);
     } else {

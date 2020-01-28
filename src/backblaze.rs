@@ -26,6 +26,7 @@ struct FileUploadInstance {
                                 // Backblaze B2 expects
     final_url: String,
     already_uploaded: bool,
+    get_upload_url_response: BackblazeGetUploadUrlResponse,
     upload_response: Option<BackblazeUploadFileResponse>,
 }
 
@@ -128,16 +129,16 @@ enum BackblazeUploadState {
 fn authorize_test(client: &Client) -> Result<BackblazeAuth, BackblazeErrorResponse> {
     let vars = std::env::vars().collect::<HashMap<String, String>>();
     let key_id = if vars.get("TRAVIS_CI_B2_KEYID").is_some() {
-        vars.get("TRAVIS_CI_B2_KEYID").unwrap().to_string()
+        vars.get("TRAVIS_CI_B2_KEYID").unwrap()
     } else {
-        CONFIG_FILE_SETTINGS.travis_ci_b2_keyid
+        &CONFIG_FILE_SETTINGS.travis_ci_b2_keyid
     };
     let application_key = if vars.get("TRAVIS_CI_B2_APPLICATIONKEY").is_some() {
-        vars.get("TRAVIS_CI_B2_APPLICATIONKEY").unwrap().to_string()
+        vars.get("TRAVIS_CI_B2_APPLICATIONKEY").unwrap()
     } else {
-        CONFIG_FILE_SETTINGS.travis_ci_b2_applicationkey
+        &CONFIG_FILE_SETTINGS.travis_ci_b2_applicationkey
     };
-    authorize(&client, &key_id, &application_key)
+    authorize(&client, key_id, application_key)
 }
 
 /// Authorize with Backblaze API using keys found within config.ini
@@ -145,10 +146,10 @@ fn authorize_cfg(client: &Client) -> Result<BackblazeAuth, BackblazeErrorRespons
     if cfg!(test) {
         return authorize_test(&client);
     }
-    let key_id = CONFIG_FILE_SETTINGS.b2_backblaze_key_id;
-    let application_key = CONFIG_FILE_SETTINGS.b2_backblaze_application_key;
+    let key_id = &CONFIG_FILE_SETTINGS.b2_backblaze_key_id;
+    let application_key = &CONFIG_FILE_SETTINGS.b2_backblaze_application_key;
     if !key_id.is_empty() && !application_key.is_empty() {
-        return authorize(client, &key_id, &application_key);
+        return authorize(client, key_id, application_key);
 
     }
     Err(BackblazeErrorResponse {
@@ -248,6 +249,13 @@ fn b2_test_files_already_uploaded(
         }
     }
     false
+}
+
+fn get_b2_upload_urls_per_file(client: &Client, container: &mut BackbazeDataContainer) -> Result<(),BackblazeErrorResponse> {
+    for mut file in &mut container.files {
+        file.get_upload_url_response = b2_get_upload_url(&client, &container.auth.as_ref().unwrap())?;
+    }
+    Ok(())
 }
 
 /// Get a Url to use for uploading
@@ -463,9 +471,8 @@ pub fn upload_files_to_backblaze(
                 state = BackblazeUploadState::GetUploadUrl;
             }
             BackblazeUploadState::GetUploadUrl => {
-                match b2_get_upload_url(&client, &container.auth.as_ref().unwrap()) {
-                    Ok(resp) => {
-                        container.get_url_response = Some(resp);
+                match get_b2_upload_urls_per_file(&client, &mut container) {
+                    Ok(()) => {
                         state = BackblazeUploadState::Upload;
                     }
                     Err(err_resp) => {
@@ -495,7 +502,7 @@ pub fn upload_files_to_backblaze(
                     } else {
                         match b2_upload_file(
                             &client,
-                            &container.get_url_response.as_ref().unwrap(),
+                            &file.get_upload_url_response,
                             &file,
                         ) {
                             Ok(_upload_resp) => {
@@ -509,7 +516,8 @@ pub fn upload_files_to_backblaze(
                                 match err_resp.status {
                                     0 => {
                                         //Sending error, probably try to get a new upload URL.
-                                        state = BackblazeUploadState::GetUploadUrl;
+                                        eprintln!("filename {:?}", file.relative_filename);
+                                        state = BackblazeUploadState::TestIfAlreadyUploaded;
                                     }
                                     400 => {
                                         return Err(format!(

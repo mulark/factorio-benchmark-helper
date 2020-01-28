@@ -20,6 +20,7 @@ raw-cpuid = "*"
 clap = "*"
 bincode = "*"
 percent-encoding = "2.*"
+assert_cmd = "*"
 
 [profile.release]
 debug = 1

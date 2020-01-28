@@ -1,5 +1,6 @@
 use crate::util::config_file::ForwardCompatibilityConfigSettings;
 use crate::util::config_file::load_forward_compatiblity_config_settings;
+use crate::procedure_file::ProcedureOverwrite;
 use crate::procedure_file::print_all_procedures;
 use crate::util::fbh_paths::fbh_config_file;
 use crate::util::prompt_until_allowed_val;
@@ -14,7 +15,7 @@ use std::process::exit;
 #[derive(Debug)]
 pub struct UserArgs {
     pub interactive: bool,
-    pub overwrite: bool,
+    pub overwrite: ProcedureOverwrite,
 
     pub run_benchmark: bool,
     pub create_benchmark: bool,
@@ -40,8 +41,7 @@ impl Default for UserArgs {
     fn default() -> UserArgs {
         UserArgs {
             interactive: false,
-            overwrite: false,
-            resave: false,
+            overwrite: false.into(),
 
             run_benchmark: false,
             create_benchmark: false,
@@ -157,7 +157,7 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
         arguments.interactive = true;
     }
     if args.contains_key("overwrite") {
-        arguments.overwrite = true;
+        arguments.overwrite = true.into();
     }
     if args.contains_key("list") {
         print_all_procedures();

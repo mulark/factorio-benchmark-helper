@@ -145,7 +145,7 @@ fn perform_commit(args: &mut UserArgs) {
                 benchmark_set,
                 args.overwrite,
                 ProcedureFileKind::Master,
-                false,
+                false.into(),
             );
             println!(
                 "Successfully committed {:?} to the master json file... Now submit a PR :)",
@@ -170,7 +170,7 @@ fn perform_commit(args: &mut UserArgs) {
                         set,
                         args.overwrite,
                         ProcedureFileKind::Master,
-                        args.interactive,
+                        args.interactive.into(),
                     )
                 }
                 for meta in meta_sets {
@@ -360,7 +360,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
         benchmark,
         args.overwrite,
         ProcedureFileKind::Local,
-        args.interactive,
+        args.interactive.into(),
     );
 }
 
@@ -574,7 +574,7 @@ mod tests {
         args.runs = Some(10);
         args.pattern = Some("this-is-a-test-generated-name-ignore-it".to_string());
         args.mods_dirty = Some("region-cloner,creative-world-plus".to_string());
-        args.overwrite = true;
+        args.overwrite = true.into();
         execute_from_args(&mut args);
         std::fs::remove_file(to_save_to_path).unwrap();
     }
