@@ -89,7 +89,7 @@ pub fn fbh_write_config_file() -> Result<(), std::io::Error> {
             writeln!(
                 file,
                 "factorio-path={}",
-                prev_or_default_settings.factorio_path.unwrap_or(PathBuf::new()).to_string_lossy()
+                prev_or_default_settings.factorio_path.unwrap_or_default().to_string_lossy()
             )?;
             writeln!(file)?;
             writeln!(

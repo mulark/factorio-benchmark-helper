@@ -1,10 +1,7 @@
 use crate::util::config_file::fbh_write_config_file;
 use crate::procedure_file::update_master_json;
-use crate::util::{generic_read_configuration_setting, setup_database};
+use crate::util::{setup_database};
 use directories::ProjectDirs;
-use ini::Ini;
-use std::fs::OpenOptions;
-use std::io::Write;
 use std::path::PathBuf;
 
 
@@ -83,8 +80,4 @@ pub fn fbh_save_dl_dir() -> PathBuf {
 
 pub fn fbh_config_file() -> PathBuf {
     fbh_data_path().join("config.ini")
-}
-
-fn fbh_read_configuration_setting(key: &str) -> Option<String> {
-    generic_read_configuration_setting(fbh_config_file(), key)
 }
