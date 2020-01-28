@@ -5,12 +5,12 @@ extern crate bincode;
 extern crate clap;
 extern crate directories;
 extern crate glob;
+extern crate percent_encoding;
 extern crate regex;
 extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 extern crate sha2;
-extern crate percent_encoding;
 
 use crate::backblaze::upload_files_to_backblaze;
 use crate::procedure_file::get_metas_from_meta;
@@ -36,7 +36,7 @@ use benchmark_runner::run_benchmarks_multiple;
 mod procedure_file;
 mod util;
 use util::{
-    add_options_and_parse, get_mod_info, factorio_save_directory, prompt_until_allowed_val,
+    add_options_and_parse, factorio_save_directory, get_mod_info, prompt_until_allowed_val,
     prompt_until_allowed_val_in_range, prompt_until_empty_str, read_benchmark_set_from_file,
     trim_newline, write_benchmark_set_to_file, BenchmarkSet, Mod, ProcedureFileKind, ProcedureKind,
     UserArgs,

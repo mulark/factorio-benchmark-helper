@@ -82,7 +82,7 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod], mut handles: &mut Vec<JoinHandle<()
     //Only attempt to download unique mods from the sets. Skip base mod as it's special for vanilla.
     unique_mods.sort();
     unique_mods.dedup();
-    
+
     let mut filename;
     for m in unique_mods {
         filename = if m.file_name.is_empty() {

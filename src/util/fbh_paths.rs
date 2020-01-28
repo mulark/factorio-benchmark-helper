@@ -1,9 +1,8 @@
-use crate::util::config_file::fbh_write_config_file;
 use crate::procedure_file::update_master_json;
-use crate::util::{setup_database};
+use crate::util::config_file::fbh_write_config_file;
+use crate::util::setup_database;
 use directories::ProjectDirs;
 use std::path::PathBuf;
-
 
 pub fn initialize() -> Result<(), std::io::Error> {
     if !fbh_data_path().exists() {
@@ -44,7 +43,6 @@ pub fn fbh_procedure_json_master_file() -> PathBuf {
 pub fn fbh_procedure_json_local_file() -> PathBuf {
     fbh_procedure_directory().join("local.json")
 }
-
 
 pub fn fbh_data_path() -> PathBuf {
     //Data paths for this program, not Factorio

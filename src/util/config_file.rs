@@ -1,12 +1,13 @@
-use std::path::PathBuf;
-use std::fs::OpenOptions;
-use ini::Ini;
-use std::io::Write;
 use crate::util::common::CONFIG_FILE_VERSION;
 use crate::util::fbh_paths::fbh_config_file;
+use ini::Ini;
+use std::fs::OpenOptions;
+use std::io::Write;
+use std::path::PathBuf;
 
-lazy_static!{
-    pub static ref CONFIG_FILE_SETTINGS: ForwardCompatibilityConfigSettings = load_forward_compatiblity_config_settings();
+lazy_static! {
+    pub static ref CONFIG_FILE_SETTINGS: ForwardCompatibilityConfigSettings =
+        load_forward_compatiblity_config_settings();
 }
 
 #[derive(Debug, Default)]
@@ -89,7 +90,10 @@ pub fn fbh_write_config_file() -> Result<(), std::io::Error> {
             writeln!(
                 file,
                 "factorio-path={}",
-                prev_or_default_settings.factorio_path.unwrap_or_default().to_string_lossy()
+                prev_or_default_settings
+                    .factorio_path
+                    .unwrap_or_default()
+                    .to_string_lossy()
             )?;
             writeln!(file)?;
             writeln!(

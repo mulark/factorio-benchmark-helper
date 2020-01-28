@@ -2,11 +2,10 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
-use std::ops::Not;
-use crate::util::fbh_save_dl_dir;
 use crate::backblaze::upload_files_to_backblaze;
 use crate::util::download_benchmark_deps_parallel;
 use crate::util::fbh_cache_path;
+use crate::util::fbh_save_dl_dir;
 use crate::util::prompt_until_allowed_val;
 use crate::util::{fbh_procedure_json_local_file, fbh_procedure_json_master_file, Map, Mod};
 use core::str::FromStr;
@@ -17,6 +16,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::read;
 use std::fs::OpenOptions;
+use std::ops::Not;
 use std::path::PathBuf;
 use std::process::exit;
 
@@ -87,7 +87,11 @@ pub enum ProcedureOverwrite {
 
 impl From<bool> for ProcedureOverwrite {
     fn from(b: bool) -> ProcedureOverwrite {
-        if b { ProcedureOverwrite::True } else { ProcedureOverwrite::False }
+        if b {
+            ProcedureOverwrite::True
+        } else {
+            ProcedureOverwrite::False
+        }
     }
 }
 
@@ -101,7 +105,6 @@ impl Not for ProcedureOverwrite {
     }
 }
 
-
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ProcedureInteractive {
     True,
@@ -110,7 +113,11 @@ pub enum ProcedureInteractive {
 
 impl From<bool> for ProcedureInteractive {
     fn from(b: bool) -> ProcedureInteractive {
-        if b { ProcedureInteractive::True } else { ProcedureInteractive::False }
+        if b {
+            ProcedureInteractive::True
+        } else {
+            ProcedureInteractive::False
+        }
     }
 }
 
@@ -133,7 +140,13 @@ pub fn update_master_json() {
                 if orig_top_level.benchmark_sets.contains_key(&k) {
                     //println!("Automatically updating benchmark set {:?}", &k);
                 }
-                write_benchmark_set_to_file(&k, v, ProcedureOverwrite::True, ProcedureFileKind::Master, ProcedureInteractive::True);
+                write_benchmark_set_to_file(
+                    &k,
+                    v,
+                    ProcedureOverwrite::True,
+                    ProcedureFileKind::Master,
+                    ProcedureInteractive::True,
+                );
             }
             for (k, v) in new_top_level.meta_sets {
                 if orig_top_level.meta_sets.contains_key(&k) {

@@ -19,15 +19,15 @@ use std::process::exit;
 mod fbh_paths;
 pub use fbh_paths::{
     fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir, fbh_mod_use_dir,
-    fbh_procedure_json_local_file, fbh_procedure_json_master_file,
-    fbh_results_database, fbh_save_dl_dir, initialize,
+    fbh_procedure_json_local_file, fbh_procedure_json_master_file, fbh_results_database,
+    fbh_save_dl_dir, initialize,
 };
 use sha2::Digest;
 use std::fs::File;
 use std::io::Read;
 
 pub mod config_file;
-pub use config_file::{load_forward_compatiblity_config_settings, fbh_write_config_file};
+pub use config_file::{fbh_write_config_file, load_forward_compatiblity_config_settings};
 
 pub use crate::procedure_file::{
     print_all_procedures, read_benchmark_set_from_file, read_meta_from_file,
@@ -110,10 +110,21 @@ fn get_factorio_path() -> PathBuf {
                 .join("Factorio")
                 .join("")
         }
-    } else if CONFIG_FILE_SETTINGS.factorio_path.as_ref().unwrap().is_dir() {
-        CONFIG_FILE_SETTINGS.factorio_path.as_ref().unwrap().to_path_buf()
+    } else if CONFIG_FILE_SETTINGS
+        .factorio_path
+        .as_ref()
+        .unwrap()
+        .is_dir()
+    {
+        CONFIG_FILE_SETTINGS
+            .factorio_path
+            .as_ref()
+            .unwrap()
+            .to_path_buf()
     } else {
-        eprintln!("Could not resolve path from config file to a valid directory of a Factorio install");
+        eprintln!(
+            "Could not resolve path from config file to a valid directory of a Factorio install"
+        );
         exit(1);
     }
 }

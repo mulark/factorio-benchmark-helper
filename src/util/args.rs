@@ -1,9 +1,9 @@
-use crate::procedure_file::ProcedureOverwrite;
 use crate::procedure_file::print_all_procedures;
-use crate::util::prompt_until_allowed_val;
-use crate::util::ProcedureKind;
+use crate::procedure_file::ProcedureOverwrite;
 use crate::util::common::FACTORIO_BENCHMARK_HELPER_NAME;
 use crate::util::common::FACTORIO_BENCHMARK_HELPER_VERSION;
+use crate::util::prompt_until_allowed_val;
+use crate::util::ProcedureKind;
 use clap::ArgMatches;
 use clap::{App, AppSettings, Arg};
 use std::process::exit;
@@ -273,8 +273,8 @@ fn try_parse_nonzero_u32(s: &str) -> Option<u32> {
 #[cfg(test)]
 mod test {
     extern crate assert_cmd;
-    use crate::util::common::FACTORIO_BENCHMARK_HELPER_VERSION;
     use crate::util::common::FACTORIO_BENCHMARK_HELPER_NAME;
+    use crate::util::common::FACTORIO_BENCHMARK_HELPER_VERSION;
     use assert_cmd::Command;
     #[test]
     fn test_version() {

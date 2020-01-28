@@ -3,13 +3,13 @@
 #![allow(non_camel_case_types)]
 use crate::util::config_file::CONFIG_FILE_SETTINGS;
 use crate::util::sha1sum;
+use percent_encoding::percent_encode;
+use percent_encoding::{AsciiSet, CONTROLS};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
-use percent_encoding::percent_encode;
-use percent_encoding::{CONTROLS,AsciiSet};
 
 const PERCENT_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 
@@ -150,7 +150,6 @@ fn authorize_cfg(client: &Client) -> Result<BackblazeAuth, BackblazeErrorRespons
     let application_key = &CONFIG_FILE_SETTINGS.b2_backblaze_application_key;
     if !key_id.is_empty() && !application_key.is_empty() {
         return authorize(client, key_id, application_key);
-
     }
     Err(BackblazeErrorResponse {
         status: 0,
@@ -251,9 +250,13 @@ fn b2_test_files_already_uploaded(
     false
 }
 
-fn get_b2_upload_urls_per_file(client: &Client, container: &mut BackbazeDataContainer) -> Result<(),BackblazeErrorResponse> {
+fn get_b2_upload_urls_per_file(
+    client: &Client,
+    container: &mut BackbazeDataContainer,
+) -> Result<(), BackblazeErrorResponse> {
     for mut file in &mut container.files {
-        file.get_upload_url_response = b2_get_upload_url(&client, &container.auth.as_ref().unwrap())?;
+        file.get_upload_url_response =
+            b2_get_upload_url(&client, &container.auth.as_ref().unwrap())?;
     }
     Ok(())
 }
@@ -312,7 +315,8 @@ fn b2_upload_file(
     file: &FileUploadInstance,
 ) -> Result<BackblazeUploadFileResponse, BackblazeErrorResponse> {
     let mime_type = get_file_mimetype(&file.filepath);
-    let percent_encoded_filename = percent_encode(file.relative_filename.as_bytes(), PERCENT_ENCODE_SET).to_string();
+    let percent_encoded_filename =
+        percent_encode(file.relative_filename.as_bytes(), PERCENT_ENCODE_SET).to_string();
 
     match client
         .post(&url_response.uploadUrl)
@@ -500,11 +504,7 @@ pub fn upload_files_to_backblaze(
                     if file.already_uploaded {
                         path_Url_pairs.push((file.filepath.clone(), file.final_url.clone()));
                     } else {
-                        match b2_upload_file(
-                            &client,
-                            &file.get_upload_url_response,
-                            &file,
-                        ) {
+                        match b2_upload_file(&client, &file.get_upload_url_response, &file) {
                             Ok(_upload_resp) => {
                                 path_Url_pairs
                                     .push((file.filepath.clone(), file.final_url.clone()));
@@ -609,15 +609,24 @@ mod test {
     }
     #[test]
     fn test_percent_encodedness() {
-        let mut resp = reqwest::get("https://f000.backblazeb2.com/file/cargo-test/Spa+ce/new+file.txt").unwrap();
+        let mut resp =
+            reqwest::get("https://f000.backblazeb2.com/file/cargo-test/Spa+ce/new+file.txt")
+                .unwrap();
         let newfilepath = std::env::current_dir().unwrap().join("new file.txt");
-        let mut newfile = std::fs::OpenOptions::new().create(true).write(true).open(&newfilepath).unwrap();
+        let mut newfile = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(&newfilepath)
+            .unwrap();
         resp.copy_to(&mut newfile).unwrap();
         let uploaded = upload_files_to_backblaze("Spa ce", &[newfilepath.clone()]).unwrap();
         assert!(uploaded.len() == 1);
-        let (k,v) = uploaded.iter().next().unwrap();
+        let (k, v) = uploaded.iter().next().unwrap();
         assert_eq!(k, &newfilepath);
-        assert_eq!(v, "https://f000.backblazeb2.com/file/cargo-test/Spa ce/new file.txt");
+        assert_eq!(
+            v,
+            "https://f000.backblazeb2.com/file/cargo-test/Spa ce/new file.txt"
+        );
         std::fs::remove_file(&newfilepath).unwrap();
     }
 }
