@@ -1,42 +1,15 @@
+use crate::performance_results::collection_data::Mod;
 use crate::util::sha1sum;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use std::fs::{File, OpenOptions};
 use std::process::exit;
 use std::thread::JoinHandle;
+
 
 use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory};
 
 const MOD_PORTAL_URL: &str = "https://mods.factorio.com";
 const MOD_PORTAL_API_URL: &str = "https://mods.factorio.com/api/mods/";
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialOrd, Ord, Eq)]
-pub struct Mod {
-    pub name: String,
-    #[serde(default)]
-    pub file_name: String,
-    pub version: String,
-    pub sha1: String,
-}
-
-impl Mod {
-    pub fn new(name: &str, file_name: &str, version: &str, hash: &str) -> Mod {
-        Mod {
-            name: name.to_string(),
-            file_name: file_name.to_string(),
-            version: version.to_string(),
-            sha1: hash.to_string(),
-        }
-    }
-}
-
-impl PartialEq for Mod {
-    fn eq(&self, cmp: &Self) -> bool {
-        if self.sha1 == cmp.sha1 && !self.sha1.is_empty() {
-            return true;
-        }
-        false
-    }
-}
 
 #[derive(Debug, Deserialize, Clone)]
 struct ModMetaInfoHolder {

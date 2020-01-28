@@ -12,6 +12,9 @@ extern crate serde;
 extern crate serde_json;
 extern crate sha2;
 
+mod performance_results;
+
+use crate::performance_results::collection_data::Mod;
 use crate::backblaze::upload_files_to_backblaze;
 use crate::procedure_file::get_metas_from_meta;
 use crate::procedure_file::get_sets_from_meta;
@@ -38,7 +41,7 @@ mod util;
 use util::{
     add_options_and_parse, factorio_save_directory, get_mod_info, prompt_until_allowed_val,
     prompt_until_allowed_val_in_range, prompt_until_empty_str, read_benchmark_set_from_file,
-    trim_newline, write_benchmark_set_to_file, BenchmarkSet, Mod, ProcedureFileKind, ProcedureKind,
+    trim_newline, write_benchmark_set_to_file, BenchmarkSet, ProcedureFileKind, ProcedureKind,
     UserArgs,
 };
 

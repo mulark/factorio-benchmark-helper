@@ -1,6 +1,6 @@
+use crate::performance_results::database::setup_database;
 use crate::procedure_file::update_master_json;
 use crate::util::config_file::fbh_write_config_file;
-use crate::util::setup_database;
 use directories::ProjectDirs;
 use std::path::PathBuf;
 
@@ -26,7 +26,7 @@ pub fn initialize() -> Result<(), std::io::Error> {
     // Will write config file with forward compatibility if needed
     fbh_write_config_file()?;
     if !fbh_results_database().exists() {
-        setup_database(true);
+        setup_database(true, &fbh_results_database());
     }
     update_master_json();
     Ok(())

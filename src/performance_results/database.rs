@@ -1,12 +1,12 @@
-extern crate rusqlite;
-
-use crate::util::fbh_results_database;
-use crate::util::performance_results::*;
+use crate::performance_results::collection_data::CollectionData;
+use std::path::PathBuf;
 use rusqlite::Connection;
 use std::fs;
 use std::fs::OpenOptions;
 use std::process::exit;
 use std::sync::Mutex;
+
+use directories::BaseDirs;
 
 pub const CREATE_SQL: &str = "
 BEGIN TRANSACTION;
@@ -81,19 +81,19 @@ COMMIT;
 ";
 
 lazy_static! {
-    static ref DB_CONNECTION: Mutex<Connection> = Mutex::new(setup_database(false));
+    static ref DB_CONNECTION: Mutex<Connection> = Mutex::new(setup_database(false, &BaseDirs::new().unwrap().data_dir().join("foo bar test").join("results.db")));
 }
 
-pub fn setup_database(create_new_db: bool) -> Connection {
+pub fn setup_database(create_new_db: bool, db_path: &PathBuf) -> Connection {
     if create_new_db {
-        fs::remove_file(fbh_results_database()).ok();
+        fs::remove_file(db_path).ok();
         OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(fbh_results_database())
+            .open(db_path)
             .ok();
     }
-    let database = rusqlite::Connection::open(fbh_results_database()).unwrap();
+    let database = rusqlite::Connection::open(db_path).unwrap();
     create_tables_in_db(&database);
     database
 }

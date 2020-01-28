@@ -6,12 +6,10 @@ extern crate reqwest;
 extern crate sha1;
 extern crate sha2;
 
-pub mod database;
-pub mod performance_results;
 use crate::util::config_file::CONFIG_FILE_SETTINGS;
 use core::fmt::Debug;
 use core::str::FromStr;
-pub use database::{setup_database, upload_to_db};
+pub use factorio_benchmark_helper_daemon::database::{setup_database, upload_to_db};
 use std::collections::HashMap;
 use std::io::stdin;
 use std::ops::Range;
@@ -41,7 +39,7 @@ use std::path::PathBuf;
 mod args;
 pub use args::{add_options_and_parse, UserArgs};
 mod mod_dl;
-pub use mod_dl::{fetch_mod_deps_parallel, get_mod_info, Mod};
+pub use mod_dl::{fetch_mod_deps_parallel, get_mod_info};
 mod map_dl;
 pub use map_dl::{fetch_map_deps_parallel, Map};
 

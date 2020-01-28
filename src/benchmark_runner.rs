@@ -1,10 +1,13 @@
 extern crate regex;
 
-use crate::util::performance_results::{BenchmarkData, CollectionData};
-use crate::util::Mod;
+use crate::performance_results::collection_data::Mod;
+use crate::performance_results::collection_data::CollectionData;
+use crate::performance_results::collection_data::BenchmarkData;
+use crate::performance_results::database::upload_to_db;
+
 use crate::util::{
     download_benchmark_deps_parallel, fbh_mod_dl_dir, fbh_mod_use_dir, fbh_save_dl_dir,
-    get_executable_path, query_system_cpuid, upload_to_db, BenchmarkSet, FACTORIO_INFO,
+    get_executable_path, query_system_cpuid, BenchmarkSet, FACTORIO_INFO,
 };
 use regex::Regex;
 use std::collections::BTreeSet;
