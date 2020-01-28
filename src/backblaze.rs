@@ -12,21 +12,33 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 const PERCENT_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
-
 const B2_AUTHORIZE_ACCOUNT_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
 
-// Holds the things necessary for uploading this file
+/// A container holding the pieces unique to each file necessary to upload it to Backblaze.
 #[derive(Clone, Default, Debug)]
 struct FileUploadInstance {
+    /// The filepath of the file we intend to upload.
     filepath: PathBuf,
-    sha256: String,
+
+    /// The sha1 sum of the file we intend to upload.
     sha1: String,
-    relative_filename: String,  // The relative filename with included position within subfolders
-                                // This uses forward slashes even on Windows because that's what
-                                // Backblaze B2 expects
+
+    /// The relative filename with included position within subfolders.
+    /// This uses forward slashes even on Windows because that's what
+    /// Backblaze B2 expects.
+    relative_filename: String,
+
+    /// The final component url where the uploaded file will be downloadable.
     final_url: String,
+
+    /// Whether this file is already uploaded to b2 backblaze,
+    /// based on the final url and the sha1 sum of the file.
     already_uploaded: bool,
+
+    /// The base part of the url where we will upload this file.
     get_upload_url_response: BackblazeGetUploadUrlResponse,
+
+    /// The upload's parsed JSON response if available.
     upload_response: Option<BackblazeUploadFileResponse>,
 }
 
@@ -49,6 +61,7 @@ struct BackblazeAuth {
     dirty: bool,
 }
 
+/// The bucket this keyID and applicationKey are allowed to access.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct BackblazeAuthAllowed {
     bucketId: String,
@@ -56,6 +69,8 @@ struct BackblazeAuthAllowed {
     capabilities: Vec<String>,
 }
 
+/// The response to calling b2_get_upload_url containing the bucket,
+/// the Url to use to upload with, and the token authorize with.
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 struct BackblazeGetUploadUrlResponse {
     bucketId: String,
@@ -63,6 +78,7 @@ struct BackblazeGetUploadUrlResponse {
     authorizationToken: String,
 }
 
+/// A struct holding the parameters we need to POST after serializing into JSON
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 struct BackblazeListFileNamesPostBody {
     bucketId: String,
@@ -73,6 +89,7 @@ struct BackblazeListFileNamesPostBody {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct BackblazeListFileNamesResponse {
     files: Vec<BackblazeUploadFileResponse>,
+    // TODO support more than 1k files in a subdirectory.
     //nextFileName: String, // If more than 1000 files are in this bucket folder we'd have to do this
 }
 
@@ -88,6 +105,8 @@ struct BackblazeUploadFileResponse {
     fileName: String,
 }
 
+/// An error response when attempting to perform an action on the Backblaze API,
+/// or failure to perform an action.
 #[derive(Deserialize, Debug, Clone)]
 struct BackblazeErrorResponse {
     status: u16,
@@ -112,20 +131,25 @@ enum BackblazeErrorKind {
     service_unavailable, // 503
 }
 
-//TODO carry all paths belonging to (subdir)
+/// The states possible for uploading files to Backblaze.
+///
+/// We can return to earlier states when Backblaze responses indicate it.
+/// For example: if our auth token expires, we can return to GetAuth.
 #[derive(Debug)]
 enum BackblazeUploadState {
-    GetAuth,               // once
-    ListFileNames,         //Once? maybe or partitioned // poolable
-    TestIfAlreadyUploaded, // O(N)
-    GetUploadUrl,          // O(1) to O(N)
-    Upload,                // O(N)
+    GetAuth,
+    ListFileNames,
+    TestIfAlreadyUploaded,
+    GetUploadUrl,
+    Upload,
 }
 
 /// Authorize with the Backblaze API using test credentials.
+/// 
 /// These credentials can be found in the envs TRAVIS_CI_B2_KEYID & TRAVIS_CI_B2_APPLICATIONKEY
 /// or within the config.ini file under the same name.
-/// These fields are not written to the config.ini file normally.
+/// These fields are not written to the config.ini file normally,
+/// but will be carried over to future config file versions.
 fn authorize_test(client: &Client) -> Result<BackblazeAuth, BackblazeErrorResponse> {
     let vars = std::env::vars().collect::<HashMap<String, String>>();
     let key_id = if vars.get("TRAVIS_CI_B2_KEYID").is_some() {
@@ -223,7 +247,7 @@ fn b2_list_file_names(
 }
 
 /// Tests if the file is publicly downloadable
-/// Doesn't check the sha1 of the already uploaded file
+/// If it is then it checks that the sha1 sum matches the file we intend to upload.
 fn b2_test_files_already_uploaded(
     client: &Client,
     files: &mut Vec<FileUploadInstance>,
