@@ -1,9 +1,11 @@
+use crate::util::config_file::ForwardCompatibilityConfigSettings;
+use crate::util::config_file::load_forward_compatiblity_config_settings;
 use crate::procedure_file::print_all_procedures;
 use crate::util::fbh_paths::fbh_config_file;
 use crate::util::prompt_until_allowed_val;
 use crate::util::ProcedureKind;
-use crate::FACTORIO_BENCHMARK_HELPER_NAME;
-use crate::FACTORIO_BENCHMARK_HELPER_VERSION;
+use crate::util::common::FACTORIO_BENCHMARK_HELPER_NAME;
+use crate::util::common::FACTORIO_BENCHMARK_HELPER_VERSION;
 use clap::ArgMatches;
 use clap::{App, AppSettings, Arg};
 use ini::Ini;
@@ -13,7 +15,6 @@ use std::process::exit;
 pub struct UserArgs {
     pub interactive: bool,
     pub overwrite: bool,
-    pub resave: bool,
 
     pub run_benchmark: bool,
     pub create_benchmark: bool,
@@ -121,7 +122,9 @@ pub fn add_options_and_parse() -> UserArgs {
                 .value_name("RUNS"),
             Arg::with_name("mods")
                 .long("mods")
-                .help("A comma separated list of mods you wish to create this benchmark with. 'region-cloner' specifies the latest version of region cloner, whereas 'region-cloner_1.1.2' specifies that specific version.")
+                .help("A comma separated list of mods you wish to create this benchmark with.\
+                    'region-cloner' specifies the latest version of region cloner, whereas\
+                    'region-cloner_1.1.2' specifies that specific version.")
                 .value_name("MODS..."),
             Arg::with_name("create-meta")
                 .long("create-meta")
@@ -251,14 +254,6 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
         arguments.commit_recursive = true;
     }
 
-    let i = Ini::load_from_file(fbh_config_file()).unwrap();
-    if let Ok(b) = i
-        .get_from::<String>(None, "auto-resave")
-        .unwrap_or_default()
-        .parse::<bool>()
-    {
-        arguments.resave = b;
-    }
     arguments
 }
 
@@ -277,4 +272,21 @@ fn try_parse_nonzero_u32(s: &str) -> Option<u32> {
             exit(1);
         }
     };
+}
+
+#[cfg(test)]
+mod test {
+    extern crate assert_cmd;
+    use crate::util::common::FACTORIO_BENCHMARK_HELPER_VERSION;
+    use crate::util::common::FACTORIO_BENCHMARK_HELPER_NAME;
+    use assert_cmd::Command;
+    #[test]
+    fn test_version() {
+        let output = Command::cargo_bin(FACTORIO_BENCHMARK_HELPER_NAME)
+            .unwrap()
+            .arg("--version")
+            .unwrap();
+        assert!(output.status.success());
+        assert!(String::from_utf8_lossy(&output.stdout).contains(FACTORIO_BENCHMARK_HELPER_VERSION));
+    }
 }

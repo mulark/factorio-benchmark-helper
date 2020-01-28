@@ -46,9 +46,6 @@ lazy_static! {
     static ref MOD_VERSION_MATCHER: Regex = Regex::new(r"_\{1,3}.\{1,4}.\{1,4}").unwrap();
 }
 
-const FACTORIO_BENCHMARK_HELPER_VERSION: &str = env!("CARGO_PKG_VERSION");
-const FACTORIO_BENCHMARK_HELPER_NAME: &str = env!("CARGO_PKG_NAME");
-
 fn main() {
     match util::initialize() {
         Ok(_) => (),
@@ -299,7 +296,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
             println!("{:?}", map);
         }
     }
-    let mut maps_hashmap = hash_saves(&map_paths, args.resave);
+    let mut maps_hashmap = hash_saves(&map_paths);
 
     if args.ticks.is_some() {
         benchmark.ticks = args.ticks.unwrap();
@@ -571,7 +568,6 @@ mod tests {
             },
             Err(e) => panic!(e),
         }
-        args.resave = true;
         args.create_benchmark = true;
         args.benchmark_set_name = Some("this-is-a-test-generated-name-ignore-it".to_string());
         args.ticks = Some(10);

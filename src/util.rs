@@ -8,6 +8,7 @@ extern crate sha2;
 
 pub mod database;
 pub mod performance_results;
+use crate::util::config_file::CONFIG_FILE_SETTINGS;
 use core::fmt::Debug;
 use core::str::FromStr;
 pub use database::{setup_database, upload_to_db};
@@ -18,12 +19,15 @@ use std::process::exit;
 mod fbh_paths;
 pub use fbh_paths::{
     fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir, fbh_mod_use_dir,
-    fbh_procedure_json_local_file, fbh_procedure_json_master_file, fbh_read_configuration_setting,
+    fbh_procedure_json_local_file, fbh_procedure_json_master_file,
     fbh_results_database, fbh_save_dl_dir, initialize,
 };
 use sha2::Digest;
 use std::fs::File;
 use std::io::Read;
+
+pub mod config_file;
+pub use config_file::{load_forward_compatiblity_config_settings, fbh_write_config_file};
 
 pub use crate::procedure_file::{
     print_all_procedures, read_benchmark_set_from_file, read_meta_from_file,
@@ -40,6 +44,9 @@ mod mod_dl;
 pub use mod_dl::{fetch_mod_deps_parallel, get_mod_info, Mod};
 mod map_dl;
 pub use map_dl::{fetch_map_deps_parallel, Map};
+
+pub mod common;
+pub use common::*;
 
 lazy_static! {
     #[derive(Debug)]
@@ -71,7 +78,7 @@ pub fn download_benchmark_deps_parallel(sets: &HashMap<String, BenchmarkSet>) {
     }
 }
 
-pub fn generic_read_configuration_setting(file: PathBuf, key: &str) -> Option<String> {
+fn generic_read_configuration_setting(file: PathBuf, key: &str) -> Option<String> {
     match Ini::load_from_file(file) {
         Ok(i) => {
             return i.get_from::<String>(None, key).map(String::from);
@@ -81,11 +88,7 @@ pub fn generic_read_configuration_setting(file: PathBuf, key: &str) -> Option<St
 }
 
 fn get_factorio_path() -> PathBuf {
-    let use_steam_dir: bool = fbh_read_configuration_setting("use-steam-version")
-        .unwrap_or_default()
-        .parse::<bool>()
-        .unwrap_or(true);
-    if use_steam_dir {
+    if CONFIG_FILE_SETTINGS.use_steam_version {
         let base_dir = BaseDirs::new().unwrap();
         if cfg!(target_os = "linux") {
             base_dir
@@ -106,24 +109,11 @@ fn get_factorio_path() -> PathBuf {
                 .join("Factorio")
                 .join("")
         }
+    } else if CONFIG_FILE_SETTINGS.factorio_path.as_ref().unwrap().is_dir() {
+        CONFIG_FILE_SETTINGS.factorio_path.as_ref().unwrap().to_path_buf()
     } else {
-        match fbh_read_configuration_setting("factorio-path")
-            .unwrap_or_default()
-            .parse::<PathBuf>()
-        {
-            Ok(path) => {
-                if path.is_dir() {
-                    path
-                } else {
-                    eprintln!("Could not resolve path from config file to a valid directory of a Factorio install");
-                    exit(1);
-                }
-            }
-            Err(_e) => {
-                eprintln!("Could not resolve path from config file to a valid directory of a Factorio install");
-                exit(1);
-            }
-        }
+        eprintln!("Could not resolve path from config file to a valid directory of a Factorio install");
+        exit(1);
     }
 }
 
@@ -413,10 +403,10 @@ pub fn delete_preview_image_from_save(save: &PathBuf) {
 }
 
 /// Returns a hashmap of all Factorio maps. The key for each map is its path
-pub fn hash_saves(saves: &[PathBuf], resave: bool) -> HashMap<PathBuf, Map> {
+pub fn hash_saves(saves: &[PathBuf]) -> HashMap<PathBuf, Map> {
     let mut map_holder = HashMap::new();
-
-    if path_of_7z_install().is_some() && resave {
+    let erase_preview_image = CONFIG_FILE_SETTINGS.erase_preview_image;
+    if path_of_7z_install().is_some() && erase_preview_image {
         for save in saves {
             delete_preview_image_from_save(&save);
         }

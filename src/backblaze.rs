@@ -1,7 +1,7 @@
 // Keep returned values from API in same camelCase format, or snake_case as applicable
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
-use crate::util::fbh_read_configuration_setting;
+use crate::util::config_file::CONFIG_FILE_SETTINGS;
 use crate::util::sha1sum;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -130,12 +130,12 @@ fn authorize_test(client: &Client) -> Result<BackblazeAuth, BackblazeErrorRespon
     let key_id = if vars.get("TRAVIS_CI_B2_KEYID").is_some() {
         vars.get("TRAVIS_CI_B2_KEYID").unwrap().to_string()
     } else {
-        fbh_read_configuration_setting("TRAVIS_CI_B2_KEYID").unwrap()
+        CONFIG_FILE_SETTINGS.travis_ci_b2_keyid
     };
     let application_key = if vars.get("TRAVIS_CI_B2_APPLICATIONKEY").is_some() {
         vars.get("TRAVIS_CI_B2_APPLICATIONKEY").unwrap().to_string()
     } else {
-        fbh_read_configuration_setting("TRAVIS_CI_B2_APPLICATIONKEY").unwrap()
+        CONFIG_FILE_SETTINGS.travis_ci_b2_applicationkey
     };
     authorize(&client, &key_id, &application_key)
 }
@@ -144,13 +144,12 @@ fn authorize_test(client: &Client) -> Result<BackblazeAuth, BackblazeErrorRespon
 fn authorize_cfg(client: &Client) -> Result<BackblazeAuth, BackblazeErrorResponse> {
     if cfg!(test) {
         return authorize_test(&client);
-    } else if let Some(key_id) = fbh_read_configuration_setting("b2-backblaze-keyID") {
-        if let Some(application_key) = fbh_read_configuration_setting("b2-backblaze-applicationKey")
-        {
-            if !key_id.is_empty() && !application_key.is_empty() {
-                return authorize(client, &key_id, &application_key);
-            }
-        }
+    }
+    let key_id = CONFIG_FILE_SETTINGS.b2_backblaze_key_id;
+    let application_key = CONFIG_FILE_SETTINGS.b2_backblaze_application_key;
+    if !key_id.is_empty() && !application_key.is_empty() {
+        return authorize(client, &key_id, &application_key);
+
     }
     Err(BackblazeErrorResponse {
         status: 0,

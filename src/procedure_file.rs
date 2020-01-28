@@ -16,7 +16,7 @@ use std::fs::OpenOptions;
 use std::path::PathBuf;
 use std::process::exit;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct TopLevel {
     pub benchmark_sets: BTreeMap<String, BenchmarkSet>,
     pub meta_sets: BTreeMap<String, BTreeSet<String>>,
@@ -35,15 +35,6 @@ impl TopLevel {
             for set in self.meta_sets.keys() {
                 println!("\t{:?}", set);
             }
-        }
-    }
-}
-
-impl Default for TopLevel {
-    fn default() -> TopLevel {
-        TopLevel {
-            benchmark_sets: BTreeMap::new(),
-            meta_sets: BTreeMap::new(),
         }
     }
 }
@@ -77,6 +68,7 @@ pub enum ProcedureKind {
     Both,
 }
 
+#[derive(Debug)]
 pub enum ProcedureFileKind {
     Local,
     Master,
