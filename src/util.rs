@@ -9,7 +9,6 @@ extern crate sha2;
 use crate::util::config_file::CONFIG_FILE_SETTINGS;
 use core::fmt::Debug;
 use core::str::FromStr;
-pub use factorio_benchmark_helper_daemon::database::{setup_database, upload_to_db};
 use std::collections::HashMap;
 use std::io::stdin;
 use std::ops::Range;
