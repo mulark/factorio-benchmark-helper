@@ -2,8 +2,8 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
-use crate::performance_results::collection_data::Mod;
 use crate::backblaze::upload_files_to_backblaze;
+use crate::performance_results::collection_data::Mod;
 use crate::util::download_benchmark_deps_parallel;
 use crate::util::fbh_cache_path;
 use crate::util::fbh_save_dl_dir;

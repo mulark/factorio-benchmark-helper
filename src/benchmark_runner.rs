@@ -1,8 +1,8 @@
 extern crate regex;
 
-use crate::performance_results::collection_data::Mod;
-use crate::performance_results::collection_data::CollectionData;
 use crate::performance_results::collection_data::BenchmarkData;
+use crate::performance_results::collection_data::CollectionData;
+use crate::performance_results::collection_data::Mod;
 use crate::performance_results::database::upload_to_db;
 
 use crate::util::{

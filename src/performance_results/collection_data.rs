@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-
 #[derive(Debug, Serialize, Deserialize, Clone, PartialOrd, Ord, Eq)]
 pub struct Mod {
     pub name: String,

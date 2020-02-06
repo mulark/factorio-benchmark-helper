@@ -264,6 +264,34 @@ pub fn trim_newline(s: &mut String) {
     }
 }
 
+pub fn prompt_until_existing_folder_path(allow_first_empty: bool) -> PathBuf {
+    let mut input = String::new();
+    let is_first = true;
+    let mut input_path;
+    let mut final_folder_path;
+    loop {
+        input.clear();
+        stdin().read_line(&mut input).expect("");
+        input = input.trim().to_owned();
+        trim_newline(&mut input);
+        if input.is_empty() && allow_first_empty && is_first {
+            return factorio_save_directory();
+        }
+        input_path = PathBuf::from(&input);
+        if input_path.is_absolute() {
+            return input_path;
+        }
+        final_folder_path = factorio_save_directory().join(&input_path);
+        if final_folder_path.is_dir() {
+            return final_folder_path;
+        } else if input_path.is_dir() {
+            return input_path.canonicalize().unwrap();
+        } else {
+            println!("Path supplied does not point to a valid directory. Enter another path.",);
+        }
+    }
+}
+
 pub fn prompt_until_empty_str(allow_first_empty: bool) -> String {
     let mut input = String::new();
     let mut last_input = String::new();

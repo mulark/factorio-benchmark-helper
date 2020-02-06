@@ -14,14 +14,15 @@ extern crate sha2;
 
 mod performance_results;
 
-use crate::performance_results::collection_data::Mod;
 use crate::backblaze::upload_files_to_backblaze;
+use crate::performance_results::collection_data::Mod;
 use crate::procedure_file::get_metas_from_meta;
 use crate::procedure_file::get_sets_from_meta;
 use crate::procedure_file::read_meta_from_file;
 use crate::procedure_file::write_meta_to_file;
 use crate::util::fbh_save_dl_dir;
 use crate::util::hash_saves;
+use crate::util::prompt_until_existing_folder_path;
 use regex::Regex;
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
@@ -260,7 +261,7 @@ fn convert_args_to_meta_benchmark_runs(args: &UserArgs) -> HashMap<String, Bench
 
 fn create_benchmark_from_args(args: &UserArgs) {
     let set_name;
-    let mut map_pattern;
+    let mut folder;
     let map_paths;
     let mod_list;
     let mut benchmark = BenchmarkSet::default();
@@ -274,24 +275,20 @@ fn create_benchmark_from_args(args: &UserArgs) {
         unreachable!("Failed to create a benchmark set because no name was defined!");
     }
 
-    if args.pattern.is_some() {
-        map_pattern = args.pattern.as_ref().unwrap().clone();
+    if args.folder.is_some() {
+        folder = args.folder.as_ref().unwrap().clone();
     } else if args.interactive {
-        println!("No map pattern was defined, enter a pattern to search for maps, empty for all.");
-        map_pattern = prompt_until_empty_str(true);
-        if map_pattern.is_empty() {
-            map_pattern = String::from("*");
-        }
+        println!("No folder was defined, enter a relative folder in your saves directory, or absolute directory, or empty for the saves directory.");
+        folder = prompt_until_existing_folder_path(true);
     } else {
-        println!("WARN: A map pattern was not explictly defined, selecting all available maps.");
-        map_pattern = String::from("*");
+        unreachable!();
     }
 
-    let holder = get_map_paths_from_pattern(&map_pattern);
+    let holder = get_map_paths(&folder);
     map_paths = holder.0;
     benchmark.save_subdirectory = holder.1;
     if map_paths.is_empty() {
-        eprintln!("Supplied pattern found no maps! {:?}", &map_pattern);
+        eprintln!("Supplied folder found no maps! {:?}", &folder);
         exit(1);
     } else {
         println!("Found the following maps:");
@@ -463,7 +460,7 @@ fn create_meta_from_args(args: &UserArgs) {
     );
 }
 
-pub fn slice_members_from_csv(s: &str) -> BTreeSet<String> {
+fn slice_members_from_csv(s: &str) -> BTreeSet<String> {
     let mut vals = BTreeSet::new();
     for member in s.split(',') {
         vals.insert(member.trim().to_string());
@@ -471,54 +468,29 @@ pub fn slice_members_from_csv(s: &str) -> BTreeSet<String> {
     vals
 }
 
-fn get_map_paths_from_pattern(initial_input: &str) -> (Vec<PathBuf>, Option<PathBuf>) {
-    let mut input = initial_input.to_string();
+fn get_map_paths(dir: &PathBuf) -> (Vec<PathBuf>, Option<PathBuf>) {
     let mut map_paths = Vec::new();
-    let save_directory = factorio_save_directory();
-    assert!(save_directory.is_dir());
-    if input == "*" {
-        trim_newline(&mut input);
-    }
-    if !input.is_empty() && input.chars().last().unwrap_or_default() != '*' {
-        input.push_str("*");
-    }
-    let combined_pattern = &format!("{}{}", save_directory.to_string_lossy(), input);
-    let try_pattern = glob::glob(combined_pattern);
-    if let Ok(m) = try_pattern {
-        for item in m.filter_map(Result::ok) {
-            if item.is_file() {
-                if let Some(extension) = item.extension() {
-                    if let Some("zip") = extension.to_str() {
-                        map_paths.push(item);
-                    }
+    assert!(dir.is_dir());
+    for item in std::fs::read_dir(dir).unwrap() {
+        if let Ok(item) = item {
+            if let Some(extension) = item.path().extension() {
+                if let Some("zip") = extension.to_str() {
+                    map_paths.push(item.path());
                 }
             }
         }
     }
-    let possible_subdir = find_map_subdirectory(&map_paths);
-    move_maps_to_cache(&map_paths, &possible_subdir);
-    (map_paths, possible_subdir)
+    let subdir = find_map_subdirectory(dir);
+    move_maps_to_cache(&map_paths, &subdir);
+    (map_paths, subdir)
 }
 
-fn find_map_subdirectory(paths: &[PathBuf]) -> Option<PathBuf> {
-    let base_save_dir = factorio_save_directory().to_string_lossy().to_string();
-    let mut currently_seen_base_paths = HashSet::new();
-    for path in paths {
-        currently_seen_base_paths.insert(path.parent().unwrap());
-    }
-    match currently_seen_base_paths.len().cmp(&1) {
-        Ordering::Less => {
-            return None;
-        }
-        Ordering::Equal => {
-            let key = currently_seen_base_paths.drain().next().unwrap();
-            return Some(key.strip_prefix(&base_save_dir).unwrap().to_path_buf());
-        }
-        Ordering::Greater => {
-            eprintln!("More than 1 valid subdirectory was found with this pattern!");
-            eprintln!("This configuration is not allowed, either split this benchmark set into 2 sets or merge these subfolders.");
-            exit(1);
-        }
+fn find_map_subdirectory(dir: &PathBuf) -> Option<PathBuf> {
+    assert!(dir.is_dir());
+    if let Ok(stripped_path) = dir.strip_prefix(factorio_save_directory()) {
+        Some(stripped_path.to_path_buf())
+    } else {
+        dir.file_name().map(|x| PathBuf::from(x))
     }
 }
 
@@ -548,37 +520,4 @@ fn move_maps_to_cache(paths: &[PathBuf], subdir: &Option<PathBuf>) {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::execute_from_args;
-    use crate::util::factorio_save_directory;
-    use crate::util::initialize;
-    use crate::UserArgs;
-    use std::fs::OpenOptions;
-    //    #[test]
-    fn test_create_benchmark() {
-        initialize().unwrap();
-        let mut args = UserArgs::default();
-        let to_save_to_path =
-            factorio_save_directory().join("this-is-a-test-generated-name-ignore-it.zip");
-        match reqwest::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip") {
-            Ok (mut resp) => {
-                let mut file = OpenOptions::new()
-                    .write(true)
-                    .create(true)
-                    .open(&to_save_to_path)
-                    .unwrap();
-                resp.copy_to(&mut file).unwrap();
-            },
-            Err(e) => panic!(e),
-        }
-        args.create_benchmark = true;
-        args.benchmark_set_name = Some("this-is-a-test-generated-name-ignore-it".to_string());
-        args.ticks = Some(10);
-        args.runs = Some(10);
-        args.pattern = Some("this-is-a-test-generated-name-ignore-it".to_string());
-        args.mods_dirty = Some("region-cloner,creative-world-plus".to_string());
-        args.overwrite = true.into();
-        execute_from_args(&mut args);
-        std::fs::remove_file(to_save_to_path).unwrap();
-    }
-}
+mod tests {}

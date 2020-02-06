@@ -43,18 +43,6 @@ impl PartialEq for Map {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct DriveFolderListing {
-    files: Vec<DriveFile>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct DriveFile {
-    name: String,
-    #[serde(rename(deserialize = "webContentLink"))]
-    download_link: String,
-}
-
 pub fn fetch_map_deps_parallel(
     maps: &[Map],
     handles: &mut Vec<JoinHandle<()>>,

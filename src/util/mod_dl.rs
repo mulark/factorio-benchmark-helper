@@ -1,10 +1,9 @@
 use crate::performance_results::collection_data::Mod;
 use crate::util::sha1sum;
-use serde::{Deserialize};
+use serde::Deserialize;
 use std::fs::{File, OpenOptions};
 use std::process::exit;
 use std::thread::JoinHandle;
-
 
 use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory};
 
@@ -182,7 +181,7 @@ fn fetch_single_mod(
     }));
 }
 
-pub fn compare_version_str(vers1: &str, vers2: &str) -> String {
+fn compare_version_str(vers1: &str, vers2: &str) -> String {
     //Compare versions as vectors of u32 because 0.0.9 > 0.0.35 in String compare.
     let vers_cmp1 = convert_version_str_to_vec(&vers1);
     let vers_cmp2 = convert_version_str_to_vec(&vers2);

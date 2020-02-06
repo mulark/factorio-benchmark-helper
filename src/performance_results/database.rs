@@ -1,8 +1,8 @@
 use crate::performance_results::collection_data::CollectionData;
-use std::path::PathBuf;
 use rusqlite::Connection;
 use std::fs;
 use std::fs::OpenOptions;
+use std::path::PathBuf;
 use std::process::exit;
 use std::sync::Mutex;
 

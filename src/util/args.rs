@@ -2,10 +2,12 @@ use crate::procedure_file::print_all_procedures;
 use crate::procedure_file::ProcedureOverwrite;
 use crate::util::common::FACTORIO_BENCHMARK_HELPER_NAME;
 use crate::util::common::FACTORIO_BENCHMARK_HELPER_VERSION;
+use crate::util::factorio_save_directory;
 use crate::util::prompt_until_allowed_val;
 use crate::util::ProcedureKind;
 use clap::ArgMatches;
 use clap::{App, AppSettings, Arg};
+use std::path::PathBuf;
 use std::process::exit;
 
 #[derive(Debug)]
@@ -17,7 +19,7 @@ pub struct UserArgs {
     pub create_benchmark: bool,
 
     pub benchmark_set_name: Option<String>,
-    pub pattern: Option<String>,
+    pub folder: Option<PathBuf>,
     pub ticks: Option<u32>,
     pub runs: Option<u32>,
     pub mods_dirty: Option<String>,
@@ -45,7 +47,7 @@ impl Default for UserArgs {
 
             ticks: None,
             runs: None,
-            pattern: None,
+            folder: None,
             mods_dirty: None,
 
             run_meta: false,
@@ -102,12 +104,13 @@ pub fn add_options_and_parse() -> UserArgs {
             Arg::with_name("create-benchmark")
                 .long("create-benchmark")
                 .help("Creates a new benchmark, using NAME")
+                .requires("folder")
                 .value_name("NAME"),
-            Arg::with_name("pattern")
-                .long("pattern")
-                .help("Restrict maps to those matching PATTERN")
+            Arg::with_name("folder")
+                .long("folder")
+                .help("Restrict maps to those matching contained within FOLDER. This folder can be an absolute path, a relative path from the Factorio saves directory, or a relative path from the current directory. Priority is given in that order.")
                 .min_values(1)
-                .value_name("PATTERN"),
+                .value_name("FOLDER"),
             Arg::with_name("ticks")
                 .long("ticks")
                 .help("The number of ticks each map should be benchmarked for per run")
@@ -187,14 +190,23 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
         );
     }
 
-    if args.contains_key("pattern") {
-        let mut pattern = String::new();
-        for v in &args["pattern"].vals {
-            pattern.push_str(&v.clone().into_string().unwrap());
-            pattern.push_str(" ");
+    if args.contains_key("folder") {
+        let path = PathBuf::from(args["folder"].vals[0].to_str().unwrap().trim());
+        if path.is_absolute() {
+            arguments.folder = Some(path);
+        } else if factorio_save_directory().join(&path).is_dir() {
+            arguments.folder = Some(factorio_save_directory().join(&path));
+        } else if path.is_dir() {
+            if let Ok(path) = path.canonicalize() {
+                arguments.folder = Some(path);
+            } else {
+                eprintln!("Could not resolve path {:?} to a valid folder", path);
+                exit(1);
+            }
+        } else {
+            eprintln!("Could not resolve path {:?} to a valid folder", path);
+            exit(1);
         }
-        pattern = pattern.trim().to_owned();
-        arguments.pattern = Some(pattern);
     }
 
     if args.contains_key("ticks") {
