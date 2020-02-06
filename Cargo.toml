@@ -1,6 +1,6 @@
 [package]
 name = "factorio-benchmark-helper"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["mulark <mulark11@gmail.com>"]
 edition = "2018"
 
@@ -9,7 +9,6 @@ regex = "*"
 directories = "*"
 rust-ini = "*"
 rusqlite = { version = "*", features = ["bundled"] }
-glob = "*"
 lazy_static = "*"
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"

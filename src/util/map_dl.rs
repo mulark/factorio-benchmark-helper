@@ -64,11 +64,21 @@ pub fn fetch_map_deps_parallel(
                 if let Some(extension) = filepath.extension() {
                     if extension == "zip" {
                         if !filepath.is_file() && alt_filepath.is_file() {
+                            match std::fs::create_dir_all(filepath.parent().unwrap()) {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    eprintln!("Error: We found a map inside the Factorio save directory, but failed to create a folder to copy it.");
+                                    eprintln!("Error details: {}", e);
+                                    eprintln!("Source: {:?}, Dest: {:?}", alt_filepath, filepath);
+                                    exit(1);
+                                },
+                            }
                             match std::fs::copy(&alt_filepath, &filepath) {
                                 Ok(_) => (),
                                 Err(e) => {
                                     eprintln!("Error: We found a map inside the Factorio save directory, but failed to copy it to the cache folder.");
                                     eprintln!("Error details: {}", e);
+                                    eprintln!("Source: {:?}, Dest: {:?}", alt_filepath, filepath);
                                     exit(1);
                                 },
                             }

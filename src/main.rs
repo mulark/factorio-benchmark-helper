@@ -4,7 +4,6 @@ extern crate lazy_static;
 extern crate bincode;
 extern crate clap;
 extern crate directories;
-extern crate glob;
 extern crate percent_encoding;
 extern crate regex;
 extern crate reqwest;

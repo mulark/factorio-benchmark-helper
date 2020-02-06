@@ -145,7 +145,7 @@ enum BackblazeUploadState {
 }
 
 /// Authorize with the Backblaze API using test credentials.
-/// 
+///
 /// These credentials can be found in the envs TRAVIS_CI_B2_KEYID & TRAVIS_CI_B2_APPLICATIONKEY
 /// or within the config.ini file under the same name.
 /// These fields are not written to the config.ini file normally,
