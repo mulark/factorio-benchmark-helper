@@ -138,7 +138,7 @@ fn download_save(save_name: &str, url: String, to_save_to_path: &PathBuf) {
             url
         );
     }
-    let mut resp = match reqwest::get(&url) {
+    let mut resp = match reqwest::blocking::get(&url) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("Failed to download map: {}", save_name);

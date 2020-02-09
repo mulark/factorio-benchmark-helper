@@ -2,11 +2,8 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
-use crate::backblaze::upload_files_to_backblaze;
 use crate::performance_results::collection_data::Mod;
-use crate::util::download_benchmark_deps_parallel;
 use crate::util::fbh_cache_path;
-use crate::util::fbh_save_dl_dir;
 use crate::util::prompt_until_allowed_val;
 use crate::util::{fbh_procedure_json_local_file, fbh_procedure_json_master_file, Map};
 use core::str::FromStr;
@@ -162,7 +159,7 @@ pub fn update_master_json() {
 }
 
 fn perform_master_json_dl(file_to_write: &PathBuf) {
-    if let Ok(mut resp) = reqwest::get(
+    if let Ok(mut resp) = reqwest::blocking::get(
         "https://raw.githubusercontent.com/mulark/factorio-benchmark-helper/master/master.json",
     ) {
         if resp.status() == 200 {

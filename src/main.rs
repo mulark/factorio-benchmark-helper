@@ -260,7 +260,7 @@ fn convert_args_to_meta_benchmark_runs(args: &UserArgs) -> HashMap<String, Bench
 
 fn create_benchmark_from_args(args: &UserArgs) {
     let set_name;
-    let mut folder;
+    let folder;
     let map_paths;
     let mod_list;
     let mut benchmark = BenchmarkSet::default();
@@ -489,7 +489,7 @@ fn find_map_subdirectory(dir: &PathBuf) -> Option<PathBuf> {
     if let Ok(stripped_path) = dir.strip_prefix(factorio_save_directory()) {
         Some(stripped_path.to_path_buf())
     } else {
-        dir.file_name().map(|x| PathBuf::from(x))
+        dir.file_name().map(PathBuf::from)
     }
 }
 

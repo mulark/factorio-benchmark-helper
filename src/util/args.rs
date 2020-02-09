@@ -295,6 +295,12 @@ mod test {
             .arg("--version")
             .unwrap();
         assert!(output.status.success());
-        assert!(String::from_utf8_lossy(&output.stdout).contains(FACTORIO_BENCHMARK_HELPER_VERSION));
+        assert_eq!(
+            String::from_utf8_lossy(&output.stdout),
+            format!(
+                "{} {}\n",
+                FACTORIO_BENCHMARK_HELPER_NAME, FACTORIO_BENCHMARK_HELPER_VERSION
+            )
+        );
     }
 }

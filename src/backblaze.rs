@@ -5,7 +5,7 @@ use crate::util::config_file::CONFIG_FILE_SETTINGS;
 use crate::util::sha1sum;
 use percent_encoding::percent_encode;
 use percent_encoding::{AsciiSet, CONTROLS};
-use reqwest::Client;
+use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -196,13 +196,10 @@ fn authorize(
         .basic_auth(key_id, Some(application_key))
         .send()
     {
-        Ok(mut resp) => {
-            let unparsed_json_response = resp.text().unwrap();
-            match u16::from(resp.status()) {
-                200 => return Ok(serde_json::from_str(&unparsed_json_response).unwrap()),
-                _ => return Err(serde_json::from_str(&unparsed_json_response).unwrap()),
-            }
-        }
+        Ok(resp) => match u16::from(resp.status()) {
+            200 => return Ok(serde_json::from_str(&resp.text().unwrap()).unwrap()),
+            _ => return Err(serde_json::from_str(&resp.text().unwrap()).unwrap()),
+        },
         Err(e) => {
             return Err(BackblazeErrorResponse {
                 code: BackblazeErrorKind::SendError,
@@ -231,13 +228,10 @@ fn b2_list_file_names(
         .body(body)
         .send()
     {
-        Ok(mut resp) => {
-            let unparsed_json_response = resp.text().unwrap();
-            match u16::from(resp.status()) {
-                200 => return Ok(serde_json::from_str(&unparsed_json_response).unwrap()),
-                _ => return Err(serde_json::from_str(&unparsed_json_response).unwrap()),
-            }
-        }
+        Ok(resp) => match u16::from(resp.status()) {
+            200 => return Ok(serde_json::from_str(&resp.text().unwrap()).unwrap()),
+            _ => return Err(serde_json::from_str(&resp.text().unwrap()).unwrap()),
+        },
         Err(e) => Err(BackblazeErrorResponse {
             status: 0,
             code: BackblazeErrorKind::SendError,
@@ -299,13 +293,10 @@ fn b2_get_upload_url(
         .body(body)
         .send()
     {
-        Ok(mut resp) => {
-            let unparsed_json_response = resp.text().unwrap();
-            match u16::from(resp.status()) {
-                200 => return Ok(serde_json::from_str(&unparsed_json_response).unwrap()),
-                _ => return Err(serde_json::from_str(&unparsed_json_response).unwrap()),
-            }
-        }
+        Ok(resp) => match u16::from(resp.status()) {
+            200 => return Ok(serde_json::from_str(&resp.text().unwrap()).unwrap()),
+            _ => return Err(serde_json::from_str(&resp.text().unwrap()).unwrap()),
+        },
         Err(e) => Err(BackblazeErrorResponse {
             status: 0,
             code: BackblazeErrorKind::SendError,
@@ -352,13 +343,10 @@ fn b2_upload_file(
         .body(std::fs::File::open(&file.filepath).unwrap())
         .send()
     {
-        Ok(mut resp) => {
-            let unparsed_json_response = &resp.text().unwrap();
-            match u16::from(resp.status()) {
-                200 => return Ok(serde_json::from_str(&unparsed_json_response).unwrap()),
-                _ => return Err(serde_json::from_str(&unparsed_json_response).unwrap()),
-            }
-        }
+        Ok(resp) => match u16::from(resp.status()) {
+            200 => return Ok(serde_json::from_str(&resp.text().unwrap()).unwrap()),
+            _ => return Err(serde_json::from_str(&resp.text().unwrap()).unwrap()),
+        },
         Err(e) => Err(BackblazeErrorResponse {
             status: 0,
             code: BackblazeErrorKind::SendError,
@@ -434,7 +422,7 @@ pub fn upload_files_to_backblaze(
         }
     }
 
-    let client = reqwest::Client::new();
+    let client = reqwest::blocking::Client::new();
     let mut state = BackblazeUploadState::GetAuth;
     let mut container = BackbazeDataContainer::default();
     container.files = collect_file_upload_instances(file_subdirectory, filepaths);
@@ -600,7 +588,7 @@ mod test {
     use crate::backblaze::b2_list_file_names;
     use crate::backblaze::upload_files_to_backblaze;
     use crate::util::fbh_save_dl_dir;
-    use reqwest::Client;
+    use reqwest::blocking::Client;
     use std::fs::OpenOptions;
     #[test]
     fn list_files() {
@@ -610,7 +598,7 @@ mod test {
     }
     #[test]
     fn upload_file() {
-        match reqwest::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip") {
+        match reqwest::blocking::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip") {
             Ok(mut resp) => {
                 std::fs::create_dir_all(fbh_save_dl_dir()).unwrap();
                 let to_save_to_path = fbh_save_dl_dir().join("this-is-a-test-generated-name-ignore-it.zip");
@@ -633,9 +621,10 @@ mod test {
     }
     #[test]
     fn test_percent_encodedness() {
-        let mut resp =
-            reqwest::get("https://f000.backblazeb2.com/file/cargo-test/Spa+ce/new+file.txt")
-                .unwrap();
+        let mut resp = reqwest::blocking::get(
+            "https://f000.backblazeb2.com/file/cargo-test/Spa+ce/new+file.txt",
+        )
+        .unwrap();
         let newfilepath = std::env::current_dir().unwrap().join("new file.txt");
         let mut newfile = std::fs::OpenOptions::new()
             .create(true)

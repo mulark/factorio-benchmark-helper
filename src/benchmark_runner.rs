@@ -297,8 +297,7 @@ fn run_benchmark_single_map(
         bench_data.map_hash = params.sha256;
     }
 
-    let verbose_timings =
-        "wholeUpdate,gameUpdate,circuitNetworkUpdate,transportLinesUpdate,\
+    let verbose_timings = "wholeUpdate,gameUpdate,circuitNetworkUpdate,transportLinesUpdate,\
          fluidsUpdate,entityUpdate,mapGenerator,electricNetworkUpdate,logisticManagerUpdate,\
          constructionManagerUpdate,pathFinder,trains,trainPathFinder,commander,chartRefresh,\
          luaGarbageIncremental,chartUpdate,scriptUpdate";

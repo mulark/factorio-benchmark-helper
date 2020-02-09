@@ -105,11 +105,11 @@ fn fetch_single_mod(
     handles.push(std::thread::spawn(move || {
         println!("Downloading Mod: {}", filename);
         let mod_url = format!("{}{}", MOD_PORTAL_API_URL, m.name);
-        let resp_raw = reqwest::get(&mod_url);
+        let resp_raw = reqwest::blocking::get(&mod_url);
         let mut meta_info_response = ModMetaInfoHolder {
             releases: Vec::new(),
         };
-        if let Ok(mut resp) = resp_raw {
+        if let Ok(resp) = resp_raw {
             meta_info_response = resp.json().unwrap();
         }
         if m.version.is_empty() {
@@ -126,7 +126,7 @@ fn fetch_single_mod(
                     MOD_PORTAL_URL, release.download_url, username, token
                 );
 
-                let mut resp = match reqwest::get(&dl_req) {
+                let mut resp = match reqwest::blocking::get(&dl_req) {
                     Ok(r) => r,
                     Err(e) => {
                         eprintln!("Failed to download mod: {}", release.file_name);
@@ -228,7 +228,7 @@ fn get_latest_mod_version(meta_info: ModMetaInfoHolder) -> String {
 pub fn get_mod_info(mod_name: &str, mod_version: &str) -> Option<Mod> {
     let mut mod_v = mod_version.to_string();
     let mod_url = format!("{}{}", MOD_PORTAL_API_URL, mod_name);
-    if let Ok(mut resp) = reqwest::get(&mod_url) {
+    if let Ok(resp) = reqwest::blocking::get(&mod_url) {
         if resp.status() == 200 {
             println!("Found mod: {}", mod_name);
             if let Ok(meta_info_response) = resp.json::<ModMetaInfoHolder>() {

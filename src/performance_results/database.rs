@@ -1,5 +1,5 @@
-use crate::util::fbh_results_database;
 use crate::performance_results::collection_data::CollectionData;
+use crate::util::fbh_results_database;
 use rusqlite::Connection;
 use std::fs;
 use std::fs::OpenOptions;
@@ -80,10 +80,8 @@ COMMIT;
 ";
 
 lazy_static! {
-    static ref DB_CONNECTION: Mutex<Connection> = Mutex::new(setup_database(
-        false,
-        &fbh_results_database()
-    ));
+    static ref DB_CONNECTION: Mutex<Connection> =
+        Mutex::new(setup_database(false, &fbh_results_database()));
 }
 
 pub fn setup_database(create_new_db: bool, db_path: &PathBuf) -> Connection {
