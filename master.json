@@ -173,6 +173,74 @@
       "ticks": 3000,
       "runs": 3
     },
+    "https://www.reddit.com/r/factorio/comments/f7nt5u/0188_ups_optimization_direct_vs_belt_vs_chest/": {
+      "save_subdirectory": "reddit-direct-vs-belt-vs-chest",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test.iron.belt.splitter_priority.zip",
+          "sha256": "16517be72b8a585c3b1b035b34618c313c35e4f6c997fb07b2fce70339a98d6f",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.iron.belt.splitter_priority.zip"
+        },
+        {
+          "name": "test.iron.belt.zip",
+          "sha256": "37c75912a1150309c68bd15b16e211a1322c90abbde95fd533faf48b68a74b15",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.iron.belt.zip"
+        },
+        {
+          "name": "test.iron.chest.zip",
+          "sha256": "14fca30ffe34cc9c3e637ef5b85acbe758f23fe87d1e22e281e5f1d2372a5ca8",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.iron.chest.zip"
+        },
+        {
+          "name": "test.iron.direct.zip",
+          "sha256": "9d977a5eeb1b56ca1315f81855b64037c4ca14aa5830e854573cb86d06d9b9d6",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.iron.direct.zip"
+        },
+        {
+          "name": "test.lds.copper.belt.splitter_priority.zip",
+          "sha256": "c66dfe8526002b4cd8857ad6455db1cc76b1f0be68519098106eee23fd3ddc5d",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.copper.belt.splitter_priority.zip"
+        },
+        {
+          "name": "test.lds.copper.belt.zip",
+          "sha256": "bf29a18115d525c98a01bd711401d5c4cd4eecea1b33b3692fcd0023ef010107",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.copper.belt.zip"
+        },
+        {
+          "name": "test.lds.copper.chest.zip",
+          "sha256": "4f1661bfe04585931a2dcaaf5abf7944dcbb00fc10c8b6229b8c094524119c9d",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.copper.chest.zip"
+        },
+        {
+          "name": "test.lds.copper.direct.zip",
+          "sha256": "47c17cd69cb6301e86b9ca1ed8a3ced4b01ad6c85ef064a0af6ed0d557e7e824",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.copper.direct.zip"
+        },
+        {
+          "name": "test.lds.plasticsteel.belt.splitter_priority.zip",
+          "sha256": "0790d4dce015078e2779cfc996bbc92c47039a13aa47f82d0bc69ae9d93715b5",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.plasticsteel.belt.splitter_priority.zip"
+        },
+        {
+          "name": "test.lds.plasticsteel.belt.zip",
+          "sha256": "200f2f792e80627ecd0af934d35cbfec9474fc0ac9325d2774d33378ec5b27e7",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.plasticsteel.belt.zip"
+        },
+        {
+          "name": "test.lds.plasticsteel.chest.zip",
+          "sha256": "4d6ad329d381c930232493f6127033ff61eabb59c0bb49f79d062daca3a451a4",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.plasticsteel.chest.zip"
+        },
+        {
+          "name": "test.lds.plasticsteel.direct.zip",
+          "sha256": "563de3f6d7d47e3c901886ad57db9e3eb6258b702af74dead570d0f793544103",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.plasticsteel.direct.zip"
+        }
+      ],
+      "ticks": 5000,
+      "runs": 20
+    },
     "test-000042-1": {
       "save_subdirectory": "test-000042",
       "mods": [],
@@ -224,7 +292,6 @@
       "mods": [
         {
           "name": "item-entity-collision-mask-remover",
-          "file_name": "item-entity-collision-mask-remover_0.0.1.zip",
           "version": "0.0.1",
           "sha1": "a9f2e61c8a84f44d97b0b561f483588713179784"
         }
@@ -254,7 +321,6 @@
       "mods": [
         {
           "name": "item-entity-collision-mask-remover",
-          "file_name": "item-entity-collision-mask-remover_0.0.2.zip",
           "version": "0.0.2",
           "sha1": "b6068c09642375452192da2c4553f6b65469d5d1"
         }
@@ -284,7 +350,6 @@
       "mods": [
         {
           "name": "item-entity-collision-box-remover",
-          "file_name": "item-entity-collision-box-remover_0.0.1.zip",
           "version": "0.0.1",
           "sha1": "606316074592f48b136d3b4776bd5f1de323bf17"
         }
@@ -314,7 +379,6 @@
       "mods": [
         {
           "name": "item-entity-collision-box-remover",
-          "file_name": "item-entity-collision-box-remover_0.0.2.zip",
           "version": "0.0.2",
           "sha1": "98d9b18b964e35f1b93e4e552d1ce31749556e65"
         }
@@ -344,13 +408,11 @@
       "mods": [
         {
           "name": "item-entity-collision-box-remover",
-          "file_name": "item-entity-collision-box-remover_0.0.1.zip",
           "version": "0.0.1",
           "sha1": "606316074592f48b136d3b4776bd5f1de323bf17"
         },
         {
           "name": "item-entity-collision-mask-remover",
-          "file_name": "item-entity-collision-mask-remover_0.0.1.zip",
           "version": "0.0.1",
           "sha1": "a9f2e61c8a84f44d97b0b561f483588713179784"
         }
@@ -380,13 +442,11 @@
       "mods": [
         {
           "name": "item-entity-collision-box-remover",
-          "file_name": "item-entity-collision-box-remover_0.0.2.zip",
           "version": "0.0.2",
           "sha1": "98d9b18b964e35f1b93e4e552d1ce31749556e65"
         },
         {
           "name": "item-entity-collision-mask-remover",
-          "file_name": "item-entity-collision-mask-remover_0.0.2.zip",
           "version": "0.0.2",
           "sha1": "b6068c09642375452192da2c4553f6b65469d5d1"
         }
@@ -416,7 +476,6 @@
       "mods": [
         {
           "name": "item-entity-collision-box-and-mask-remover",
-          "file_name": "item-entity-collision-box-and-mask-remover_0.0.1.zip",
           "version": "0.0.1",
           "sha1": "48e238ae16be2bf0a290335395208020f0815f24"
         }
@@ -446,7 +505,6 @@
       "mods": [
         {
           "name": "item-entity-collision-box-and-mask-remover",
-          "file_name": "item-entity-collision-box-and-mask-remover_0.0.2.zip",
           "version": "0.0.2",
           "sha1": "a98ee3e1791de902455507e901b53bb7af3af023"
         }
