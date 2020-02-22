@@ -239,7 +239,7 @@
         }
       ],
       "ticks": 5000,
-      "runs": 20
+      "runs": 10
     },
     "test-000042-1": {
       "save_subdirectory": "test-000042",
