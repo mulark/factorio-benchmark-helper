@@ -704,6 +704,34 @@
       ],
       "ticks": 91170,
       "runs": 3
+    },
+    "test-000050": {
+      "save_subdirectory": "test-000050",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000050.empty_filter.zip",
+          "sha256": "94498095e5696c3279f5d5a7ad18f2a44401a94ac9c4d52191a71ef74a08adc8",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000050/test-000050.empty_filter.zip"
+        },
+        {
+          "name": "test-000050.empty_nofilter.zip",
+          "sha256": "73083a980654734dc96e6a12fbb297fb35ca91467cd36c08f299a30e0a1a43d0",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000050/test-000050.empty_nofilter.zip"
+        },
+        {
+          "name": "test-000050.full_filter.zip",
+          "sha256": "42d4516d5c35d76a8f1d50bf293237fbd07d02bf7c664b6c30cf3079582e0f0f",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000050/test-000050.full_filter.zip"
+        },
+        {
+          "name": "test-000050.half_full_filter.zip",
+          "sha256": "45c4b592b51cc96eb5247b1b6af991869163d6543e0b010e333906cfda6f0059",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000050/test-000050.half_full_filter.zip"
+        }
+      ],
+      "ticks": 3000,
+      "runs": 10
     }
   },
   "meta_sets": {
