@@ -110,8 +110,7 @@ fn get_factorio_path() -> PathBuf {
     } else if CONFIG_FILE_SETTINGS
         .factorio_path
         .as_ref()
-        .unwrap()
-        .is_dir()
+        .map(|x| x.is_dir()) == Some(true)
     {
         CONFIG_FILE_SETTINGS
             .factorio_path

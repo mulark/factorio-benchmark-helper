@@ -24,6 +24,7 @@ pub struct ForwardCompatibilityConfigSettings {
 
 pub fn load_forward_compatiblity_config_settings() -> ForwardCompatibilityConfigSettings {
     let mut settings = ForwardCompatibilityConfigSettings::default();
+    settings.use_steam_version = true;
     if !fbh_config_file().is_file() {
         return settings;
     }
