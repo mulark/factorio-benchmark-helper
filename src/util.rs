@@ -56,7 +56,7 @@ pub fn download_benchmark_deps_parallel(sets: &HashMap<String, BenchmarkSet>) {
     let mut handles = Vec::new();
     let mut mods = Vec::new();
     let mut maps = Vec::new();
-    for (_k, set) in sets {
+    for set in sets.values() {
         for indiv_mod in set.mods.clone() {
             mods.push(indiv_mod);
         }
