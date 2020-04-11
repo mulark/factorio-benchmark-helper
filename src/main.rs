@@ -23,11 +23,8 @@ use crate::util::fbh_save_dl_dir;
 use crate::util::hash_saves;
 use crate::util::prompt_until_existing_folder_path;
 use regex::Regex;
-use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
-use std::collections::HashSet;
-use std::env;
 use std::path::PathBuf;
 use std::process::exit;
 
@@ -41,7 +38,7 @@ mod util;
 use util::{
     add_options_and_parse, factorio_save_directory, get_mod_info, prompt_until_allowed_val,
     prompt_until_allowed_val_in_range, prompt_until_empty_str, read_benchmark_set_from_file,
-    trim_newline, write_benchmark_set_to_file, BenchmarkSet, ProcedureFileKind, ProcedureKind,
+    write_benchmark_set_to_file, BenchmarkSet, ProcedureFileKind, ProcedureKind,
     UserArgs,
 };
 

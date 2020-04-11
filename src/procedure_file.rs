@@ -274,11 +274,11 @@ pub fn write_benchmark_set_to_file(
             println!("Procedure already exists, overwrite?");
             match prompt_until_allowed_val(&["y".to_string(), "n".to_string()]).as_str() {
                 "y" => {
-                    ({
+                    {
                         top_level.benchmark_sets.insert(name.to_string(), set);
                         let j = serde_json::to_string_pretty(&top_level).unwrap();
                         std::fs::write(procedure_file_path, j).unwrap();
-                    })
+                    }
                 }
                 "n" => (),
                 _ => unreachable!("interactive answer not y or n, but how?"),

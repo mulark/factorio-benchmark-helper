@@ -127,8 +127,8 @@ fn download_save(save_name: &str, url: String, to_save_to_path: &PathBuf) {
         exit(1);
     }
     let mut whitelisted_url = false;
-    for domain in WHITELISTED_DOMAINS.clone() {
-        if url.contains(&domain) {
+    for domain in WHITELISTED_DOMAINS.iter() {
+        if url.contains(domain) {
             whitelisted_url = true;
         }
     }

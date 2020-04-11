@@ -195,16 +195,16 @@ fn get_factorio_info() -> FactorioInfo {
         match i {
             1 => (info_holder.version = s.to_string()),
             4 => {
-                ({
+                {
                     info_holder.operating_system = s.to_string();
                     info_holder.operating_system.pop();
-                })
+                }
             }
             5 => {
-                ({
+                {
                     info_holder.platform = s.to_string();
                     info_holder.platform.pop();
-                })
+                }
             }
             _ => (),
         }

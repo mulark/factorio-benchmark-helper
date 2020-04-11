@@ -210,6 +210,50 @@ pub fn upload_to_db(collection_data: CollectionData) {
         save_point.commit().unwrap();
     }
     transacter.commit().unwrap();
+    print_results(&database, collection_id).unwrap();
+}
+
+#[derive(Debug)]
+struct VerboseResult {
+    benchmark_id: u32,
+    map_name: String,
+    tick_number: u32,
+    min_whole_update: u32,
+}
+
+impl VerboseResult {
+    fn csv(&self) -> String {
+        format!("{},{},{},{}", self.benchmark_id, self.map_name, self.tick_number, self.min_whole_update)
+    }
+}
+
+fn print_results(database: &Connection, collection_id: u32) -> Result<(), Box<dyn std::error::Error>> {
+    let mut c = database.prepare("SELECT benchmark.benchmark_id, map_name, tick_number, min(wholeUpdate)
+        from benchmark
+        join verbose on benchmark.benchmark_id = verbose.benchmark_id
+        join collection on benchmark.collection_id = collection.collection_id
+        where collection.collection_id = ?
+        group by benchmark.benchmark_id, map_name, tick_number").unwrap();
+    let rows = c.query_map(&[collection_id], |row| {
+        Ok(
+            VerboseResult {
+                benchmark_id: row.get(0)?,
+                map_name: row.get(1)?,
+                tick_number: row.get(2)?,
+                min_whole_update: row.get(3)?,
+            }
+        )
+    }).unwrap();
+    let mut names: Vec<VerboseResult> = Vec::new();
+    for name_result in rows {
+       names.push(name_result.unwrap());
+    }
+    eprintln!("benchmark.benchmark_id, map_name, tick_number, min(wholeUpdate) (ns)");
+    for v in names {
+        eprintln!("{}", v.csv());
+
+    }
+    Ok(())
 }
 
 fn create_tables_in_db(database: &Connection) {

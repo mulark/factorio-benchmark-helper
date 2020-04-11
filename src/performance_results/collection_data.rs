@@ -11,6 +11,7 @@ pub struct Mod {
 }
 
 impl Mod {
+    #[allow(dead_code)]
     pub fn new(name: &str, file_name: &str, version: &str, hash: &str) -> Mod {
         Mod {
             name: name.to_string(),
