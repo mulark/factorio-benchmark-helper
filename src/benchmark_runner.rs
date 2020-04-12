@@ -317,9 +317,12 @@ fn run_benchmark_single_map(
         .expect("");
 
     if let Ok(entries) = std::fs::read_dir(fbh_mod_use_dir()) {
+        let entr_cont: Vec<_> = entries.collect();
         // Number of entries == Count of all mods that should be enabled + the mod-list.json file
         // Thus, stubtract one to account for mod-list.json
-        assert_eq!(entries.count() - 1, mods.len());
+        if !entr_cont.is_empty() {
+            assert_eq!(entr_cont.len() - 1, mods.len());
+        }
     }
 
     let bench_data_stdout_raw = String::from_utf8_lossy(&run_bench_cmd.stdout).replace("\r", "");
