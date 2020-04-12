@@ -2,10 +2,12 @@ use crate::performance_results::collection_data::CollectionData;
 use crate::util::fbh_results_database;
 use rusqlite::Connection;
 use std::fs;
+use std::io::Write;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::Mutex;
+use rusqlite::NO_PARAMS;
 
 pub const CREATE_SQL: &str = "
 BEGIN TRANSACTION;
@@ -213,45 +215,71 @@ pub fn upload_to_db(collection_data: CollectionData) {
     print_results(&database, collection_id).unwrap();
 }
 
-#[derive(Debug)]
-struct VerboseResult {
-    benchmark_id: u32,
-    map_name: String,
-    tick_number: u32,
-    min_whole_update: u32,
-}
-
-impl VerboseResult {
-    fn csv(&self) -> String {
-        format!("{},{},{},{}", self.benchmark_id, self.map_name, self.tick_number, self.min_whole_update)
-    }
-}
-
 fn print_results(database: &Connection, collection_id: u32) -> Result<(), Box<dyn std::error::Error>> {
-    let mut c = database.prepare("SELECT benchmark.benchmark_id, map_name, tick_number, min(wholeUpdate)
-        from benchmark
-        join verbose on benchmark.benchmark_id = verbose.benchmark_id
-        join collection on benchmark.collection_id = collection.collection_id
-        where collection.collection_id = ?
-        group by benchmark.benchmark_id, map_name, tick_number").unwrap();
-    let rows = c.query_map(&[collection_id], |row| {
-        Ok(
-            VerboseResult {
-                benchmark_id: row.get(0)?,
-                map_name: row.get(1)?,
-                tick_number: row.get(2)?,
-                min_whole_update: row.get(3)?,
-            }
-        )
+    eprintln!("Collection id {}", collection_id);
+    let mut ids_to_collect: Vec<(u32, String)> = Vec::new();
+    let mut statement = database.prepare(&format!("SELECT benchmark_id, map_name from benchmark where collection_id = {}",collection_id))?;
+    let rows = statement.query_map(NO_PARAMS, |row| {
+        let bench_id = row.get(0)?;
+        let map_name = row.get(1)?;
+        Ok((bench_id, map_name))
     }).unwrap();
-    let mut names: Vec<VerboseResult> = Vec::new();
-    for name_result in rows {
-       names.push(name_result.unwrap());
-    }
-    eprintln!("benchmark.benchmark_id, map_name, tick_number, min(wholeUpdate) (ns)");
-    for v in names {
-        eprintln!("{}", v.csv());
 
+    for r in rows {
+        ids_to_collect.push(r.unwrap());
+    }
+
+    assert!(ids_to_collect.len() > 0);
+
+    let mut pivot_statement = String::new();
+    pivot_statement.push_str(&format!("SELECT id{}.tick_number,\n",ids_to_collect[0].0));
+    for id in &ids_to_collect {
+        pivot_statement.push_str(&format!("id{}.wholeUpdate as [{}.wholeUpdate],\n", id.0, id.1));
+    }
+    pivot_statement = pivot_statement.trim_end_matches(",\n").to_string();
+    pivot_statement.push_str(" FROM \n");
+    for id in &ids_to_collect {
+        pivot_statement.push_str("(SELECT tick_number, min(wholeUpdate) / 1000000.0 as wholeUpdate \n");
+        pivot_statement.push_str(&format!("from verbose where benchmark_id = {} group by tick_number) as id{},\n", id.0, id.0));
+    }
+    pivot_statement = pivot_statement.trim_end_matches(",\n").to_string();
+    let first_id = ids_to_collect[0].0;
+    for (i, id) in ids_to_collect.iter().enumerate() {
+        if ids_to_collect.len() != 1 && i == 0 {
+            pivot_statement.push_str("\nWHERE ");
+        }
+        if i != 0 {
+            pivot_statement.push_str(&format!("id{}.tick_number = id{}.tick_number ", first_id, id.0));
+            if i != ids_to_collect.len() - 1 {
+                pivot_statement.push_str("AND ");
+            }
+        }
+    }
+
+    let mut csv_file = std::fs::File::create("data.csv")?;
+
+    let mut csv_header = String::from("tick_number,");
+    for i in &ids_to_collect {
+        csv_header.push_str(&format!(" {}.wholeUpdate,",i.1));
+    }
+
+    writeln!(csv_file, "{}", csv_header)?;
+
+    let mut c = database.prepare(&pivot_statement)?;
+    let rows = c.query_map(NO_PARAMS, |row| {
+        assert!(row.column_count() > 0);
+        let mut row_writer = String::new();
+        let tick_number: u32 = row.get(0)?;
+        row_writer.push_str(&format!("{}",tick_number));
+        for i in 1..row.column_count() {
+            row_writer.push_str(",");
+            row_writer.push_str(&format!("{:.3}", row.get::<_,f64>(i)?));
+        }
+        Ok(row_writer)
+    }).unwrap();
+
+    for r in rows {
+        writeln!(csv_file, "{}", r.unwrap())?;
     }
     Ok(())
 }
@@ -264,5 +292,18 @@ fn create_tables_in_db(database: &Connection) {
             eprintln!("{}", e);
             exit(1);
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::performance_results::database::DB_CONNECTION;
+    use super::print_results;
+
+    #[test]
+    fn test_collection() {
+        let database = DB_CONNECTION.lock().unwrap();
+        let collection_id = 1;
+        print_results(&database, collection_id).unwrap();
     }
 }

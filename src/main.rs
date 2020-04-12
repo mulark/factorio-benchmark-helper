@@ -47,6 +47,7 @@ lazy_static! {
 }
 
 fn main() {
+    let mut parsed_args = add_options_and_parse();
     match util::initialize() {
         Ok(_) => (),
         Err(e) => {
@@ -54,7 +55,6 @@ fn main() {
             panic!(e);
         }
     }
-    let mut parsed_args = add_options_and_parse();
     execute_from_args(&mut parsed_args);
 }
 
