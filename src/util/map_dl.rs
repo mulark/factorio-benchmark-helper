@@ -1,5 +1,4 @@
 use crate::util::{factorio_save_directory, fbh_save_dl_dir, sha256sum};
-use reqwest;
 use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;
 use std::path::PathBuf;

@@ -229,7 +229,7 @@ fn print_results(database: &Connection, collection_id: u32) -> Result<(), Box<dy
         ids_to_collect.push(r.unwrap());
     }
 
-    assert!(ids_to_collect.len() > 0);
+    assert!(!ids_to_collect.is_empty());
 
     let mut pivot_statement = String::new();
     pivot_statement.push_str(&format!("SELECT id{}.tick_number,\n",ids_to_collect[0].0));

@@ -241,6 +241,42 @@
       "ticks": 5000,
       "runs": 10
     },
+    "test-000026.1": {
+      "save_subdirectory": "test-000026/5872",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000026.diagonal.northeast.moving.zip",
+          "sha256": "2d022311dbf8570ad7b336cc4b1872f5a8b38063e906a9d41ae40685cc6f439b",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000026/5872/test-000026.diagonal.northeast.moving.zip"
+        },
+        {
+          "name": "test-000026.diagonal.southwest.moving.zip",
+          "sha256": "d86c81344847cc126cb5b98b838f33c80897402d53acbc482cf1773e22b90581",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000026/5872/test-000026.diagonal.southwest.moving.zip"
+        }
+      ],
+      "ticks": 5872,
+      "runs": 10
+    },
+    "test-000026.2": {
+      "save_subdirectory": "test-000026/8182",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000026.straight.northeast.moving.zip",
+          "sha256": "8af04b449363069ecb498a43c75367fee1749789540ada46df9b8b320917c3e1",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000026/8182/test-000026.straight.northeast.moving.zip"
+        },
+        {
+          "name": "test-000026.straight.southwest.moving.zip",
+          "sha256": "eff66cd5fed5d514cb771ae2b45b78a25398f675d826cfe67db51556211cee34",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000026/8182/test-000026.straight.southwest.moving.zip"
+        }
+      ],
+      "ticks": 8182,
+      "runs": 10
+    },
     "test-000042-1": {
       "save_subdirectory": "test-000042",
       "mods": [],
@@ -732,9 +768,65 @@
       ],
       "ticks": 3000,
       "runs": 10
+    },
+    "test-000051.1": {
+      "save_subdirectory": "test-000051/4930",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000051.1.straight.naive.zip",
+          "sha256": "51944ac6eeb7ec62bd97b2c5869808bddb83651a9a7f5861a24982247d3538bc",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000051/4930/test-000051.1.straight.naive.zip"
+        }
+      ],
+      "ticks": 4930,
+      "runs": 10
+    },
+    "test-000051.2": {
+      "save_subdirectory": "test-000051/4910",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000051.2.straight.avoid.zip",
+          "sha256": "f28c9e5a1831abfba61b37ac57059d0afa58343ffdffd9876c2eac11227d0445",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000051/4910/test-000051.2.straight.avoid.zip"
+        }
+      ],
+      "ticks": 4910,
+      "runs": 10
+    },
+    "test-000051.3": {
+      "save_subdirectory": "test-000051/4063",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000051.3.diagonal.direct.zip",
+          "sha256": "22b5a587b009d7178b2510f5b80ed7aef3580e4f30f6657be2b5c09616eb1398",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000051/4063/test-000051.3.diagonal.direct.zip"
+        }
+      ],
+      "ticks": 4063,
+      "runs": 10
+    },
+    "test-000051.4": {
+      "save_subdirectory": "test-000051/4150",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000051.4.diagonal.avoid.zip",
+          "sha256": "e71371172da09f6917851f7192762f24da8dab596742e0709853633666ee8a56",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000051/4150/test-000051.4.diagonal.avoid.zip"
+        }
+      ],
+      "ticks": 4150,
+      "runs": 10
     }
   },
   "meta_sets": {
+    "test-000026": [
+      "test-000026.1",
+      "test-000026.2"
+    ],
     "test-000042": [
       "test-000042-1",
       "test-000042-2",
@@ -748,6 +840,13 @@
       "test-000042-3.18",
       "test-000042-4.18",
       "test-000042-5.18"
+    ],
+    "test-000051": [
+      "test-000026",
+      "test-000051.1",
+      "test-000051.2",
+      "test-000051.3",
+      "test-000051.4"
     ]
   }
 }
