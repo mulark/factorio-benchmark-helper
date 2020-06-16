@@ -4,6 +4,8 @@ use serde::Deserialize;
 use std::fs::{File, OpenOptions};
 use std::process::exit;
 use std::thread::JoinHandle;
+use std::io::Read;
+use std::io::Write;
 
 use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory};
 
@@ -105,13 +107,10 @@ fn fetch_single_mod(
     handles.push(std::thread::spawn(move || {
         println!("Downloading Mod: {}", filename);
         let mod_url = format!("{}{}", MOD_PORTAL_API_URL, m.name);
-        let resp_raw = reqwest::blocking::get(&mod_url);
-        let mut meta_info_response = ModMetaInfoHolder {
-            releases: Vec::new(),
-        };
-        if let Ok(resp) = resp_raw {
-            meta_info_response = resp.json().unwrap();
-        }
+        let resp = ureq::get(&mod_url).call();
+
+        let meta_info_response = resp.into_json_deserialize::<ModMetaInfoHolder>().unwrap();
+
         if m.version.is_empty() {
             for release in &meta_info_response.releases {
                 m.version = compare_version_str(&release.version, &m.version);
@@ -126,14 +125,8 @@ fn fetch_single_mod(
                     MOD_PORTAL_URL, release.download_url, username, token
                 );
 
-                let mut resp = match reqwest::blocking::get(&dl_req) {
-                    Ok(r) => r,
-                    Err(e) => {
-                        eprintln!("Failed to download mod: {}", release.file_name);
-                        panic!(e);
-                    }
-                };
-                if resp.status().as_u16() == 200 {
+                let resp = ureq::get(&dl_req).call();
+                if resp.status() == 200 {
                     let fpath = fbh_mod_dl_dir().join(&release.file_name);
                     if fpath.exists() {
                         match std::fs::remove_file(&fpath) {
@@ -152,8 +145,9 @@ fn fetch_single_mod(
                         .create(true)
                         .open(fpath)
                         .unwrap();
-                    match resp.copy_to(&mut file) {
-                        Ok(_) => (),
+                    let mut buf = Vec::new();
+                    match resp.into_reader().read_to_end(&mut buf) {
+                        Ok(_) => file.write_all(&buf).unwrap(),
                         Err(e) => {
                             println!("Failed to write file to {:?}!", file);
                             panic!(e);
@@ -162,9 +156,9 @@ fn fetch_single_mod(
                 } else {
                     panic!(
                         "Error: We recieved a bad response from the mod portal. Status code: {}",
-                        resp.status().as_u16()
+                        resp.status()
                     );
-                }
+                };
                 let newly_dl_mod_sha1 = sha1sum(&fbh_mod_dl_dir().join(&release.file_name));
                 if m.sha1 == "" {
                     m.sha1 = newly_dl_mod_sha1.clone();
@@ -228,37 +222,36 @@ fn get_latest_mod_version(meta_info: ModMetaInfoHolder) -> String {
 pub fn get_mod_info(mod_name: &str, mod_version: &str) -> Option<Mod> {
     let mut mod_v = mod_version.to_string();
     let mod_url = format!("{}{}", MOD_PORTAL_API_URL, mod_name);
-    if let Ok(resp) = reqwest::blocking::get(&mod_url) {
-        if resp.status() == 200 {
-            println!("Found mod: {}", mod_name);
-            if let Ok(meta_info_response) = resp.json::<ModMetaInfoHolder>() {
-                if mod_version.is_empty() {
-                    println!("Getting latest version...");
-                    mod_v = get_latest_mod_version(meta_info_response.clone());
-                }
-                for release in meta_info_response.releases {
-                    if release.version == mod_v {
-                        println!("Succesfully found mod {}", release.file_name);
-                        let mod_name = release.file_name.split('_').collect::<Vec<_>>()[0];
-                        return Some(Mod {
-                            name: mod_name.to_string(),
-                            file_name: release.file_name,
-                            sha1: release.sha1,
-                            version: release.version,
-                        });
-                    }
+    let resp = ureq::get(&mod_url).call();
+    if resp.status() == 200 {
+        println!("Found mod: {}", mod_name);
+        if let Ok(meta_info_response) = resp.into_json_deserialize::<ModMetaInfoHolder>() {
+            if mod_version.is_empty() {
+                println!("Getting latest version...");
+                mod_v = get_latest_mod_version(meta_info_response.clone());
+            }
+            for release in meta_info_response.releases {
+                if release.version == mod_v {
+                    println!("Succesfully found mod {}", release.file_name);
+                    let mod_name = release.file_name.split('_').collect::<Vec<_>>()[0];
+                    return Some(Mod {
+                        name: mod_name.to_string(),
+                        file_name: release.file_name,
+                        sha1: release.sha1,
+                        version: release.version,
+                    });
                 }
             }
-        } else if resp.status() == 404 {
-            println!("The mod {} was not found", mod_name);
-            return None;
-        } else {
-            println!(
-                "An unexpected response was recieved. Http code: {}",
-                resp.status()
-            );
-            return None;
         }
+    } else if resp.status() == 404 {
+        println!("The mod {} was not found", mod_name);
+        return None;
+    } else {
+        println!(
+            "An unexpected response was recieved. Http code: {}",
+            resp.status()
+        );
+        return None;
     }
     None
 }

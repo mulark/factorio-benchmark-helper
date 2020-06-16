@@ -95,19 +95,19 @@ fn parse_logline_time_to_f64(find_match_in_this_str: &str, regex: Regex) -> Opti
     match regex.captures(find_match_in_this_str) {
         Some(x) => {
             match GENERIC_NUMERIC_TIMESTAMP_PATTERN.captures(&x[0]).unwrap()[0].parse::<f64>() {
-                Ok(y) => return Some(y),
+                Ok(y) => Some(y),
                 Err(e) => {
                     eprintln!("Internal error occurred, could not parse {} to a f64!", e);
-                    return None;
+                    None
                 }
             }
         }
         None => {
             eprintln!("Internal error, maybe Factorio exited early from outside interference? (parsing line timestamp)");
             eprintln!("Trying to match {:?}", find_match_in_this_str);
-            return None;
+            None
         }
-    };
+    }
 }
 
 fn validate_benchmark_set_parameters(set: &BenchmarkSet) {

@@ -4,6 +4,8 @@ use std::fs::OpenOptions;
 use std::path::PathBuf;
 use std::process::exit;
 use std::thread::JoinHandle;
+use std::io::Read;
+use std::io::Write;
 
 lazy_static! {
     static ref WHITELISTED_DOMAINS: Vec<String> = vec!(
@@ -137,15 +139,8 @@ fn download_save(save_name: &str, url: String, to_save_to_path: &PathBuf) {
             url
         );
     }
-    let mut resp = match reqwest::blocking::get(&url) {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("Failed to download map: {}", save_name);
-            eprintln!("Error details: {}", e);
-            exit(1);
-        }
-    };
-    if resp.status().as_u16() == 200 {
+    let resp = ureq::get(&url).call();
+    if resp.status() == 200 {
         if to_save_to_path.exists() {
             match std::fs::remove_file(&to_save_to_path) {
                 Ok(()) => (),
@@ -166,18 +161,13 @@ fn download_save(save_name: &str, url: String, to_save_to_path: &PathBuf) {
             .create(true)
             .open(to_save_to_path)
             .unwrap();
-        match resp.copy_to(&mut file) {
-            Ok(_) => (),
-            Err(e) => {
-                eprintln!("Failed to write file to {:?}!", file);
-                eprintln!("Error details: {}", e);
-                exit(1);
-            }
-        }
+        let mut buf = Vec::new();
+        resp.into_reader().read_to_end(&mut buf).unwrap();
+        file.write_all(&buf).unwrap();
     } else {
         eprintln!(
             "Error: We recieved a bad response during a map download. Status code: {}",
-            resp.status().as_u16()
+            resp.status()
         );
         exit(1);
     }

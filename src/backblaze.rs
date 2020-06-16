@@ -5,11 +5,12 @@ use crate::util::config_file::CONFIG_FILE_SETTINGS;
 use crate::util::sha1sum;
 use percent_encoding::percent_encode;
 use percent_encoding::{AsciiSet, CONTROLS};
-use reqwest::blocking::Client;
+use ureq::Agent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
+use std::io::Read;
 
 const PERCENT_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 const B2_AUTHORIZE_ACCOUNT_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
@@ -150,7 +151,7 @@ enum BackblazeUploadState {
 /// or within the config.ini file under the same name.
 /// These fields are not written to the config.ini file normally,
 /// but will be carried over to future config file versions.
-fn authorize_test(client: &Client) -> Result<BackblazeAuth, BackblazeErrorResponse> {
+fn authorize_test(mut client: &mut Agent) -> Result<BackblazeAuth, BackblazeErrorResponse> {
     let vars = std::env::vars().collect::<HashMap<String, String>>();
     let key_id = if vars.get("TRAVIS_CI_B2_KEYID").is_some() {
         vars.get("TRAVIS_CI_B2_KEYID").unwrap()
@@ -162,13 +163,13 @@ fn authorize_test(client: &Client) -> Result<BackblazeAuth, BackblazeErrorRespon
     } else {
         &CONFIG_FILE_SETTINGS.travis_ci_b2_applicationkey
     };
-    authorize(&client, key_id, application_key)
+    authorize(&mut client, key_id, application_key)
 }
 
 /// Authorize with Backblaze API using keys found within config.ini
-fn authorize_cfg(client: &Client) -> Result<BackblazeAuth, BackblazeErrorResponse> {
+fn authorize_cfg(mut client: &mut Agent) -> Result<BackblazeAuth, BackblazeErrorResponse> {
     if cfg!(test) {
-        return authorize_test(&client);
+        return authorize_test(&mut client);
     }
     let key_id = &CONFIG_FILE_SETTINGS.b2_backblaze_key_id;
     let application_key = &CONFIG_FILE_SETTINGS.b2_backblaze_application_key;
@@ -184,34 +185,25 @@ fn authorize_cfg(client: &Client) -> Result<BackblazeAuth, BackblazeErrorRespons
 
 /// Authorize with Backblaze using an application key and key ID.
 fn authorize(
-    client: &Client,
+    client: &mut Agent,
     key_id: &str,
     application_key: &str,
 ) -> Result<BackblazeAuth, BackblazeErrorResponse> {
     assert!(!key_id.is_empty());
     assert!(!application_key.is_empty());
 
-    match client
+    let resp = client
+        .auth(key_id, application_key)
         .get(B2_AUTHORIZE_ACCOUNT_URL)
-        .basic_auth(key_id, Some(application_key))
-        .send()
-    {
-        Ok(resp) => match u16::from(resp.status()) {
-            200 => return Ok(serde_json::from_str(&resp.text().unwrap()).unwrap()),
-            _ => return Err(serde_json::from_str(&resp.text().unwrap()).unwrap()),
-        },
-        Err(e) => {
-            return Err(BackblazeErrorResponse {
-                code: BackblazeErrorKind::SendError,
-                status: 0,
-                message: format!("Could not send request {}", e),
-            })
-        }
+        .call();
+    match resp.status() {
+        200 => Ok(resp.into_json_deserialize().unwrap()),
+        _ => Err(resp.into_json_deserialize().unwrap()),
     }
 }
 
 fn b2_list_file_names(
-    client: &Client,
+    client: &Agent,
     auth: &BackblazeAuth,
     file_subdirectory: &str,
 ) -> Result<BackblazeListFileNamesResponse, BackblazeErrorResponse> {
@@ -222,28 +214,21 @@ fn b2_list_file_names(
     let body = serde_json::to_string(&body).unwrap();
     let api_url_cmd = format!("{}{}", &auth.apiUrl, "/b2api/v2/b2_list_file_names");
 
-    match client
+    let resp = client
         .post(&api_url_cmd)
-        .header("Authorization", &auth.authorizationToken)
-        .body(body)
-        .send()
-    {
-        Ok(resp) => match u16::from(resp.status()) {
-            200 => return Ok(serde_json::from_str(&resp.text().unwrap()).unwrap()),
-            _ => return Err(serde_json::from_str(&resp.text().unwrap()).unwrap()),
-        },
-        Err(e) => Err(BackblazeErrorResponse {
-            status: 0,
-            code: BackblazeErrorKind::SendError,
-            message: e.to_string(),
-        }),
+        .set("Authorization", &auth.authorizationToken)
+        .send_string(&body);
+
+    match resp.status() {
+        200 => Ok(resp.into_json_deserialize().unwrap()),
+        _ => Err(resp.into_json_deserialize().unwrap()),
     }
 }
 
 /// Tests if the file is publicly downloadable
 /// If it is then it checks that the sha1 sum matches the file we intend to upload.
 fn b2_test_files_already_uploaded(
-    client: &Client,
+    client: &Agent,
     files: &mut Vec<FileUploadInstance>,
     filenames_found_already: &BackblazeListFileNamesResponse,
 ) -> bool {
@@ -255,21 +240,21 @@ fn b2_test_files_already_uploaded(
         );
     }
     for mut file in files {
-        if let Ok(r) = client.get(&file.final_url).send() {
-            if r.status().is_success() {
-                if let Some(s) = known_hashmap.get(&file.relative_filename) {
-                    if s == &file.sha1 {
-                        file.already_uploaded = true;
-                    }
+        let resp = client.get(&file.final_url).call();
+        if resp.status() == 200 {
+            if let Some(s) = known_hashmap.get(&file.relative_filename) {
+                if s == &file.sha1 {
+                    file.already_uploaded = true;
                 }
             }
         }
+
     }
     false
 }
 
 fn get_b2_upload_urls_per_file(
-    client: &Client,
+    client: &Agent,
     container: &mut BackbazeDataContainer,
 ) -> Result<(), BackblazeErrorResponse> {
     for mut file in &mut container.files {
@@ -281,27 +266,19 @@ fn get_b2_upload_urls_per_file(
 
 /// Get a Url to use for uploading
 fn b2_get_upload_url(
-    client: &Client,
+    client: &Agent,
     auth: &BackblazeAuth,
 ) -> Result<BackblazeGetUploadUrlResponse, BackblazeErrorResponse> {
     let api_url_cmd = format!("{}{}", &auth.apiUrl, "/b2api/v2/b2_get_upload_url");
     let body = format!("{{\"bucketId\":\"{}\"}}", auth.allowed.bucketId);
 
-    match client
+    let resp = client
         .post(&api_url_cmd)
-        .header("Authorization", &auth.authorizationToken)
-        .body(body)
-        .send()
-    {
-        Ok(resp) => match u16::from(resp.status()) {
-            200 => return Ok(serde_json::from_str(&resp.text().unwrap()).unwrap()),
-            _ => return Err(serde_json::from_str(&resp.text().unwrap()).unwrap()),
-        },
-        Err(e) => Err(BackblazeErrorResponse {
-            status: 0,
-            code: BackblazeErrorKind::SendError,
-            message: e.to_string(),
-        }),
+        .set("Authorization", &auth.authorizationToken)
+        .send_string(&body);
+    match resp.status() {
+        200 => Ok(resp.into_json_deserialize().unwrap()),
+        _ => Err(resp.into_json_deserialize().unwrap()),
     }
 }
 
@@ -310,9 +287,9 @@ fn b2_get_upload_url(
 fn get_file_mimetype(filepath: &PathBuf) -> String {
     let extension = filepath.extension().unwrap_or_default().to_str().unwrap();
     match extension {
-        "zip" => return "application/zip".to_string(),
-        "txt" => return "text/plain".to_string(),
-        "" => return "text/plain".to_string(),
+        "zip" => "application/zip".to_string(),
+        "txt" => "text/plain".to_string(),
+        "" => "text/plain".to_string(),
         _ => {
             eprintln!(
                 "Unknown file extension ({}) needs a mime type defined, cannot upload",
@@ -320,12 +297,12 @@ fn get_file_mimetype(filepath: &PathBuf) -> String {
             );
             panic!();
         }
-    };
+    }
 }
 
 /// Uploads a file to b2 Backblaze, after getting an upload Url
 fn b2_upload_file(
-    client: &Client,
+    client: &Agent,
     url_response: &BackblazeGetUploadUrlResponse,
     file: &FileUploadInstance,
 ) -> Result<BackblazeUploadFileResponse, BackblazeErrorResponse> {
@@ -333,26 +310,22 @@ fn b2_upload_file(
     let percent_encoded_filename =
         percent_encode(file.relative_filename.as_bytes(), PERCENT_ENCODE_SET).to_string();
 
-    match client
+    let mut file_buf = vec![];
+    std::fs::File::open(&file.filepath).unwrap().read_to_end(&mut file_buf).unwrap();
+    let resp = client
         .post(&url_response.uploadUrl)
-        .header("Authorization", &url_response.authorizationToken)
-        .header("X-Bz-File-Name", &percent_encoded_filename)
-        .header("Content-Type", mime_type)
-        .header("Content-Length", file.filepath.metadata().unwrap().len())
-        .header("X-Bz-Content-Sha1", &file.sha1)
-        .body(std::fs::File::open(&file.filepath).unwrap())
-        .send()
-    {
-        Ok(resp) => match u16::from(resp.status()) {
-            200 => return Ok(serde_json::from_str(&resp.text().unwrap()).unwrap()),
-            _ => return Err(serde_json::from_str(&resp.text().unwrap()).unwrap()),
-        },
-        Err(e) => Err(BackblazeErrorResponse {
-            status: 0,
-            code: BackblazeErrorKind::SendError,
-            message: e.to_string(),
-        }),
+        .set("Authorization", &url_response.authorizationToken)
+        .set("X-Bz-File-Name", &percent_encoded_filename)
+        .set("Content-Type", &mime_type)
+        .set("Content-Length", &file.filepath.metadata().unwrap().len().to_string())
+        .set("X-Bz-Content-Sha1", &file.sha1)
+        .send_bytes(&file_buf);
+
+    match resp.status() {
+        200 => Ok(resp.into_json_deserialize().unwrap()),
+        _ => Err(resp.into_json_deserialize().unwrap()),
     }
+
 }
 
 fn populate_final_urls(auth: &BackblazeAuth, files: &mut Vec<FileUploadInstance>) {
@@ -422,7 +395,7 @@ pub fn upload_files_to_backblaze(
         }
     }
 
-    let client = reqwest::blocking::Client::new();
+    let mut client = Agent::new();
     let mut state = BackblazeUploadState::GetAuth;
     let mut container = BackbazeDataContainer::default();
     container.files = collect_file_upload_instances(file_subdirectory, filepaths);
@@ -439,7 +412,7 @@ pub fn upload_files_to_backblaze(
             return Err("Exhausted backblaze upload attempts!".to_string());
         }
         match state {
-            BackblazeUploadState::GetAuth => match authorize_cfg(&client) {
+            BackblazeUploadState::GetAuth => match authorize_cfg(&mut client) {
                 Ok(auth) => {
                     container.auth = Some(auth);
                     state = BackblazeUploadState::ListFileNames;
@@ -588,50 +561,55 @@ mod test {
     use crate::backblaze::b2_list_file_names;
     use crate::backblaze::upload_files_to_backblaze;
     use crate::util::fbh_save_dl_dir;
-    use reqwest::blocking::Client;
+    use ureq::Agent;
     use std::fs::OpenOptions;
+    use std::io::Read;
+    use std::io::Write;
+
     #[test]
     fn list_files() {
-        let client = Client::new();
-        let auth = authorize_test(&client).unwrap();
+        let mut client = Agent::new();
+        let auth = authorize_test(&mut client).unwrap();
         b2_list_file_names(&client, &auth, "").unwrap();
     }
+
     #[test]
     fn upload_file() {
-        match reqwest::blocking::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip") {
-            Ok(mut resp) => {
-                std::fs::create_dir_all(fbh_save_dl_dir()).unwrap();
-                let to_save_to_path = fbh_save_dl_dir().join("this-is-a-test-generated-name-ignore-it.zip");
+        let resp = ureq::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip").call();
 
-                let mut file = OpenOptions::new()
-                    .write(true)
-                    .create(true)
-                    .open(&to_save_to_path)
-                    .unwrap();
-                resp.copy_to(&mut file).unwrap();
-                let uploaded = upload_files_to_backblaze("", &[to_save_to_path.clone()]).unwrap();
-                assert!(uploaded.len() == 1);
-                let (k,v) = uploaded.iter().next().unwrap();
-                assert_eq!(k, &to_save_to_path);
-                assert_eq!(v, "https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip");
-                std::fs::remove_file(&to_save_to_path).unwrap();
-            },
-            Err(e) => panic!(e),
-        }
+        std::fs::create_dir_all(fbh_save_dl_dir()).unwrap();
+        let to_save_to_path = fbh_save_dl_dir().join("this-is-a-test-generated-name-ignore-it.zip");
+
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(&to_save_to_path)
+            .unwrap();
+        let mut buf = Vec::new();
+        resp.into_reader().read_to_end(&mut buf).unwrap();
+        file.write_all(&buf).unwrap();
+        let uploaded = upload_files_to_backblaze("", &[to_save_to_path.clone()]).unwrap();
+        assert!(uploaded.len() == 1);
+        let (k,v) = uploaded.iter().next().unwrap();
+        assert_eq!(k, &to_save_to_path);
+        assert_eq!(v, "https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip");
+        std::fs::remove_file(&to_save_to_path).unwrap();
     }
+
     #[test]
     fn test_percent_encodedness() {
-        let mut resp = reqwest::blocking::get(
+        let resp = ureq::get(
             "https://f000.backblazeb2.com/file/cargo-test/Spa+ce/new+file.txt",
-        )
-        .unwrap();
+        ).call();
         let newfilepath = std::env::current_dir().unwrap().join("new file.txt");
         let mut newfile = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .open(&newfilepath)
             .unwrap();
-        resp.copy_to(&mut newfile).unwrap();
+        let mut buf = Vec::new();
+        resp.into_reader().read_to_end(&mut buf).unwrap();
+        newfile.write_all(&buf).unwrap();
         let uploaded = upload_files_to_backblaze("Spa ce", &[newfilepath.clone()]).unwrap();
         assert!(uploaded.len() == 1);
         let (k, v) = uploaded.iter().next().unwrap();

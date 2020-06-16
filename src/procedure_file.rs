@@ -1,4 +1,3 @@
-extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
@@ -17,6 +16,9 @@ use std::fs::OpenOptions;
 use std::ops::Not;
 use std::path::PathBuf;
 use std::process::exit;
+use std::io::Read;
+use std::io::Write;
+
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct TopLevel {
@@ -159,23 +161,18 @@ pub fn update_master_json() {
 }
 
 fn perform_master_json_dl(file_to_write: &PathBuf) {
-    if let Ok(mut resp) = reqwest::blocking::get(
+    let resp = ureq::get(
         "https://raw.githubusercontent.com/mulark/factorio-benchmark-helper/master/master.json",
-    ) {
-        if resp.status() == 200 {
-            let mut file = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .open(file_to_write)
-                .unwrap();
-            match resp.copy_to(&mut file) {
-                Ok(_) => (),
-                Err(e) => {
-                    println!("Failed to write file to {:?}!", file);
-                    panic!(e);
-                }
-            }
-        }
+    ).call();
+    if resp.status() == 200 {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(file_to_write)
+            .unwrap();
+        let mut buf = Vec::new();
+        resp.into_reader().read_to_end(&mut buf).unwrap();
+        file.write_all(&buf).unwrap();
     }
 }
 

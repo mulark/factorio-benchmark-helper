@@ -269,7 +269,7 @@ fn try_parse_nonzero_u32(s: &str) -> Option<u32> {
     match s.parse::<u32>() {
         Ok(u) => {
             if u != 0 {
-                return Some(u);
+                Some(u)
             } else {
                 eprintln!("Parsed arg not allowd to be 0!");
                 exit(1);
@@ -279,7 +279,7 @@ fn try_parse_nonzero_u32(s: &str) -> Option<u32> {
             eprintln!("Failed to process --runs as u32");
             exit(1);
         }
-    };
+    }
 }
 
 #[cfg(test)]

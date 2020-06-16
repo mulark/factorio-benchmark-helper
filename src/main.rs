@@ -1,4 +1,3 @@
-#![allow(clippy::needless_return)]
 #[macro_use]
 extern crate lazy_static;
 extern crate bincode;
@@ -6,7 +5,6 @@ extern crate clap;
 extern crate directories;
 extern crate percent_encoding;
 extern crate regex;
-extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 extern crate sha2;

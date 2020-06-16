@@ -2,7 +2,6 @@ extern crate directories;
 extern crate ini;
 extern crate raw_cpuid;
 extern crate regex;
-extern crate reqwest;
 extern crate sha1;
 extern crate sha2;
 
@@ -79,10 +78,10 @@ pub fn download_benchmark_deps_parallel(sets: &HashMap<String, BenchmarkSet>) {
 fn generic_read_configuration_setting(file: PathBuf, key: &str) -> Option<String> {
     match Ini::load_from_file(file) {
         Ok(i) => {
-            return i.get_from::<String>(None, key).map(String::from);
+            i.get_from::<String>(None, key).map(String::from)
         }
-        Err(_e) => return None,
-    };
+        Err(_e) => None,
+    }
 }
 
 fn get_factorio_path() -> PathBuf {
