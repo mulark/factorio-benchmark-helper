@@ -36,8 +36,7 @@ mod util;
 use util::{
     add_options_and_parse, factorio_save_directory, get_mod_info, prompt_until_allowed_val,
     prompt_until_allowed_val_in_range, prompt_until_empty_str, read_benchmark_set_from_file,
-    write_benchmark_set_to_file, BenchmarkSet, ProcedureFileKind, ProcedureKind,
-    UserArgs,
+    write_benchmark_set_to_file, BenchmarkSet, ProcedureFileKind, ProcedureKind, UserArgs,
 };
 
 lazy_static! {

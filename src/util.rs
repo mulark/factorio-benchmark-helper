@@ -77,9 +77,7 @@ pub fn download_benchmark_deps_parallel(sets: &HashMap<String, BenchmarkSet>) {
 
 fn generic_read_configuration_setting(file: PathBuf, key: &str) -> Option<String> {
     match Ini::load_from_file(file) {
-        Ok(i) => {
-            i.get_from::<String>(None, key).map(String::from)
-        }
+        Ok(i) => i.get_from::<String>(None, key).map(String::from),
         Err(_e) => None,
     }
 }
@@ -109,7 +107,8 @@ fn get_factorio_path() -> PathBuf {
     } else if CONFIG_FILE_SETTINGS
         .factorio_path
         .as_ref()
-        .map(|x| x.is_dir()) == Some(true)
+        .map(|x| x.is_dir())
+        == Some(true)
     {
         CONFIG_FILE_SETTINGS
             .factorio_path
@@ -193,16 +192,12 @@ fn get_factorio_info() -> FactorioInfo {
         match i {
             1 => (info_holder.version = s.to_string()),
             4 => {
-                {
-                    info_holder.operating_system = s.to_string();
-                    info_holder.operating_system.pop();
-                }
+                info_holder.operating_system = s.to_string();
+                info_holder.operating_system.pop();
             }
             5 => {
-                {
-                    info_holder.platform = s.to_string();
-                    info_holder.platform.pop();
-                }
+                info_holder.platform = s.to_string();
+                info_holder.platform.pop();
             }
             _ => (),
         }

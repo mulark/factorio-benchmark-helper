@@ -2,10 +2,10 @@ use crate::performance_results::collection_data::Mod;
 use crate::util::sha1sum;
 use serde::Deserialize;
 use std::fs::{File, OpenOptions};
-use std::process::exit;
-use std::thread::JoinHandle;
 use std::io::Read;
 use std::io::Write;
+use std::process::exit;
+use std::thread::JoinHandle;
 
 use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory};
 

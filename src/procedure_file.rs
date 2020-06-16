@@ -13,12 +13,11 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::read;
 use std::fs::OpenOptions;
+use std::io::Read;
+use std::io::Write;
 use std::ops::Not;
 use std::path::PathBuf;
 use std::process::exit;
-use std::io::Read;
-use std::io::Write;
-
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct TopLevel {
@@ -163,7 +162,8 @@ pub fn update_master_json() {
 fn perform_master_json_dl(file_to_write: &PathBuf) {
     let resp = ureq::get(
         "https://raw.githubusercontent.com/mulark/factorio-benchmark-helper/master/master.json",
-    ).call();
+    )
+    .call();
     if resp.status() == 200 {
         let mut file = OpenOptions::new()
             .write(true)
@@ -271,11 +271,9 @@ pub fn write_benchmark_set_to_file(
             println!("Procedure already exists, overwrite?");
             match prompt_until_allowed_val(&["y".to_string(), "n".to_string()]).as_str() {
                 "y" => {
-                    {
-                        top_level.benchmark_sets.insert(name.to_string(), set);
-                        let j = serde_json::to_string_pretty(&top_level).unwrap();
-                        std::fs::write(procedure_file_path, j).unwrap();
-                    }
+                    top_level.benchmark_sets.insert(name.to_string(), set);
+                    let j = serde_json::to_string_pretty(&top_level).unwrap();
+                    std::fs::write(procedure_file_path, j).unwrap();
                 }
                 "n" => (),
                 _ => unreachable!("interactive answer not y or n, but how?"),

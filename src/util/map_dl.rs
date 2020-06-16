@@ -1,11 +1,11 @@
 use crate::util::{factorio_save_directory, fbh_save_dl_dir, sha256sum};
 use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;
+use std::io::Read;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::exit;
 use std::thread::JoinHandle;
-use std::io::Read;
-use std::io::Write;
 
 lazy_static! {
     static ref WHITELISTED_DOMAINS: Vec<String> = vec!(

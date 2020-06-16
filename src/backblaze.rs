@@ -5,12 +5,12 @@ use crate::util::config_file::CONFIG_FILE_SETTINGS;
 use crate::util::sha1sum;
 use percent_encoding::percent_encode;
 use percent_encoding::{AsciiSet, CONTROLS};
-use ureq::Agent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::PathBuf;
 use std::time::Duration;
-use std::io::Read;
+use ureq::Agent;
 
 const PERCENT_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 const B2_AUTHORIZE_ACCOUNT_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
@@ -248,7 +248,6 @@ fn b2_test_files_already_uploaded(
                 }
             }
         }
-
     }
     false
 }
@@ -311,13 +310,19 @@ fn b2_upload_file(
         percent_encode(file.relative_filename.as_bytes(), PERCENT_ENCODE_SET).to_string();
 
     let mut file_buf = vec![];
-    std::fs::File::open(&file.filepath).unwrap().read_to_end(&mut file_buf).unwrap();
+    std::fs::File::open(&file.filepath)
+        .unwrap()
+        .read_to_end(&mut file_buf)
+        .unwrap();
     let resp = client
         .post(&url_response.uploadUrl)
         .set("Authorization", &url_response.authorizationToken)
         .set("X-Bz-File-Name", &percent_encoded_filename)
         .set("Content-Type", &mime_type)
-        .set("Content-Length", &file.filepath.metadata().unwrap().len().to_string())
+        .set(
+            "Content-Length",
+            &file.filepath.metadata().unwrap().len().to_string(),
+        )
         .set("X-Bz-Content-Sha1", &file.sha1)
         .send_bytes(&file_buf);
 
@@ -325,7 +330,6 @@ fn b2_upload_file(
         200 => Ok(resp.into_json_deserialize().unwrap()),
         _ => Err(resp.into_json_deserialize().unwrap()),
     }
-
 }
 
 fn populate_final_urls(auth: &BackblazeAuth, files: &mut Vec<FileUploadInstance>) {
@@ -561,10 +565,10 @@ mod test {
     use crate::backblaze::b2_list_file_names;
     use crate::backblaze::upload_files_to_backblaze;
     use crate::util::fbh_save_dl_dir;
-    use ureq::Agent;
     use std::fs::OpenOptions;
     use std::io::Read;
     use std::io::Write;
+    use ureq::Agent;
 
     #[test]
     fn list_files() {
@@ -590,7 +594,7 @@ mod test {
         file.write_all(&buf).unwrap();
         let uploaded = upload_files_to_backblaze("", &[to_save_to_path.clone()]).unwrap();
         assert!(uploaded.len() == 1);
-        let (k,v) = uploaded.iter().next().unwrap();
+        let (k, v) = uploaded.iter().next().unwrap();
         assert_eq!(k, &to_save_to_path);
         assert_eq!(v, "https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip");
         std::fs::remove_file(&to_save_to_path).unwrap();
@@ -598,9 +602,8 @@ mod test {
 
     #[test]
     fn test_percent_encodedness() {
-        let resp = ureq::get(
-            "https://f000.backblazeb2.com/file/cargo-test/Spa+ce/new+file.txt",
-        ).call();
+        let resp =
+            ureq::get("https://f000.backblazeb2.com/file/cargo-test/Spa+ce/new+file.txt").call();
         let newfilepath = std::env::current_dir().unwrap().join("new file.txt");
         let mut newfile = std::fs::OpenOptions::new()
             .create(true)
