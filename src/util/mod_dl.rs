@@ -255,3 +255,17 @@ pub fn get_mod_info(mod_name: &str, mod_version: &str) -> Option<Mod> {
     }
     None
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn query_mod_portal() {
+        get_mod_info("region-cloner", "").unwrap();
+        let specific = get_mod_info("region-cloner", "1.2.6").unwrap();
+        assert_eq!(specific.version, "1.2.6");
+        assert_eq!(specific.file_name, "region-cloner_1.2.6.zip");
+        assert_eq!(specific.sha1, "71e40dea2bae8992a01a8a2a88b08220cdd13b48");
+    }
+}
