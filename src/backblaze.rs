@@ -156,7 +156,7 @@ fn authorize_test(mut client: &mut Agent) -> Result<BackblazeAuth, BackblazeErro
     let key_id = if vars.get("TRAVIS_CI_B2_KEYID").is_some() {
         vars.get("TRAVIS_CI_B2_KEYID").unwrap()
     } else {
-        &CONFIG_FILE_SETTINGS.travis_ci_b2_keyid
+        &CONFIG_FILE_SETTINGS.travis_ci_b2_key_id
     };
     let application_key = if vars.get("TRAVIS_CI_B2_APPLICATIONKEY").is_some() {
         vars.get("TRAVIS_CI_B2_APPLICATIONKEY").unwrap()
