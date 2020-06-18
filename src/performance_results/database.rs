@@ -317,13 +317,38 @@ fn create_tables_in_db(database: &Connection) {
 
 #[cfg(test)]
 mod test {
+    use crate::performance_results::database::upload_to_db;
+    use crate::performance_results::collection_data::BenchmarkData;
+    use std::collections::BTreeSet;
+    use crate::util::query_system_cpuid;
+    use crate::performance_results::collection_data::CollectionData;
     use super::print_results;
     use crate::performance_results::database::DB_CONNECTION;
 
     #[test]
     fn test_collection() {
+        let data = CollectionData {
+            benchmark_name: String::from("TEST"),
+            cpuid: query_system_cpuid(),
+            executable_type: "TEST".to_owned(),
+            factorio_version: "0.0.0".to_owned(),
+            os: "TEST".to_owned(),
+            mods: BTreeSet::new(),
+            benchmarks: vec![
+                BenchmarkData {
+                    map_hash: "".to_owned(),
+                    map_name: "TEST".to_owned(),
+                    runs: 1,
+                    ticks: 1,
+                    verbose_data: vec!["1,5000,3000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1".to_owned()],
+                }
+            ],
+        };
         let database = DB_CONNECTION.lock().unwrap();
         let collection_id = 1;
-        print_results(&database, collection_id).unwrap();
+        if print_results(&database, collection_id).is_err() {
+            upload_to_db(data);
+            print_results(&database, collection_id).unwrap();
+        }
     }
 }

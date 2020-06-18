@@ -48,5 +48,10 @@ pub struct BenchmarkData {
     pub runs: u32,
     pub ticks: u32,
     pub map_hash: String,
+    /// A vec of CSV rows
+    ///     tick,wholeUpdate,gameUpdate,circuitNetworkUpdate,transportLinesUpdate,
+    ///     fluidsUpdate,entityUpdate,mapGenerator,electricNetworkUpdate,logisticManagerUpdate,
+    ///     constructionManagerUpdate,pathFinder,trains,trainPathFinder,commander,chartRefresh,
+    ///     luaGarbageIncremental,chartUpdate,scriptUpdate,run_index
     pub verbose_data: Vec<String>,
 }
