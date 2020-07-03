@@ -176,7 +176,8 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
 
     if args.contains_key("meta") {
         arguments.run_meta = true;
-        arguments.meta_set_name = Some(args["meta"].vals[0].to_str().unwrap().trim().to_string());
+        arguments.meta_set_name =
+            Some(args["meta"].vals[0].to_str().unwrap().trim().to_string());
     }
 
     if args.contains_key("create-benchmark") {
@@ -191,7 +192,8 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
     }
 
     if args.contains_key("folder") {
-        let path = PathBuf::from(args["folder"].vals[0].to_str().unwrap().trim());
+        let path =
+            PathBuf::from(args["folder"].vals[0].to_str().unwrap().trim());
         if path.is_absolute() {
             arguments.folder = Some(path);
         } else if factorio_save_directory().join(&path).is_dir() {
@@ -200,7 +202,10 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
             if let Ok(path) = path.canonicalize() {
                 arguments.folder = Some(path);
             } else {
-                eprintln!("Could not resolve path {:?} to a valid folder", path);
+                eprintln!(
+                    "Could not resolve path {:?} to a valid folder",
+                    path
+                );
                 exit(1);
             }
         } else {
@@ -210,11 +215,13 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
     }
 
     if args.contains_key("ticks") {
-        arguments.ticks = try_parse_nonzero_u32(args["ticks"].vals[0].to_str().unwrap_or(""));
+        arguments.ticks =
+            try_parse_nonzero_u32(args["ticks"].vals[0].to_str().unwrap_or(""));
     }
 
     if args.contains_key("runs") {
-        arguments.runs = try_parse_nonzero_u32(args["runs"].vals[0].to_str().unwrap_or(""));
+        arguments.runs =
+            try_parse_nonzero_u32(args["runs"].vals[0].to_str().unwrap_or(""));
     }
 
     if args.contains_key("mods") {
@@ -243,9 +250,12 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
 
     if args.contains_key("commit") {
         arguments.commit_flag = true;
-        let commit_name = args["commit"].vals[1].to_str().unwrap().trim().to_string();
+        let commit_name =
+            args["commit"].vals[1].to_str().unwrap().trim().to_string();
         arguments.commit_name = Some(commit_name);
-        if let Ok(commit_type) = args["commit"].vals[0].to_str().unwrap().trim().parse() {
+        if let Ok(commit_type) =
+            args["commit"].vals[0].to_str().unwrap().trim().parse()
+        {
             arguments.commit_type = Some(commit_type);
         } else if arguments.interactive {
             println!("You failed to set a valid type from args, and are running interactively, enter a commit type. types: benchmark, meta");
@@ -299,7 +309,8 @@ mod test {
             String::from_utf8_lossy(&output.stdout),
             format!(
                 "{} {}\n",
-                FACTORIO_BENCHMARK_HELPER_NAME, FACTORIO_BENCHMARK_HELPER_VERSION
+                FACTORIO_BENCHMARK_HELPER_NAME,
+                FACTORIO_BENCHMARK_HELPER_VERSION
             )
         );
     }

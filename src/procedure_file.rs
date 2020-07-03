@@ -4,7 +4,9 @@ extern crate serde_json;
 use crate::performance_results::collection_data::Mod;
 use crate::util::fbh_cache_path;
 use crate::util::prompt_until_allowed_val;
-use crate::util::{fbh_procedure_json_local_file, fbh_procedure_json_master_file, Map};
+use crate::util::{
+    fbh_procedure_json_local_file, fbh_procedure_json_master_file, Map,
+};
 use core::str::FromStr;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -131,10 +133,14 @@ impl Not for ProcedureInteractive {
 }
 
 pub fn update_master_json() {
-    if let Some(orig_top_level) = load_top_level_from_file(&ProcedureFileKind::Master) {
+    if let Some(orig_top_level) =
+        load_top_level_from_file(&ProcedureFileKind::Master)
+    {
         let new = fbh_cache_path().join(".new.json");
         perform_master_json_dl(&new);
-        if let Some(new_top_level) = load_top_level_from_file(&ProcedureFileKind::Custom(new)) {
+        if let Some(new_top_level) =
+            load_top_level_from_file(&ProcedureFileKind::Custom(new))
+        {
             for (k, v) in new_top_level.benchmark_sets {
                 if orig_top_level.benchmark_sets.contains_key(&k) {
                     //println!("Automatically updating benchmark set {:?}", &k);
@@ -151,7 +157,12 @@ pub fn update_master_json() {
                 if orig_top_level.meta_sets.contains_key(&k) {
                     //println!("Automatically updating metaset {:?}", &k);
                 }
-                write_meta_to_file(&k, v, true.into(), ProcedureFileKind::Master);
+                write_meta_to_file(
+                    &k,
+                    v,
+                    true.into(),
+                    ProcedureFileKind::Master,
+                );
             }
         }
     } else {
@@ -180,24 +191,27 @@ fn load_top_level_from_file(file_type: &ProcedureFileKind) -> Option<TopLevel> {
     match file_type {
         ProcedureFileKind::Local => {
             if fbh_procedure_json_local_file().exists() {
-                let json: Option<TopLevel> =
-                    serde_json::from_slice(&read(fbh_procedure_json_local_file()).unwrap())
-                        .unwrap_or_default();
+                let json: Option<TopLevel> = serde_json::from_slice(
+                    &read(fbh_procedure_json_local_file()).unwrap(),
+                )
+                .unwrap_or_default();
                 return json;
             }
         }
         ProcedureFileKind::Master => {
             if fbh_procedure_json_master_file().exists() {
-                let json: Option<TopLevel> =
-                    serde_json::from_slice(&read(fbh_procedure_json_master_file()).unwrap())
-                        .unwrap_or_default();
+                let json: Option<TopLevel> = serde_json::from_slice(
+                    &read(fbh_procedure_json_master_file()).unwrap(),
+                )
+                .unwrap_or_default();
                 return json;
             }
         }
         ProcedureFileKind::Custom(p) => {
             if p.exists() {
                 let json: Option<TopLevel> =
-                    serde_json::from_slice(&read(p).unwrap()).unwrap_or_default();
+                    serde_json::from_slice(&read(p).unwrap())
+                        .unwrap_or_default();
                 return json;
             }
         }
@@ -216,7 +230,10 @@ impl FromStr for ProcedureKind {
     }
 }
 
-pub fn print_procedures(procedure_kind: ProcedureKind, file_kind: ProcedureFileKind) {
+pub fn print_procedures(
+    procedure_kind: ProcedureKind,
+    file_kind: ProcedureFileKind,
+) {
     let top_level = load_top_level_from_file(&file_kind);
     if let Some(t) = top_level {
         t.print_summary(procedure_kind)
@@ -269,7 +286,9 @@ pub fn write_benchmark_set_to_file(
     if top_level.benchmark_sets.contains_key(name) && force == false.into() {
         if interactive == ProcedureInteractive::True {
             println!("Procedure already exists, overwrite?");
-            match prompt_until_allowed_val(&["y".to_string(), "n".to_string()]).as_str() {
+            match prompt_until_allowed_val(&["y".to_string(), "n".to_string()])
+                .as_str()
+            {
                 "y" => {
                     top_level.benchmark_sets.insert(name.to_string(), set);
                     let j = serde_json::to_string_pretty(&top_level).unwrap();
@@ -292,7 +311,10 @@ pub fn write_benchmark_set_to_file(
     }
 }
 
-pub fn read_meta_from_file(name: &str, file_kind: ProcedureFileKind) -> Option<BTreeSet<String>> {
+pub fn read_meta_from_file(
+    name: &str,
+    file_kind: ProcedureFileKind,
+) -> Option<BTreeSet<String>> {
     match load_top_level_from_file(&file_kind) {
         Some(m) => {
             if m.meta_sets.contains_key(name) {
@@ -340,7 +362,12 @@ pub fn get_sets_from_meta(
     let mut current_sets = HashMap::new();
     let mut seen_keys = Vec::new();
     let top_level = load_top_level_from_file(&source).unwrap();
-    walk_meta_recursive_for_benchmarks(meta_set_key, &top_level, &mut seen_keys, &mut current_sets);
+    walk_meta_recursive_for_benchmarks(
+        meta_set_key,
+        &top_level,
+        &mut seen_keys,
+        &mut current_sets,
+    );
     current_sets
 }
 
@@ -363,7 +390,8 @@ fn walk_meta_recursive_for_benchmarks(
             }
         }
         if top_level.benchmark_sets.contains_key(&key) {
-            current_benchmark_sets.insert(key.clone(), top_level.benchmark_sets[&key].to_owned());
+            current_benchmark_sets
+                .insert(key.clone(), top_level.benchmark_sets[&key].to_owned());
         }
     }
 }
@@ -393,7 +421,12 @@ fn walk_meta_recursive_for_metas(
     if !seen_keys.contains(&key) && top_level.meta_sets.contains_key(&key) {
         seen_keys.push(key.clone());
         for k in &top_level.meta_sets[&key] {
-            walk_meta_recursive_for_metas(k.to_string(), &top_level, seen_keys, current_meta_sets);
+            walk_meta_recursive_for_metas(
+                k.to_string(),
+                &top_level,
+                seen_keys,
+                current_meta_sets,
+            );
         }
         current_meta_sets.push(key);
     }

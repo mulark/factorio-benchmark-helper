@@ -46,7 +46,9 @@ pub fn fbh_procedure_json_local_file() -> PathBuf {
 
 pub fn fbh_data_path() -> PathBuf {
     //Data paths for this program, not Factorio
-    if let Some(projdir) = ProjectDirs::from("", "", "factorio-benchmark-helper") {
+    if let Some(projdir) =
+        ProjectDirs::from("", "", "factorio-benchmark-helper")
+    {
         projdir.data_dir().to_path_buf()
     } else {
         match std::env::current_dir() {

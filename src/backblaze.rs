@@ -12,8 +12,10 @@ use std::path::PathBuf;
 use std::time::Duration;
 use ureq::Agent;
 
-const PERCENT_ENCODE_SET: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
-const B2_AUTHORIZE_ACCOUNT_URL: &str = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
+const PERCENT_ENCODE_SET: &AsciiSet =
+    &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
+const B2_AUTHORIZE_ACCOUNT_URL: &str =
+    "https://api.backblazeb2.com/b2api/v2/b2_authorize_account";
 
 /// A container holding the pieces unique to each file necessary to upload it to Backblaze.
 #[derive(Clone, Default, Debug)]
@@ -151,7 +153,9 @@ enum BackblazeUploadState {
 /// or within the config.ini file under the same name.
 /// These fields are not written to the config.ini file normally,
 /// but will be carried over to future config file versions.
-fn authorize_test(mut client: &mut Agent) -> Result<BackblazeAuth, BackblazeErrorResponse> {
+fn authorize_test(
+    mut client: &mut Agent,
+) -> Result<BackblazeAuth, BackblazeErrorResponse> {
     let vars = std::env::vars().collect::<HashMap<String, String>>();
     let key_id = if vars.get("TRAVIS_CI_B2_KEYID").is_some() {
         vars.get("TRAVIS_CI_B2_KEYID").unwrap()
@@ -167,7 +171,9 @@ fn authorize_test(mut client: &mut Agent) -> Result<BackblazeAuth, BackblazeErro
 }
 
 /// Authorize with Backblaze API using keys found within config.ini
-fn authorize_cfg(mut client: &mut Agent) -> Result<BackblazeAuth, BackblazeErrorResponse> {
+fn authorize_cfg(
+    mut client: &mut Agent,
+) -> Result<BackblazeAuth, BackblazeErrorResponse> {
     if cfg!(test) {
         return authorize_test(&mut client);
     }
@@ -212,7 +218,8 @@ fn b2_list_file_names(
     body.maxFileCount = 1000;
     body.prefix = file_subdirectory.to_string();
     let body = serde_json::to_string(&body).unwrap();
-    let api_url_cmd = format!("{}{}", &auth.apiUrl, "/b2api/v2/b2_list_file_names");
+    let api_url_cmd =
+        format!("{}{}", &auth.apiUrl, "/b2api/v2/b2_list_file_names");
 
     let resp = client
         .post(&api_url_cmd)
@@ -268,7 +275,8 @@ fn b2_get_upload_url(
     client: &Agent,
     auth: &BackblazeAuth,
 ) -> Result<BackblazeGetUploadUrlResponse, BackblazeErrorResponse> {
-    let api_url_cmd = format!("{}{}", &auth.apiUrl, "/b2api/v2/b2_get_upload_url");
+    let api_url_cmd =
+        format!("{}{}", &auth.apiUrl, "/b2api/v2/b2_get_upload_url");
     let body = format!("{{\"bucketId\":\"{}\"}}", auth.allowed.bucketId);
 
     let resp = client
@@ -307,7 +315,8 @@ fn b2_upload_file(
 ) -> Result<BackblazeUploadFileResponse, BackblazeErrorResponse> {
     let mime_type = get_file_mimetype(&file.filepath);
     let percent_encoded_filename =
-        percent_encode(file.relative_filename.as_bytes(), PERCENT_ENCODE_SET).to_string();
+        percent_encode(file.relative_filename.as_bytes(), PERCENT_ENCODE_SET)
+            .to_string();
 
     let mut file_buf = vec![];
     std::fs::File::open(&file.filepath)
@@ -332,7 +341,10 @@ fn b2_upload_file(
     }
 }
 
-fn populate_final_urls(auth: &BackblazeAuth, files: &mut Vec<FileUploadInstance>) {
+fn populate_final_urls(
+    auth: &BackblazeAuth,
+    files: &mut Vec<FileUploadInstance>,
+) {
     for mut file in files {
         file.final_url = b2_download_url(auth, &file.relative_filename);
     }
@@ -365,7 +377,10 @@ fn get_relative_filename(subdir: &str, filename: &str) -> String {
     }
 }
 
-fn collect_file_upload_instances(subdir: &str, filepaths: &[PathBuf]) -> Vec<FileUploadInstance> {
+fn collect_file_upload_instances(
+    subdir: &str,
+    filepaths: &[PathBuf],
+) -> Vec<FileUploadInstance> {
     let mut instances = Vec::new();
     for file in filepaths {
         let mut instance = FileUploadInstance::default();
@@ -402,7 +417,8 @@ pub fn upload_files_to_backblaze(
     let mut client = Agent::new();
     let mut state = BackblazeUploadState::GetAuth;
     let mut container = BackbazeDataContainer::default();
-    container.files = collect_file_upload_instances(file_subdirectory, filepaths);
+    container.files =
+        collect_file_upload_instances(file_subdirectory, filepaths);
 
     let mut path_Url_pairs = Vec::new();
 
@@ -422,7 +438,10 @@ pub fn upload_files_to_backblaze(
                     state = BackblazeUploadState::ListFileNames;
                 }
                 Err(e) => {
-                    return Err(format!("Failed to authenticate with backblaze {:?}", e));
+                    return Err(format!(
+                        "Failed to authenticate with backblaze {:?}",
+                        e
+                    ));
                 }
             },
             BackblazeUploadState::ListFileNames => {
@@ -441,7 +460,10 @@ pub fn upload_files_to_backblaze(
                         println!("{:?}", err_resp);
                         match err_resp.status {
                             400 => {
-                                return Err(format!("Unrecoverable uploading error {:?}", err_resp))
+                                return Err(format!(
+                                    "Unrecoverable uploading error {:?}",
+                                    err_resp
+                                ))
                             }
                             401 => {
                                 state = BackblazeUploadState::GetAuth;
@@ -449,13 +471,19 @@ pub fn upload_files_to_backblaze(
                             503 => {
                                 std::thread::sleep(Duration::from_millis(1000));
                             }
-                            _ => unreachable!("Recieved an impossible status {}", err_resp.status),
+                            _ => unreachable!(
+                                "Recieved an impossible status {}",
+                                err_resp.status
+                            ),
                         }
                     }
                 }
             }
             BackblazeUploadState::TestIfAlreadyUploaded => {
-                populate_final_urls(&container.auth.as_ref().unwrap(), &mut container.files);
+                populate_final_urls(
+                    &container.auth.as_ref().unwrap(),
+                    &mut container.files,
+                );
                 b2_test_files_already_uploaded(
                     &client,
                     &mut container.files,
@@ -474,7 +502,10 @@ pub fn upload_files_to_backblaze(
                         println!("{:?}", err_resp);
                         match err_resp.status {
                             400 => {
-                                return Err(format!("Unrecoverable uploading error {:?}", err_resp))
+                                return Err(format!(
+                                    "Unrecoverable uploading error {:?}",
+                                    err_resp
+                                ))
                             }
                             401 => {
                                 state = BackblazeUploadState::GetAuth;
@@ -483,7 +514,10 @@ pub fn upload_files_to_backblaze(
                                 std::thread::sleep(Duration::from_millis(1000));
                                 state = BackblazeUploadState::GetAuth;
                             }
-                            _ => unreachable!("Recieved an impossible status {}", err_resp.status),
+                            _ => unreachable!(
+                                "Recieved an impossible status {}",
+                                err_resp.status
+                            ),
                         }
                     }
                 }
@@ -491,12 +525,21 @@ pub fn upload_files_to_backblaze(
             BackblazeUploadState::Upload => {
                 for file in &container.files {
                     if file.already_uploaded {
-                        path_Url_pairs.push((file.filepath.clone(), file.final_url.clone()));
+                        path_Url_pairs.push((
+                            file.filepath.clone(),
+                            file.final_url.clone(),
+                        ));
                     } else {
-                        match b2_upload_file(&client, &file.get_upload_url_response, &file) {
+                        match b2_upload_file(
+                            &client,
+                            &file.get_upload_url_response,
+                            &file,
+                        ) {
                             Ok(_upload_resp) => {
-                                path_Url_pairs
-                                    .push((file.filepath.clone(), file.final_url.clone()));
+                                path_Url_pairs.push((
+                                    file.filepath.clone(),
+                                    file.final_url.clone(),
+                                ));
                             }
                             Err(err_resp) => {
                                 attempts += 1;
@@ -582,7 +625,8 @@ mod test {
         let resp = ureq::get("https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip").call();
 
         std::fs::create_dir_all(fbh_save_dl_dir()).unwrap();
-        let to_save_to_path = fbh_save_dl_dir().join("this-is-a-test-generated-name-ignore-it.zip");
+        let to_save_to_path = fbh_save_dl_dir()
+            .join("this-is-a-test-generated-name-ignore-it.zip");
 
         let mut file = OpenOptions::new()
             .write(true)
@@ -592,7 +636,8 @@ mod test {
         let mut buf = Vec::new();
         resp.into_reader().read_to_end(&mut buf).unwrap();
         file.write_all(&buf).unwrap();
-        let uploaded = upload_files_to_backblaze("", &[to_save_to_path.clone()]).unwrap();
+        let uploaded =
+            upload_files_to_backblaze("", &[to_save_to_path.clone()]).unwrap();
         assert!(uploaded.len() == 1);
         let (k, v) = uploaded.iter().next().unwrap();
         assert_eq!(k, &to_save_to_path);
@@ -602,8 +647,10 @@ mod test {
 
     #[test]
     fn test_percent_encodedness() {
-        let resp =
-            ureq::get("https://f000.backblazeb2.com/file/cargo-test/Spa+ce/new+file.txt").call();
+        let resp = ureq::get(
+            "https://f000.backblazeb2.com/file/cargo-test/Spa+ce/new+file.txt",
+        )
+        .call();
         let newfilepath = std::env::current_dir().unwrap().join("new file.txt");
         let mut newfile = std::fs::OpenOptions::new()
             .create(true)
@@ -613,7 +660,9 @@ mod test {
         let mut buf = Vec::new();
         resp.into_reader().read_to_end(&mut buf).unwrap();
         newfile.write_all(&buf).unwrap();
-        let uploaded = upload_files_to_backblaze("Spa ce", &[newfilepath.clone()]).unwrap();
+        let uploaded =
+            upload_files_to_backblaze("Spa ce", &[newfilepath.clone()])
+                .unwrap();
         assert!(uploaded.len() == 1);
         let (k, v) = uploaded.iter().next().unwrap();
         assert_eq!(k, &newfilepath);

@@ -6,8 +6,9 @@ use crate::performance_results::collection_data::Mod;
 use crate::performance_results::database::upload_to_db;
 
 use crate::util::{
-    download_benchmark_deps_parallel, fbh_mod_dl_dir, fbh_mod_use_dir, fbh_save_dl_dir,
-    get_executable_path, query_system_cpuid, BenchmarkSet, FACTORIO_INFO,
+    download_benchmark_deps_parallel, fbh_mod_dl_dir, fbh_mod_use_dir,
+    fbh_save_dl_dir, get_executable_path, query_system_cpuid, BenchmarkSet,
+    FACTORIO_INFO,
 };
 use regex::Regex;
 use std::collections::BTreeSet;
@@ -91,13 +92,21 @@ impl Default for BenchmarkDurationOverhead {
     }
 }
 
-fn parse_logline_time_to_f64(find_match_in_this_str: &str, regex: Regex) -> Option<f64> {
+fn parse_logline_time_to_f64(
+    find_match_in_this_str: &str,
+    regex: Regex,
+) -> Option<f64> {
     match regex.captures(find_match_in_this_str) {
         Some(x) => {
-            match GENERIC_NUMERIC_TIMESTAMP_PATTERN.captures(&x[0]).unwrap()[0].parse::<f64>() {
+            match GENERIC_NUMERIC_TIMESTAMP_PATTERN.captures(&x[0]).unwrap()[0]
+                .parse::<f64>()
+            {
                 Ok(y) => Some(y),
                 Err(e) => {
-                    eprintln!("Internal error occurred, could not parse {} to a f64!", e);
+                    eprintln!(
+                        "Internal error occurred, could not parse {} to a f64!",
+                        e
+                    );
                     None
                 }
             }
@@ -148,21 +157,31 @@ fn parse_stdout_for_benchmark_time_breakdown(
     ticks: u32,
     runs: u32,
 ) -> Option<BenchmarkDurationOverhead> {
-    let mut benchmark_time: BenchmarkDurationOverhead = BenchmarkDurationOverhead::default();
-    benchmark_time.initialization_time =
-        parse_logline_time_to_f64(bench_data_stdout, INITIALIZATION_TIME_PATTERN.clone())?;
-    benchmark_time.per_tick_time =
-        parse_logline_time_to_f64(bench_data_stdout, PER_TICK_TIME_PATTERN.clone())?;
-    benchmark_time.overall_time =
-        parse_logline_time_to_f64(bench_data_stdout, TOTAL_TIME_PATTERN.clone())?;
-    let time_spent_in_benchmarks = benchmark_time.overall_time - benchmark_time.initialization_time;
+    let mut benchmark_time: BenchmarkDurationOverhead =
+        BenchmarkDurationOverhead::default();
+    benchmark_time.initialization_time = parse_logline_time_to_f64(
+        bench_data_stdout,
+        INITIALIZATION_TIME_PATTERN.clone(),
+    )?;
+    benchmark_time.per_tick_time = parse_logline_time_to_f64(
+        bench_data_stdout,
+        PER_TICK_TIME_PATTERN.clone(),
+    )?;
+    benchmark_time.overall_time = parse_logline_time_to_f64(
+        bench_data_stdout,
+        TOTAL_TIME_PATTERN.clone(),
+    )?;
+    let time_spent_in_benchmarks =
+        benchmark_time.overall_time - benchmark_time.initialization_time;
     if time_spent_in_benchmarks <= 0.0 {
         return None;
     } else {
         //ticks are in ms, convert to sec
-        let tick_cumulative_time_per_run = benchmark_time.per_tick_time * f64::from(ticks) / 1000.0;
-        benchmark_time.per_run_overhead_time =
-            (time_spent_in_benchmarks / f64::from(runs)) - tick_cumulative_time_per_run;
+        let tick_cumulative_time_per_run =
+            benchmark_time.per_tick_time * f64::from(ticks) / 1000.0;
+        benchmark_time.per_run_overhead_time = (time_spent_in_benchmarks
+            / f64::from(runs))
+            - tick_cumulative_time_per_run;
     }
     Some(benchmark_time)
 }
@@ -235,10 +254,12 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     let mut expected_total_benchmarking_run_overhead = 0.0;
     for a_duration in map_durations {
         expected_total_tick_time +=
-            a_duration.per_tick_time * f64::from(set.ticks) / 1000.0 * f64::from(set.runs);
+            a_duration.per_tick_time * f64::from(set.ticks) / 1000.0
+                * f64::from(set.runs);
         expected_total_benchmarking_run_overhead +=
             a_duration.per_run_overhead_time * f64::from(set.runs);
-        expected_total_game_initialization_time += a_duration.initialization_time;
+        expected_total_game_initialization_time +=
+            a_duration.initialization_time;
     }
     let expected_total_duration = expected_total_tick_time
         + expected_total_game_initialization_time
@@ -247,13 +268,20 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     let hrs = (expected_total_duration / 3600.0) as u64;
     let mins = ((expected_total_duration % 3600.0) / 60.0) as u64;
     let secs = (expected_total_duration % 3600.0) % 60.0;
-    println!("Measured overhead: ticks {:.*}s, runs {:.*}s, initialization {:.*}s",
-        3, expected_total_tick_time,
-        3, expected_total_benchmarking_run_overhead,
-        3, expected_total_game_initialization_time,
-
+    println!(
+        "Measured overhead: ticks {:.*}s, runs {:.*}s, initialization {:.*}s",
+        3,
+        expected_total_tick_time,
+        3,
+        expected_total_benchmarking_run_overhead,
+        3,
+        expected_total_game_initialization_time,
     );
-    println!("Benchmark efficiency ({:.*}%)", 3, (expected_total_tick_time/expected_total_duration)*100.0);
+    println!(
+        "Benchmark efficiency ({:.*}%)",
+        3,
+        (expected_total_tick_time / expected_total_duration) * 100.0
+    );
 
     // 0 pad 2 characters if no decimals wanted
     // 0 pad 6 characters for 3 decimal place seconds, since '.' counts as a character too.
@@ -325,8 +353,10 @@ fn run_benchmark_single_map(
         }
     }
 
-    let bench_data_stdout_raw = String::from_utf8_lossy(&run_bench_cmd.stdout).replace("\r", "");
-    let regex = &Regex::new(params.path.file_name().unwrap().to_str().unwrap()).unwrap();
+    let bench_data_stdout_raw =
+        String::from_utf8_lossy(&run_bench_cmd.stdout).replace("\r", "");
+    let regex = &Regex::new(params.path.file_name().unwrap().to_str().unwrap())
+        .unwrap();
     let captures = regex.captures(&bench_data_stdout_raw);
     let bench_data_stdout = match captures {
         Some(m) => bench_data_stdout_raw.replace(&m[0], "\n"),
@@ -334,8 +364,13 @@ fn run_benchmark_single_map(
     };
     parse_stdout_for_errors(&bench_data_stdout);
 
-    let benchmark_times = if params.persist_data_to_db == PersistDataToDB::False {
-        parse_stdout_for_benchmark_time_breakdown(&bench_data_stdout, params.ticks, params.runs)
+    let benchmark_times = if params.persist_data_to_db == PersistDataToDB::False
+    {
+        parse_stdout_for_benchmark_time_breakdown(
+            &bench_data_stdout,
+            params.ticks,
+            params.runs,
+        )
     } else {
         None
     };
@@ -343,7 +378,8 @@ fn run_benchmark_single_map(
     let mut run_index = 0;
     let mut line_index = 0;
 
-    let mut verbose_data: Vec<String> = Vec::with_capacity((params.ticks * params.runs) as usize);
+    let mut verbose_data: Vec<String> =
+        Vec::with_capacity((params.ticks * params.runs) as usize);
     for line in bench_data_stdout.lines() {
         let mut line: String = line.to_string();
         if params.persist_data_to_db == PersistDataToDB::True

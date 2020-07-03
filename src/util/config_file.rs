@@ -22,7 +22,8 @@ pub struct ForwardCompatibilityConfigSettings {
     pub travis_ci_b2_applicationkey: String,
 }
 
-pub fn load_forward_compatiblity_config_settings() -> ForwardCompatibilityConfigSettings {
+pub fn load_forward_compatiblity_config_settings(
+) -> ForwardCompatibilityConfigSettings {
     let mut settings = ForwardCompatibilityConfigSettings::default();
     settings.use_steam_version = true;
     if !fbh_config_file().is_file() {

@@ -14,21 +14,24 @@ use std::ops::Range;
 use std::process::exit;
 mod fbh_paths;
 pub use fbh_paths::{
-    fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir, fbh_mod_use_dir,
-    fbh_procedure_json_local_file, fbh_procedure_json_master_file, fbh_results_database,
-    fbh_save_dl_dir, initialize,
+    fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir,
+    fbh_mod_use_dir, fbh_procedure_json_local_file,
+    fbh_procedure_json_master_file, fbh_results_database, fbh_save_dl_dir,
+    initialize,
 };
 use sha2::Digest;
 use std::fs::File;
 use std::io::Read;
 
 pub mod config_file;
-pub use config_file::{fbh_write_config_file, load_forward_compatiblity_config_settings};
+pub use config_file::{
+    fbh_write_config_file, load_forward_compatiblity_config_settings,
+};
 
 pub use crate::procedure_file::{
     print_all_procedures, read_benchmark_set_from_file, read_meta_from_file,
-    write_benchmark_set_to_file, write_meta_to_file, BenchmarkSet, ProcedureFileKind,
-    ProcedureKind,
+    write_benchmark_set_to_file, write_meta_to_file, BenchmarkSet,
+    ProcedureFileKind, ProcedureKind,
 };
 use directories::BaseDirs;
 use ini::Ini;
@@ -47,8 +50,10 @@ pub use common::*;
 lazy_static! {
     #[derive(Debug)]
     pub static ref FACTORIO_INFO: FactorioInfo = get_factorio_info();
-    static ref FACTORIO_EXECUTABLE_VERSION_LINE: Regex = Regex::new(r"Version: \d{1,2}\.\d{1,3}\.\d{1,3}.*\n").unwrap();
-    //If Factorio ever goes to 3/4/4 digits for their versioning, this will break.
+    static ref FACTORIO_EXECUTABLE_VERSION_LINE: Regex
+            = Regex::new(r"Version: \d{1,2}\.\d{1,3}\.\d{1,3}.*\n").unwrap();
+    // If Factorio ever goes to 3/4/4 digits for their versioning, this will
+    // break.
 }
 
 pub fn download_benchmark_deps_parallel(sets: &HashMap<String, BenchmarkSet>) {
@@ -61,21 +66,28 @@ pub fn download_benchmark_deps_parallel(sets: &HashMap<String, BenchmarkSet>) {
         }
         mods.sort();
         mods.dedup();
-        fetch_mod_deps_parallel(&mods, &mut handles);
+        handles.extend(fetch_mod_deps_parallel(&mods));
 
         for indiv_map in set.maps.clone() {
             maps.push(indiv_map)
         }
         maps.sort();
         maps.dedup();
-        fetch_map_deps_parallel(&maps, &mut handles, set.save_subdirectory.clone());
+        fetch_map_deps_parallel(
+            &maps,
+            &mut handles,
+            set.save_subdirectory.clone(),
+        );
     }
     for handle in handles {
         handle.join().expect("");
     }
 }
 
-fn generic_read_configuration_setting(file: PathBuf, key: &str) -> Option<String> {
+fn generic_read_configuration_setting(
+    file: PathBuf,
+    key: &str,
+) -> Option<String> {
     match Ini::load_from_file(file) {
         Ok(i) => i.get_from::<String>(None, key).map(String::from),
         Err(_e) => None,
@@ -136,11 +148,13 @@ pub fn get_executable_path() -> PathBuf {
 
 fn get_factorio_rw_directory() -> PathBuf {
     let ini_path = get_factorio_path().join("config-path.cfg");
-    let use_system_rw_directories: bool =
-        generic_read_configuration_setting(ini_path, "use-system-read-write-directories")
-            .unwrap_or_default()
-            .parse::<bool>()
-            .unwrap_or(true);
+    let use_system_rw_directories: bool = generic_read_configuration_setting(
+        ini_path,
+        "use-system-read-write-directories",
+    )
+    .unwrap_or_default()
+    .parse::<bool>()
+    .unwrap_or(true);
     if use_system_rw_directories {
         if cfg!(target_os = "linux") {
             // ~/.factorio/
@@ -242,7 +256,9 @@ pub fn query_system_cpuid() -> String {
         .as_ref()
         .map_or_else(
             || "n/a",
-            |extfuninfo| extfuninfo.processor_brand_string().unwrap_or("unreadable"),
+            |extfuninfo| {
+                extfuninfo.processor_brand_string().unwrap_or("unreadable")
+            },
         )
         .trim()
         .to_string()
@@ -306,7 +322,9 @@ pub fn prompt_until_empty_str(allow_first_empty: bool) -> String {
     }
 }
 
-pub fn prompt_until_allowed_val<T: FromStr + PartialEq + Debug>(allowed_vals: &[T]) -> T {
+pub fn prompt_until_allowed_val<T: FromStr + PartialEq + Debug>(
+    allowed_vals: &[T],
+) -> T {
     let mut input = String::new();
     loop {
         input.clear();
@@ -326,7 +344,9 @@ pub fn prompt_until_allowed_val<T: FromStr + PartialEq + Debug>(allowed_vals: &[
     }
 }
 
-pub fn prompt_until_allowed_val_in_range<T: FromStr + PartialEq + PartialOrd + Debug>(
+pub fn prompt_until_allowed_val_in_range<
+    T: FromStr + PartialEq + PartialOrd + Debug,
+>(
     range: Range<T>,
 ) -> T {
     let mut input = String::new();

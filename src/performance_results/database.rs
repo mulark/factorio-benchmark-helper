@@ -124,7 +124,8 @@ pub fn upload_to_db(collection_data: CollectionData) {
     }
     let mut transacter = database.transaction().unwrap();
 
-    let collection_header = "name,factorio_version,platform,executable_type,cpuid";
+    let collection_header =
+        "name,factorio_version,platform,executable_type,cpuid";
     let csv_collection = format!(
         "{:?},{:?},{:?},{:?},{:?}",
         collection_data.benchmark_name,
@@ -173,7 +174,11 @@ pub fn upload_to_db(collection_data: CollectionData) {
         let save_point = transacter.savepoint().unwrap();
         let csv_benchmark = format!(
             "{:?},{:?},{:?},{:?},{:?}",
-            benchmark.map_name, benchmark.runs, benchmark.ticks, benchmark.map_hash, collection_id,
+            benchmark.map_name,
+            benchmark.runs,
+            benchmark.ticks,
+            benchmark.map_hash,
+            collection_id,
         );
         let combined_sql = format!(
             "INSERT INTO benchmark({}) VALUES ({});",
@@ -240,7 +245,8 @@ fn print_results(
     assert!(!ids_to_collect.is_empty());
 
     let mut pivot_statement = String::new();
-    pivot_statement.push_str(&format!("SELECT id{}.tick_number,\n", ids_to_collect[0].0));
+    pivot_statement
+        .push_str(&format!("SELECT id{}.tick_number,\n", ids_to_collect[0].0));
     for id in &ids_to_collect {
         pivot_statement.push_str(&format!(
             "id{}.wholeUpdate as [{}.wholeUpdate],\n",
@@ -317,13 +323,13 @@ fn create_tables_in_db(database: &Connection) {
 
 #[cfg(test)]
 mod test {
-    use crate::performance_results::database::upload_to_db;
-    use crate::performance_results::collection_data::BenchmarkData;
-    use std::collections::BTreeSet;
-    use crate::util::query_system_cpuid;
-    use crate::performance_results::collection_data::CollectionData;
     use super::print_results;
+    use crate::performance_results::collection_data::BenchmarkData;
+    use crate::performance_results::collection_data::CollectionData;
+    use crate::performance_results::database::upload_to_db;
     use crate::performance_results::database::DB_CONNECTION;
+    use crate::util::query_system_cpuid;
+    use std::collections::BTreeSet;
 
     #[test]
     fn test_collection() {
@@ -334,15 +340,15 @@ mod test {
             factorio_version: "0.0.0".to_owned(),
             os: "TEST".to_owned(),
             mods: BTreeSet::new(),
-            benchmarks: vec![
-                BenchmarkData {
-                    map_hash: "".to_owned(),
-                    map_name: "TEST".to_owned(),
-                    runs: 1,
-                    ticks: 1,
-                    verbose_data: vec!["1,5000,3000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1".to_owned()],
-                }
-            ],
+            benchmarks: vec![BenchmarkData {
+                map_hash: "".to_owned(),
+                map_name: "TEST".to_owned(),
+                runs: 1,
+                ticks: 1,
+                verbose_data: vec![
+                    "1,5000,3000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1".to_owned(),
+                ],
+            }],
         };
         let database = DB_CONNECTION.lock().unwrap();
         let collection_id = 1;

@@ -151,7 +151,9 @@ fn download_save(save_name: &str, url: String, to_save_to_path: &PathBuf) {
                 }
             }
         }
-        if let Err(e) = std::fs::create_dir_all(&to_save_to_path.parent().unwrap()) {
+        if let Err(e) =
+            std::fs::create_dir_all(&to_save_to_path.parent().unwrap())
+        {
             eprintln!("Could not create nested subdirectories in the Factorio Benchmark Helper cache directory");
             eprintln!("{}", e);
             exit(1);

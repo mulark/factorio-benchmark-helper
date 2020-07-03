@@ -5,6 +5,7 @@ use std::fs::{File, OpenOptions};
 use std::io::Read;
 use std::io::Write;
 use std::process::exit;
+use std::sync::Arc;
 use std::thread::JoinHandle;
 
 use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory};
@@ -44,18 +45,23 @@ impl User {
 }
 
 //TODO make work with same mod but 2 diff versions
-pub fn fetch_mod_deps_parallel(mods: &[Mod], mut handles: &mut Vec<JoinHandle<()>>) {
+pub fn fetch_mod_deps_parallel(mods: &[Mod]) -> Vec<JoinHandle<()>> {
     let mut user_data: User = User::default();
-    let maybe_playerdata_json_file = get_factorio_rw_directory().join("player-data.json");
+    let maybe_playerdata_json_file =
+        get_factorio_rw_directory().join("player-data.json");
     if maybe_playerdata_json_file.is_file() {
         if let Ok(file) = File::open(maybe_playerdata_json_file) {
             user_data = serde_json::from_reader(file).unwrap();
         }
     }
+    let user_data = Arc::new(user_data);
     let mut unique_mods: Vec<Mod> = mods.to_owned();
-    //Only attempt to download unique mods from the sets. Skip base mod as it's special for vanilla.
+    // Only attempt to download unique mods from the sets. Skip base mod as it's
+    // special for vanilla.
     unique_mods.sort();
     unique_mods.dedup();
+
+    let mut handles = Vec::new();
 
     let mut filename;
     for m in unique_mods {
@@ -81,7 +87,7 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod], mut handles: &mut Vec<JoinHandle<()
         if computed_sha1 != m.sha1 || computed_sha1 == "" {
             if !user_data.token.is_empty() && !user_data.username.is_empty() {
                 // if the mod isn't found or its hash doesn't match the one we have on file, download it.
-                fetch_single_mod(&user_data, filename, m, &mut handles);
+                handles.push(fetch_single_mod(user_data.clone(), filename, m));
             } else {
                 eprintln!("Couldn't read playerdata.json for service-username or service-token, downloading mods from the mod portal is not possible.");
                 eprintln!(
@@ -94,22 +100,22 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod], mut handles: &mut Vec<JoinHandle<()
             println!("Mod already up to date: {}", m.name);
         }
     }
+
+    handles
 }
 
 fn fetch_single_mod(
-    user_data: &User,
+    user_data: Arc<User>,
     filename: String,
     mut m: Mod,
-    handles: &mut Vec<JoinHandle<()>>,
-) {
-    let token = user_data.token.clone();
-    let username = user_data.username.clone();
-    handles.push(std::thread::spawn(move || {
+) -> JoinHandle<()> {
+    std::thread::spawn(move || {
         println!("Downloading Mod: {}", filename);
         let mod_url = format!("{}{}", MOD_PORTAL_API_URL, m.name);
         let resp = ureq::get(&mod_url).call();
 
-        let meta_info_response = resp.into_json_deserialize::<ModMetaInfoHolder>().unwrap();
+        let meta_info_response =
+            resp.into_json_deserialize::<ModMetaInfoHolder>().unwrap();
 
         if m.version.is_empty() {
             for release in &meta_info_response.releases {
@@ -118,11 +124,14 @@ fn fetch_single_mod(
         }
         for release in meta_info_response.releases {
             if release.version == m.version {
-                assert!(!username.is_empty());
-                assert!(!token.is_empty());
+                assert!(!user_data.username.is_empty());
+                assert!(!user_data.token.is_empty());
                 let dl_req = format!(
                     "{}{}?username={}&token={}",
-                    MOD_PORTAL_URL, release.download_url, username, token
+                    MOD_PORTAL_URL,
+                    release.download_url,
+                    user_data.username,
+                    user_data.token
                 );
 
                 let resp = ureq::get(&dl_req).call();
@@ -159,12 +168,16 @@ fn fetch_single_mod(
                         resp.status()
                     );
                 };
-                let newly_dl_mod_sha1 = sha1sum(&fbh_mod_dl_dir().join(&release.file_name));
+                let newly_dl_mod_sha1 =
+                    sha1sum(&fbh_mod_dl_dir().join(&release.file_name));
                 if m.sha1 == "" {
                     m.sha1 = newly_dl_mod_sha1.clone();
                 }
                 if newly_dl_mod_sha1 != m.sha1 {
-                    eprintln!("Recently downloaded mod {} hash mismatch!", m.name);
+                    eprintln!(
+                        "Recently downloaded mod {} hash mismatch!",
+                        m.name
+                    );
                     eprintln!("sha1 in config: {}", m.sha1);
                     eprintln!("sha1 of downloaded mod: {}", newly_dl_mod_sha1);
                 }
@@ -172,7 +185,7 @@ fn fetch_single_mod(
                 break;
             }
         }
-    }));
+    })
 }
 
 fn compare_version_str(vers1: &str, vers2: &str) -> String {
@@ -225,7 +238,9 @@ pub fn get_mod_info(mod_name: &str, mod_version: &str) -> Option<Mod> {
     let resp = ureq::get(&mod_url).call();
     if resp.status() == 200 {
         println!("Found mod: {}", mod_name);
-        if let Ok(meta_info_response) = resp.into_json_deserialize::<ModMetaInfoHolder>() {
+        if let Ok(meta_info_response) =
+            resp.into_json_deserialize::<ModMetaInfoHolder>()
+        {
             if mod_version.is_empty() {
                 println!("Getting latest version...");
                 mod_v = get_latest_mod_version(meta_info_response.clone());
@@ -233,7 +248,8 @@ pub fn get_mod_info(mod_name: &str, mod_version: &str) -> Option<Mod> {
             for release in meta_info_response.releases {
                 if release.version == mod_v {
                     println!("Succesfully found mod {}", release.file_name);
-                    let mod_name = release.file_name.split('_').collect::<Vec<_>>()[0];
+                    let mod_name =
+                        release.file_name.split('_').collect::<Vec<_>>()[0];
                     return Some(Mod {
                         name: mod_name.to_string(),
                         file_name: release.file_name,

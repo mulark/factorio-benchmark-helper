@@ -34,13 +34,16 @@ use benchmark_runner::run_benchmarks_multiple;
 mod procedure_file;
 mod util;
 use util::{
-    add_options_and_parse, factorio_save_directory, get_mod_info, prompt_until_allowed_val,
-    prompt_until_allowed_val_in_range, prompt_until_empty_str, read_benchmark_set_from_file,
-    write_benchmark_set_to_file, BenchmarkSet, ProcedureFileKind, ProcedureKind, UserArgs,
+    add_options_and_parse, factorio_save_directory, get_mod_info,
+    prompt_until_allowed_val, prompt_until_allowed_val_in_range,
+    prompt_until_empty_str, read_benchmark_set_from_file,
+    write_benchmark_set_to_file, BenchmarkSet, ProcedureFileKind,
+    ProcedureKind, UserArgs,
 };
 
 lazy_static! {
-    static ref MOD_VERSION_MATCHER: Regex = Regex::new(r"_\{1,3}.\{1,4}.\{1,4}").unwrap();
+    static ref MOD_VERSION_MATCHER: Regex =
+        Regex::new(r"_\{1,3}.\{1,4}.\{1,4}").unwrap();
 }
 
 fn main() {
@@ -67,7 +70,10 @@ fn execute_from_args(mut args: &mut UserArgs) {
     {
         if args.interactive {
             println!("Choose a suitable course of action.");
-            println!("1: Commit a benchmark or meta set to the master.json file from the local.json file.");
+            println!(
+                "1: Commit a benchmark or meta set to the master.json file \
+                from the local.json file."
+            );
             println!("2: Run a benchmark.");
             println!("3: Run a metabenchmark.");
             println!("4: Create a new benchmark.");
@@ -83,11 +89,16 @@ fn execute_from_args(mut args: &mut UserArgs) {
                 }
             }
         } else {
-            eprintln!("You provided args but didn't pick commit/benchmark/meta/create-benchmark/create-meta or interactive!");
+            eprintln!(
+                "You provided args but didn't pick \
+                    commit/benchmark/meta/create-benchmark/create-meta or \
+		            interactive!"
+            );
             eprintln!("Without one of these options there's nothing to do.");
             exit(1);
         }
     }
+
     if args.commit_flag {
         perform_commit(&mut args);
     } else if args.run_benchmark {
@@ -108,7 +119,10 @@ fn perform_commit(args: &mut UserArgs) {
         if args.commit_type.is_none() {
             if args.interactive {
                 println!("Interactively committing to master.json");
-                println!("Please enter the type of set you wish to commit to the master.json file. Allowed values: benchmark, meta");
+                println!(
+                    "Please enter the type of set you wish to commit to \
+		                  the master.json file. Allowed values: benchmark, meta"
+                );
                 args.commit_type = Some(prompt_until_allowed_val(&[
                     ProcedureKind::Benchmark,
                     ProcedureKind::Meta,
@@ -154,13 +168,21 @@ fn perform_commit(args: &mut UserArgs) {
             exit(1);
         }
     } else if commit_type == &ProcedureKind::Meta {
-        if let Some(meta_set) = read_meta_from_file(commit_name, ProcedureFileKind::Local) {
+        if let Some(meta_set) =
+            read_meta_from_file(commit_name, ProcedureFileKind::Local)
+        {
             if args.commit_recursive {
-                println!("Selected recursive, committing all members of this meta");
-                let meta_sets =
-                    get_metas_from_meta(commit_name.to_string(), ProcedureFileKind::Local);
-                let benchmark_sets =
-                    get_sets_from_meta(commit_name.to_string(), ProcedureFileKind::Local);
+                println!(
+                    "Selected recursive, committing all members of this meta"
+                );
+                let meta_sets = get_metas_from_meta(
+                    commit_name.to_string(),
+                    ProcedureFileKind::Local,
+                );
+                let benchmark_sets = get_sets_from_meta(
+                    commit_name.to_string(),
+                    ProcedureFileKind::Local,
+                );
                 for (name, set) in benchmark_sets {
                     write_benchmark_set_to_file(
                         &name,
@@ -171,7 +193,9 @@ fn perform_commit(args: &mut UserArgs) {
                     )
                 }
                 for meta in meta_sets {
-                    if let Some(members) = read_meta_from_file(&meta, ProcedureFileKind::Local) {
+                    if let Some(members) =
+                        read_meta_from_file(&meta, ProcedureFileKind::Local)
+                    {
                         write_meta_to_file(
                             &meta,
                             members,
@@ -198,7 +222,9 @@ fn perform_commit(args: &mut UserArgs) {
     }
 }
 
-fn convert_args_to_benchmark_run(args: &mut UserArgs) -> HashMap<String, BenchmarkSet> {
+fn convert_args_to_benchmark_run(
+    args: &mut UserArgs,
+) -> HashMap<String, BenchmarkSet> {
     if args.benchmark_set_name.is_none() {
         if args.interactive {
             println!("Available benchmarks to run: ");
@@ -206,7 +232,9 @@ fn convert_args_to_benchmark_run(args: &mut UserArgs) -> HashMap<String, Benchma
             println!("Enter name of a benchmark you wish to run.");
             prompt_until_empty_str(false);
         } else {
-            unreachable!("Cannot have gotten here without interactive or --benchmark");
+            unreachable!(
+                "Cannot have gotten here without interactive or --benchmark"
+            );
         }
     }
     let name = args.benchmark_set_name.as_ref().unwrap().to_owned();
@@ -214,8 +242,7 @@ fn convert_args_to_benchmark_run(args: &mut UserArgs) -> HashMap<String, Benchma
     let local = read_benchmark_set_from_file(&name, ProcedureFileKind::Local);
     let master = read_benchmark_set_from_file(&name, ProcedureFileKind::Master);
     if local.is_some() || master.is_some() {
-        if local.is_some() && master.is_some() && local.clone().unwrap() != master.clone().unwrap()
-        {
+        if master.is_some() && local.is_some() && master != local {
             println!("WARN: benchmark with name {:?} is present in both local and master, and they differ.", &name);
             println!("WARN: benchmark is being ran from master.json");
         }
@@ -228,12 +255,14 @@ fn convert_args_to_benchmark_run(args: &mut UserArgs) -> HashMap<String, Benchma
     }
 }
 
-fn convert_args_to_meta_benchmark_runs(args: &UserArgs) -> HashMap<String, BenchmarkSet> {
+fn convert_args_to_meta_benchmark_runs(
+    args: &UserArgs,
+) -> HashMap<String, BenchmarkSet> {
     let name = args.meta_set_name.as_ref().unwrap().to_owned();
     let local = read_meta_from_file(&name, ProcedureFileKind::Local);
     let master = read_meta_from_file(&name, ProcedureFileKind::Master);
     if local.is_some() || master.is_some() {
-        if local.is_some() && master.is_some() && local.unwrap() != master.clone().unwrap() {
+        if local.is_some() && master.is_some() && local != master {
             println!("WARN: meta set with name {:?} is present in both local and master, and they differ.", &name);
             println!("WARN: meta set is being ran from master.json");
         }
@@ -262,10 +291,14 @@ fn create_benchmark_from_args(args: &UserArgs) {
     if args.benchmark_set_name.is_some() {
         set_name = args.benchmark_set_name.as_ref().unwrap().clone();
     } else if args.interactive {
-        println!("No benchmark set name was defined, enter a benchmark set name.");
+        println!(
+            "No benchmark set name was defined, enter a benchmark set name."
+        );
         set_name = prompt_until_empty_str(false);
     } else {
-        unreachable!("Failed to create a benchmark set because no name was defined!");
+        unreachable!(
+            "Failed to create a benchmark set because no name was defined!"
+        );
     }
 
     if args.folder.is_some() {
@@ -324,7 +357,8 @@ fn create_benchmark_from_args(args: &UserArgs) {
 
     println!("Attempting upload to Backblaze-b2...");
 
-    let save_subdirectory = benchmark.save_subdirectory.clone().unwrap_or_default();
+    let save_subdirectory =
+        benchmark.save_subdirectory.clone().unwrap_or_default();
     let subdir = save_subdirectory.to_str().unwrap().to_owned();
     match upload_files_to_backblaze(&subdir, &map_paths) {
         Ok(uploaded_files) => {
@@ -396,8 +430,10 @@ fn slice_mods_from_csv(s: &str) -> Vec<(String, String)> {
             mod_version = "".to_string();
             vals.push((mod_name, mod_version));
         } else {
-            mod_name = sliced_indiv_mod[0..(sliced_indiv_mod.len() - 1)].join("_");
-            mod_version = sliced_indiv_mod[sliced_indiv_mod.len() - 1].to_string();
+            mod_name =
+                sliced_indiv_mod[0..(sliced_indiv_mod.len() - 1)].join("_");
+            mod_version =
+                sliced_indiv_mod[sliced_indiv_mod.len() - 1].to_string();
             vals.push((mod_name, mod_version));
         }
     }
@@ -407,10 +443,14 @@ fn slice_mods_from_csv(s: &str) -> Vec<(String, String)> {
 fn handle_map_dl_links(args: &UserArgs, benchmark: &mut BenchmarkSet) {
     if args.interactive {
         println!("Specify map downloads individually?");
-        if prompt_until_allowed_val(&["y".to_string(), "n".to_string()]) == "y" {
+        if prompt_until_allowed_val(&["y".to_string(), "n".to_string()]) == "y"
+        {
             let mut maps_to_update = Vec::new();
             for map in &mut benchmark.maps.iter() {
-                println!("Please enter a download link for the file {}", map.name);
+                println!(
+                    "Please enter a download link for the file {}",
+                    map.name
+                );
                 let dl_link = prompt_until_empty_str(true);
                 let mut map2 = map.clone();
                 map2.download_link = dl_link;
@@ -436,10 +476,12 @@ fn create_meta_from_args(args: &UserArgs) {
         unreachable!("Meta set name was none, and interactive mode was off!");
     }
     if args.meta_set_members.is_some() {
-        meta_set_members = slice_members_from_csv(&args.meta_set_members.as_ref().unwrap());
+        meta_set_members =
+            slice_members_from_csv(&args.meta_set_members.as_ref().unwrap());
     } else if args.interactive {
         println!("Enter a comma separated list of benchmark/meta sets.");
-        meta_set_members = slice_members_from_csv(&prompt_until_empty_str(false));
+        meta_set_members =
+            slice_members_from_csv(&prompt_until_empty_str(false));
     }
     if meta_set_members.is_empty() {
         eprintln!("No members contained within this meta set!");
@@ -498,7 +540,10 @@ fn move_maps_to_cache(paths: &[PathBuf], subdir: &Option<PathBuf>) {
         let parent = dest_path.parent().unwrap();
         if !parent.exists() {
             if let Err(e) = std::fs::create_dir_all(parent) {
-                eprintln!("Couldn't create a subdirectory {:?} due to {:?}", parent, e);
+                eprintln!(
+                    "Couldn't create a subdirectory {:?} due to {:?}",
+                    parent, e
+                );
                 exit(1);
             }
         }
