@@ -71,6 +71,11 @@ pub fn add_options_and_parse() -> UserArgs {
         .setting(AppSettings::StrictUtf8)
         .version_short("v")
         .arg(
+            Arg::with_name("regression-test")
+                .long("regression-test")
+                .help("Performs a regression test")
+        )
+        .arg(
             Arg::with_name("list")
                 .long("list")
                 .help("List available benchmark/meta sets")

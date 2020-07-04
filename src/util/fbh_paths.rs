@@ -23,6 +23,12 @@ pub fn initialize() -> Result<(), std::io::Error> {
     if !fbh_procedure_directory().exists() {
         std::fs::create_dir(fbh_procedure_directory())?;
     }
+    if !fbh_regression_testing_dir().exists() {
+        std::fs::create_dir(fbh_regression_testing_dir())?;
+    }
+    if !fbh_regression_headless_storage().exists() {
+        std::fs::create_dir(fbh_regression_headless_storage())?;
+    }
     // Will write config file with forward compatibility if needed
     fbh_write_config_file()?;
     if !fbh_results_database().exists() {
@@ -80,4 +86,12 @@ pub fn fbh_save_dl_dir() -> PathBuf {
 
 pub fn fbh_config_file() -> PathBuf {
     fbh_data_path().join("config.ini")
+}
+
+pub fn fbh_regression_testing_dir() -> PathBuf {
+    fbh_data_path().join("regression-testing").join("")
+}
+
+pub fn fbh_regression_headless_storage() -> PathBuf {
+    fbh_regression_testing_dir().join("headless").join("")
 }

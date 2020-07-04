@@ -26,6 +26,9 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::exit;
 
+#[cfg(target_os = "linux")]
+mod regression_tester;
+
 mod backblaze;
 
 mod benchmark_runner;

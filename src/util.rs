@@ -16,8 +16,8 @@ mod fbh_paths;
 pub use fbh_paths::{
     fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir,
     fbh_mod_use_dir, fbh_procedure_json_local_file,
-    fbh_procedure_json_master_file, fbh_results_database, fbh_save_dl_dir,
-    initialize,
+    fbh_procedure_json_master_file, fbh_regression_headless_storage,
+    fbh_results_database, fbh_save_dl_dir, initialize,
 };
 use sha2::Digest;
 use std::fs::File;
@@ -43,6 +43,9 @@ mod mod_dl;
 pub use mod_dl::{fetch_mod_deps_parallel, get_mod_info};
 mod map_dl;
 pub use map_dl::{fetch_map_deps_parallel, Map};
+
+mod factorio_version;
+pub use factorio_version::FactorioVersion;
 
 pub mod common;
 pub use common::*;
