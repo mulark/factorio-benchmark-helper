@@ -86,6 +86,12 @@ pub enum ProcedureOverwrite {
     False,
 }
 
+impl Default for ProcedureOverwrite {
+    fn default() -> Self {
+        ProcedureOverwrite::False
+    }
+}
+
 impl From<bool> for ProcedureOverwrite {
     fn from(b: bool) -> ProcedureOverwrite {
         if b {

@@ -1,4 +1,6 @@
 //! Downloading Factorio installs based on available headless versions.
+//! Not all previously released versions may be available in the future.
+//! Inquires Factorio.com for the lastest versions.
 
 use crate::util::fbh_regression_headless_storage;
 use crate::util::FactorioVersion;
@@ -63,6 +65,8 @@ fn get_local_headless_versions() -> Vec<FactorioVersion> {
     versions
 }
 
+/// Download a single Factorio version from the Factorio website.
+/// Does not require any authentication for headless version of Factorio.
 fn download_single_version(client: &Agent, url_segment: &str) {
     for i in 1..=3 {
         let combined_url = format!("{}{}", FACTORIO_BASE_URL, url_segment);
@@ -100,6 +104,8 @@ fn download_single_version(client: &Agent, url_segment: &str) {
     }
 }
 
+/// Download the Factorio versions that are available remotely but not present
+/// locally.
 fn download_nonlocal_versions(client: &Agent) {
     let remote_versions_available = get_downloadable_headless_versions(&client);
     let local_versions = get_local_headless_versions();

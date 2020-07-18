@@ -8,7 +8,7 @@ use std::process::exit;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
-use crate::util::{fbh_mod_dl_dir, get_factorio_rw_directory};
+use crate::util::{fbh_mod_dl_dir, factorio_rw_directory};
 
 const MOD_PORTAL_URL: &str = "https://mods.factorio.com";
 const MOD_PORTAL_API_URL: &str = "https://mods.factorio.com/api/mods/";
@@ -48,7 +48,7 @@ impl User {
 pub fn fetch_mod_deps_parallel(mods: &[Mod]) -> Vec<JoinHandle<()>> {
     let mut user_data: User = User::default();
     let maybe_playerdata_json_file =
-        get_factorio_rw_directory().join("player-data.json");
+        factorio_rw_directory().join("player-data.json");
     if maybe_playerdata_json_file.is_file() {
         if let Ok(file) = File::open(maybe_playerdata_json_file) {
             user_data = serde_json::from_reader(file).unwrap();
@@ -89,11 +89,15 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod]) -> Vec<JoinHandle<()>> {
                 // if the mod isn't found or its hash doesn't match the one we have on file, download it.
                 handles.push(fetch_single_mod(user_data.clone(), filename, m));
             } else {
-                eprintln!("Couldn't read playerdata.json for service-username or service-token, downloading mods from the mod portal is not possible.");
+                eprintln!("Couldn't read playerdata.json for service-username \
+                    or service-token, downloading mods from the mod portal is\
+                     not possible.");
                 eprintln!(
                     "If using the steam version try launching the game, and exiting normally once."
                 );
-                eprintln!("Presently running a benchmark on the Steam version causes the playerdata.json file to get overwritten until you run non-headlessly again.");
+                eprintln!("Presently running a benchmark on the Steam version \
+                    causes the playerdata.json file to get overwritten until you \
+                    run non-headlessly again.");
                 exit(1);
             }
         } else {

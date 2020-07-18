@@ -16,7 +16,7 @@ mod fbh_paths;
 pub use fbh_paths::{
     fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir,
     fbh_mod_use_dir, fbh_procedure_json_local_file,
-    fbh_procedure_json_master_file, fbh_regression_headless_storage,
+    fbh_procedure_json_master_file, fbh_regression_headless_storage, fbh_regression_testing_dir,
     fbh_results_database, fbh_save_dl_dir, initialize,
 };
 use sha2::Digest;
@@ -97,7 +97,7 @@ fn generic_read_configuration_setting(
     }
 }
 
-fn get_factorio_path() -> PathBuf {
+fn factorio_path() -> PathBuf {
     if CONFIG_FILE_SETTINGS.use_steam_version {
         let base_dir = BaseDirs::new().unwrap();
         if cfg!(target_os = "linux") {
@@ -138,19 +138,16 @@ fn get_factorio_path() -> PathBuf {
     }
 }
 
-pub fn get_executable_path() -> PathBuf {
+pub fn factorio_executable_path() -> PathBuf {
     if cfg!(target_os = "linux") {
-        get_factorio_path().join("bin").join("x64").join("factorio")
+        factorio_path().join("bin").join("x64").join("factorio")
     } else {
-        get_factorio_path()
-            .join("bin")
-            .join("x64")
-            .join("factorio.exe")
+        factorio_path().join("bin").join("x64").join("factorio.exe")
     }
 }
 
-fn get_factorio_rw_directory() -> PathBuf {
-    let ini_path = get_factorio_path().join("config-path.cfg");
+fn factorio_rw_directory() -> PathBuf {
+    let ini_path = factorio_path().join("config-path.cfg");
     let use_system_rw_directories: bool = generic_read_configuration_setting(
         ini_path,
         "use-system-read-write-directories",
@@ -175,12 +172,12 @@ fn get_factorio_rw_directory() -> PathBuf {
                 .join("")
         }
     } else {
-        get_factorio_path()
+        factorio_path()
     }
 }
 
 pub fn factorio_save_directory() -> PathBuf {
-    get_factorio_rw_directory().join("saves").join("")
+    factorio_rw_directory().join("saves").join("")
 }
 
 #[derive(Default, Clone)]
@@ -194,7 +191,7 @@ fn get_factorio_info() -> FactorioInfo {
     //Don't call this, use FACTORIO_VERSION instead
     let line = FACTORIO_EXECUTABLE_VERSION_LINE
         .captures(&String::from_utf8_lossy(
-            &std::process::Command::new(get_executable_path())
+            &std::process::Command::new(factorio_executable_path())
                 .arg("--version")
                 .output()
                 .expect("")

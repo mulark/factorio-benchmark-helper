@@ -10,10 +10,12 @@ use clap::{App, AppSettings, Arg};
 use std::path::PathBuf;
 use std::process::exit;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct UserArgs {
     pub interactive: bool,
     pub overwrite: ProcedureOverwrite,
+
+    pub regression_test: bool,
 
     pub run_benchmark: bool,
     pub create_benchmark: bool,
@@ -33,34 +35,6 @@ pub struct UserArgs {
     pub commit_name: Option<String>,
     pub commit_type: Option<ProcedureKind>,
     pub commit_recursive: bool,
-}
-
-impl Default for UserArgs {
-    fn default() -> UserArgs {
-        UserArgs {
-            interactive: false,
-            overwrite: false.into(),
-
-            run_benchmark: false,
-            create_benchmark: false,
-            benchmark_set_name: None,
-
-            ticks: None,
-            runs: None,
-            folder: None,
-            mods_dirty: None,
-
-            run_meta: false,
-            create_meta: false,
-            meta_set_name: None,
-            meta_set_members: None,
-
-            commit_flag: false,
-            commit_name: None,
-            commit_type: None,
-            commit_recursive: false,
-        }
-    }
 }
 
 pub fn add_options_and_parse() -> UserArgs {
@@ -163,6 +137,11 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
     if args.contains_key("overwrite") {
         arguments.overwrite = true.into();
     }
+
+    if args.contains_key("regression-test") {
+        arguments.regression_test = true;
+    }
+
     if args.contains_key("list") {
         print_all_procedures();
         exit(0);
