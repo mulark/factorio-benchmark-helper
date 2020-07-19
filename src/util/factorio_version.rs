@@ -1,41 +1,29 @@
 //! Structure for easily comparing different Factorio versions
-
-use serde::de::Visitor;
-use serde::Deserialize;
-use serde::Deserializer;
 use serde::Serialize;
-use serde::Serializer;
+use serde::Deserialize;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
+use std::convert::TryInto;
 
 /// A Factorio version consisting of a major, minor and patch version
-#[derive(Debug, Clone)]
+#[serde(into = "String")]
+#[serde(try_from = "&str")]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, Default, Serialize, Deserialize)]
 pub struct FactorioVersion {
     pub major: u16,
     pub minor: u16,
     pub patch: u16,
 }
 
-struct FactorioVersionVisitor;
-
-impl<'de> Visitor<'de> for FactorioVersionVisitor {
-    type Value = FactorioVersion;
-    fn expecting(
-        &self,
-        formatter: &mut std::fmt::Formatter<'_>,
-    ) -> Result<(), std::fmt::Error> {
-        formatter.write_str("")
+impl FactorioVersion {
+    fn is_known(&self) -> bool {
+        self == &("0.0.0".try_into().unwrap())
     }
+}
 
-    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        if let Ok(ret) = FactorioVersion::try_from(s) {
-            Ok(ret)
-        } else {
-            Err(E::custom("Could not deserialize FactorioVersion"))
-        }
+impl Into<String> for FactorioVersion {
+    fn into(self) -> String {
+        self.to_string()
     }
 }
 
@@ -49,24 +37,6 @@ impl FactorioVersion {
     }
 }
 
-impl Serialize for FactorioVersion {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.to_string())
-    }
-}
-
-impl<'de> Deserialize<'de> for FactorioVersion {
-    fn deserialize<D>(deserializer: D) -> Result<FactorioVersion, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_str(FactorioVersionVisitor)
-    }
-}
-
 impl core::fmt::Display for FactorioVersion {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
@@ -74,11 +44,11 @@ impl core::fmt::Display for FactorioVersion {
 }
 
 impl TryFrom<&str> for FactorioVersion {
-    type Error = ();
+    type Error = String;
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         let splits = s.split('.').collect::<Vec<_>>();
         if splits.len() != 3 {
-            return Err(());
+            return Err("Incorrect number of periods present in version string".to_owned());
         }
         let splits = splits.iter().map(|x| x.parse()).collect::<Vec<_>>();
         if splits.iter().all(|x| x.is_ok()) {
@@ -92,16 +62,8 @@ impl TryFrom<&str> for FactorioVersion {
                 patch: splits[2],
             })
         } else {
-            Err(())
+            Err("Unparseable/non-numeric data found within version subsection!".to_owned())
         }
-    }
-}
-
-impl PartialEq for FactorioVersion {
-    fn eq(&self, other: &FactorioVersion) -> bool {
-        self.major == other.major
-            && self.minor == other.minor
-            && self.patch == other.patch
     }
 }
 
