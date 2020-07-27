@@ -20,6 +20,9 @@ bincode = "*"
 percent-encoding = "2.*"
 assert_cmd = "*"
 ureq = {version = "1.2", features = ["json"]}
+megabase_index_incrementer = {version = "*", git="https://github.com/technicalfactorio/technicalfactorio.git", default-features=false}
+rust-lzma = "*"
+tar = "*"
 
 [profile.release]
 debug = 1

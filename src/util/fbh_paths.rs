@@ -95,3 +95,7 @@ pub fn fbh_regression_testing_dir() -> PathBuf {
 pub fn fbh_regression_headless_storage() -> PathBuf {
     fbh_regression_testing_dir().join("headless").join("")
 }
+
+pub fn fbh_unpacked_headless_storage() -> PathBuf {
+    fbh_regression_testing_dir().join("unpacked").join("")
+}

@@ -5,6 +5,8 @@ extern crate regex;
 extern crate sha1;
 extern crate sha2;
 
+use std::path::Path;
+use crate::util::args::MINIFY_SAVES;
 use crate::util::config_file::CONFIG_FILE_SETTINGS;
 use core::fmt::Debug;
 use core::str::FromStr;
@@ -17,7 +19,7 @@ pub use fbh_paths::{
     fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir,
     fbh_mod_use_dir, fbh_procedure_json_local_file,
     fbh_procedure_json_master_file, fbh_regression_headless_storage, fbh_regression_testing_dir,
-    fbh_results_database, fbh_save_dl_dir, initialize,
+    fbh_results_database, fbh_save_dl_dir, initialize, fbh_unpacked_headless_storage
 };
 use sha2::Digest;
 use std::fs::File;
@@ -43,9 +45,6 @@ mod mod_dl;
 pub use mod_dl::{fetch_mod_deps_parallel, get_mod_info};
 mod map_dl;
 pub use map_dl::{fetch_map_deps_parallel, Map};
-
-mod factorio_version;
-pub use factorio_version::FactorioVersion;
 
 pub mod common;
 pub use common::*;
@@ -225,7 +224,7 @@ pub fn sha1sum(file_path: &PathBuf) -> String {
         .to_string()
 }
 
-pub fn sha256sum(file_path: &PathBuf) -> String {
+pub fn sha256sum<P: AsRef<Path>>(file_path: P) -> String {
     let mut f = File::open(file_path).unwrap();
     let mut buf = Vec::new();
     f.read_to_end(&mut buf).unwrap();
@@ -398,8 +397,11 @@ fn path_of_7z_install() -> Option<PathBuf> {
     found_path
 }
 
-/// Now a misnomer that means: remove the preview image from the zip file
 pub fn delete_preview_image_from_save(save: &PathBuf) {
+    if !MINIFY_SAVES.load(std::sync::atomic::Ordering::SeqCst) {
+        println!("Skipping preview image deletion, it --minify not found.");
+        return;
+    }
     if save.exists() {
         if let Some(ext) = save.extension() {
             if ext == "zip" {

@@ -2,8 +2,10 @@
 //! Not all previously released versions may be available in the future.
 //! Inquires Factorio.com for the lastest versions.
 
+use std::path::PathBuf;
+use crate::util::fbh_unpacked_headless_storage;
 use crate::util::fbh_regression_headless_storage;
-use crate::util::FactorioVersion;
+use megabase_index_incrementer::FactorioVersion;
 use std::convert::TryFrom;
 use std::io::Read;
 use std::time::Duration;
@@ -33,36 +35,30 @@ fn get_downloadable_headless_versions(
 }
 
 /// Gets the locally downloaded versions of the headless version of Factorio for
-/// regression testing.
-fn get_local_headless_versions() -> Vec<FactorioVersion> {
+/// regression testing. Returns a tuple of the FactorioVersion and the path of
+/// the tar file of the headless version
+fn get_local_headless_versions() -> Result<Vec<(FactorioVersion, PathBuf)>, std::io::Error> {
     let mut versions = vec![];
-    if let Ok(entries) = std::fs::read_dir(fbh_regression_headless_storage()) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.is_file() {
-                    let filename = path.file_name().unwrap().to_string_lossy();
-                    if filename.starts_with("factorio_headless_x64_")
-                        && (filename.ends_with(".tar.gz")
-                            || filename.ends_with(".tar.xz"))
-                    {
-                        // These must be the files, probably
-                        // remove ext
-                        let strip = filename.split(".tar").next().unwrap();
-                        // remove prefix
-                        let strip = strip.replace("factorio_headless_x64_", "");
 
-                        let version = FactorioVersion::try_from(strip.as_ref());
-                        if let Ok(version) = version {
-                            versions.push(version);
-                        }
-                    }
-                }
-            }
-        }
+    let rd_dir = std::fs::read_dir(&fbh_regression_headless_storage())?;
+    for entry in rd_dir {
+        let entry = entry?;
+        let fname = entry.file_name();
+        let fname = fname.to_string_lossy();
+        let prefix_removed = fname.replace("factorio_headless_x64_", "");
+        let splits = prefix_removed.split('.').collect::<Vec<_>>();
+        let major = splits[0].parse().unwrap_or_default();
+        let minor = splits[1].parse().unwrap_or_default();
+        let patch = splits[2].parse().unwrap_or_default();
+        let parsed_fv = FactorioVersion {
+            major,
+            minor,
+            patch
+        };
+        versions.push((parsed_fv, entry.path()));
     }
 
-    versions
+    Ok(versions)
 }
 
 /// Download a single Factorio version from the Factorio website.
@@ -71,7 +67,7 @@ fn download_single_version(client: &Agent, url_segment: &str) {
     for i in 1..=3 {
         let combined_url = format!("{}{}", FACTORIO_BASE_URL, url_segment);
         eprintln!("Attempting download of {}, attempt {}", combined_url, i);
-        let resp = client.get(&combined_url).call();
+        let resp = client.get(&combined_url).timeout(Duration::from_secs(60)).call();
         let url = resp.get_url();
         if resp.ok() {
             let parsed_filename = url.split('?').next().unwrap();
@@ -104,17 +100,48 @@ fn download_single_version(client: &Agent, url_segment: &str) {
     }
 }
 
+/// Unpacks a given FactorioVersion if it's present.
+/// Returns Ok(true) if the version was present and unpacked successfully.
+/// Returns Ok(false) if the version was not present.
+/// Returns Err(io::Error) if some io error occurred.
+pub fn unpack_headless_version(version: FactorioVersion) -> Result<bool, std::io::Error> {
+    let mut version_found = false;
+    let vers = get_local_headless_versions()?;
+    for entry in vers {
+        let loc_version = entry.0;
+        let path = entry.1;
+        if loc_version == version {
+            let bytes = std::fs::read(&path)?;
+            if let Ok(decompressed_bytes) = lzma::decompress(&bytes) {
+                let mut ar = tar::Archive::new(&*decompressed_bytes);
+                ar.unpack(fbh_unpacked_headless_storage().join(loc_version.to_string()))?;
+                version_found = true;
+                break;
+            }
+        }
+    }
+
+    Ok(version_found)
+}
+
 /// Download the Factorio versions that are available remotely but not present
 /// locally.
-fn download_nonlocal_versions(client: &Agent) {
+pub fn download_nonlocal_versions(client: &Agent) {
     let remote_versions_available = get_downloadable_headless_versions(&client);
     let local_versions = get_local_headless_versions();
     if let Ok(remote_versions) = remote_versions_available {
-        let needed_remote_versions = remote_versions
-            .iter()
-            .filter(|(vers, _urls)| !local_versions.contains(vers));
-        for (_ver, url_segment) in needed_remote_versions {
-            download_single_version(client, url_segment);
+        if let Ok(local_versions) = local_versions {
+            let needed_remote_versions = remote_versions
+                .iter()
+                .filter(|(vers, _urls)| {
+                    !local_versions
+                        .iter()
+                        .map(|x| x.0)
+                        .any(|x| x == *vers)
+                    });
+            for (_ver, url_segment) in needed_remote_versions {
+                download_single_version(client, url_segment);
+            }
         }
     }
 }
@@ -137,13 +164,22 @@ mod tests {
 
     #[test]
     fn test_read_avail_headless_versions() {
-        let local_vers = get_local_headless_versions();
-        assert!(!local_vers.contains(&FactorioVersion::new(0, 0, 0)));
+        let local_vers = get_local_headless_versions().unwrap();
+        assert!(!local_vers.iter().map(|x| x.0)
+            .any(|x| x == FactorioVersion::new(0, 0, 0)));
     }
 
+    #[ignore]
     #[test]
     fn test_download_nonlocal_versions() {
         let client = Agent::new();
         download_nonlocal_versions(&client);
+    }
+
+    #[test]
+    fn test_unpack_headless_fv() {
+        test_download_nonlocal_versions();
+        let fv = FactorioVersion::new(0, 17, 79);
+        unpack_headless_version(fv).unwrap();
     }
 }

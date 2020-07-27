@@ -9,6 +9,12 @@ use clap::ArgMatches;
 use clap::{App, AppSettings, Arg};
 use std::path::PathBuf;
 use std::process::exit;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+
+lazy_static! {
+    pub static ref MINIFY_SAVES: AtomicBool = AtomicBool::new(false);
+}
 
 #[derive(Debug, Default)]
 pub struct UserArgs {
@@ -104,6 +110,10 @@ pub fn add_options_and_parse() -> UserArgs {
                     'region-cloner' specifies the latest version of region cloner, whereas\
                     'region-cloner_1.1.2' specifies that specific version.")
                 .value_name("MODS..."),
+            Arg::with_name("minify")
+                .long("minify")
+                .help("If present, will attempt to slightly reduce the size of \
+                        save files by removing the preview image from the save."),
             Arg::with_name("create-meta")
                 .long("create-meta")
                 .help("Creates a meta set with NAME, with provided MEMBERS. MEMBERS given as a comma separated list.")
@@ -173,6 +183,9 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
                 .trim()
                 .to_string(),
         );
+        if args.contains_key("minify") {
+            MINIFY_SAVES.store(true, Ordering::SeqCst);
+        }
     }
 
     if args.contains_key("folder") {

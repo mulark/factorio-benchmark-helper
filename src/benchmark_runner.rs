@@ -5,6 +5,7 @@ use crate::performance_results::collection_data::BenchmarkData;
 use crate::performance_results::collection_data::CollectionData;
 use crate::performance_results::collection_data::Mod;
 use crate::performance_results::database::upload_to_db;
+use megabase_index_incrementer::FactorioVersion;
 
 use crate::util::{
     download_benchmark_deps_parallel, fbh_mod_dl_dir, fbh_mod_use_dir,
@@ -20,6 +21,7 @@ use std::process::Command;
 use std::sync::Mutex;
 use std::time::Instant;
 use std::path::Path;
+use std::convert::TryInto;
 
 static NUMBER_ERROR_CHECKING_TICKS: u32 = 300;
 static NUMBER_ERROR_CHECKING_RUNS: u32 = 3;
@@ -115,7 +117,6 @@ fn parse_logline_time_to_f64(
 }
 
 fn validate_benchmark_set_parameters(set: &BenchmarkSet) {
-    //don't care about pattern anymore
     assert!(!set.maps.is_empty());
     assert!(set.ticks > 0);
     assert!(set.runs > 0);
@@ -130,6 +131,8 @@ fn parse_stdout_for_errors(stdout: &str) {
     }
 }
 
+/// Runs multiple benchmark sets, each of which might contain different
+/// maps/mods/durations.
 pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
     download_benchmark_deps_parallel(&sets);
     for (name, set) in sets {
@@ -181,6 +184,8 @@ fn parse_stdout_for_benchmark_time_breakdown(
     Some(benchmark_time)
 }
 
+/// Runs benchmarks on the saves provided in the set. First performs a short
+/// error checking pass, and then runs the set's specified parameters.
 fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     let mut map_durations: Vec<BenchmarkDurationOverhead> = Vec::new();
     let mut initial_error_check_params = Vec::new();
@@ -382,7 +387,7 @@ fn parse_stdout_into_verbose(stdout: &str) -> BenchmarkData {
 }
 
 fn setup_mod_directory(mod_list: &[Mod]) -> std::io::Result<()> {
-    std::fs::remove_dir_all(fbh_mod_use_dir())?;
+    let _ignore_err = std::fs::remove_dir_all(fbh_mod_use_dir());
     for indiv_mod in mod_list {
         let p = fbh_mod_dl_dir().join(&indiv_mod.file_name);
         if p.is_file() {
@@ -398,11 +403,38 @@ fn setup_mod_directory(mod_list: &[Mod]) -> std::io::Result<()> {
     Ok(())
 }
 
+// Gets the Factorio Version a save was created in by running the save.
+pub fn determine_saved_factorio_version(map_path: &Path) -> Option<FactorioVersion> {
+    let param = SimpleBenchmarkParams {
+        map_path: map_path.to_path_buf(),
+        mod_directory: fbh_mod_use_dir(),
+        mods: vec![],
+        ticks: 1,
+        runs: 1,
+    };
+    let stdout = run_factorio_benchmark(&factorio_executable_path(), &param)?;
+    parse_stdout_for_save_version(&stdout)
+}
+
+fn parse_stdout_for_save_version(stdout: &str) -> Option<FactorioVersion> {
+    for line in stdout.lines().rev() {
+        if line.contains("Map version ") {
+            // get rid of everything before the version
+            let trim_begin = line.split("Map version ").nth(1)?;
+            let version_str = trim_begin.split('-').next()?;
+            let version = version_str.try_into().ok();
+            return version;
+        }
+    }
+    eprintln!("Failure parsing for save version");
+    None
+}
+
 /// Given a path to a Factorio excutable and a path to a map, runs a Factorio
 /// benchmark, optionally returning STDOUT.
 fn run_factorio_benchmark(factorio_exe: &Path, params: &SimpleBenchmarkParams) -> Option<String> {
-    if setup_mod_directory(&params.mods).is_err() {
-        eprintln!("Failed to setup mod directory");
+    if let Err(e) = setup_mod_directory(&params.mods) {
+        eprintln!("Failed to setup mod directory {}", e);
         return None;
     };
     let run_bench_cmd = Command::new(factorio_exe)
@@ -416,7 +448,24 @@ fn run_factorio_benchmark(factorio_exe: &Path, params: &SimpleBenchmarkParams) -
         .arg(STANDARD_VERBOSE_TIMINGS)
         .arg("--mod-directory")
         .arg(&params.mod_directory)
-        .output().ok()?;
+        .output();
+    if run_bench_cmd.is_err() {
+        eprintln!("An error occurred when attempting to run Factorio: {:?}", run_bench_cmd);
+        None
+    } else {
+        let run_bench_cmd = run_bench_cmd.ok()?;
+        Some(String::from_utf8_lossy(&run_bench_cmd.stdout).replace("\r", ""))
+    }
+}
 
-    Some(String::from_utf8_lossy(&run_bench_cmd.stdout).replace("\r", ""))
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::util::factorio_save_directory;
+    #[test]
+    fn test_determined_save_version() {
+        let testpath = factorio_save_directory().join("copypasta tester.zip");
+        let sv = determine_saved_factorio_version(&testpath).unwrap();
+        assert_ne!(sv, FactorioVersion::new(0, 0, 0), "Failed to determine saved version.");
+    }
 }
