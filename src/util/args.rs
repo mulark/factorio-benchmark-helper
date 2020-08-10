@@ -23,6 +23,7 @@ pub struct UserArgs {
 
     pub regression_test: bool,
     pub regression_test_clean: bool,
+    pub regression_test_path: Option<PathBuf>,
 
     pub run_benchmark: bool,
     pub create_benchmark: bool,
@@ -58,7 +59,7 @@ pub fn add_options_and_parse() -> UserArgs {
                     x Map combinations. Specify clean to run all regardless of \
                     if they have been previous ran.")
                 .takes_value(true)
-                .value_name("clean")
+                .value_name("clean|$PATH_TO_FILE_TO_REGRESSION_TEST")
                 .min_values(0)
         )
         .arg(
@@ -164,9 +165,18 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
 
     if args.contains_key("regression-test") {
         arguments.regression_test = true;
-        if !args["regression-test"].vals.is_empty()
-                && args["regression-test"].vals[0].to_str().unwrap().trim() == "clean" {
-            arguments.regression_test_clean = true;
+        if !args["regression-test"].vals.is_empty() {
+            if args["regression-test"].vals[0].to_str().unwrap().trim() == "clean" {
+                arguments.regression_test_clean = true;
+            } else {
+                let p: PathBuf = args["regression-test"].vals[..].iter().collect();
+                if !p.exists() {
+                    eprintln!("Could not find file {:?}", p);
+                    exit(1);
+                }
+                arguments.regression_test_path = Some(p);
+                arguments.regression_test_clean = true;
+            }
         }
     }
 

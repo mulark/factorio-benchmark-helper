@@ -73,7 +73,7 @@ pub struct RegressionTestInstance {
 /// Runs regression tests against Factorio
 /// A value of `true` in clean will run all available versions against all maps
 /// A value of `false` will only run new maps and/or new versions.
-pub fn run_regression_tests(clean: bool) {
+pub fn run_regression_tests(clean: bool, single_map_path: Option<&PathBuf>) {
     println!("Attempting to run regression tests");
 
     let already_ran_scenarios = if !clean {
@@ -87,6 +87,10 @@ pub fn run_regression_tests(clean: bool) {
         println!("Fetched all files");
         let mut megabases_to_run = MEGABASES.saves.clone();
         megabases_to_run.retain(|save| validated.contains(&save.sha256));
+        if let Some(single_map) = single_map_path {
+            megabases_to_run.clear();
+            megabases_to_run.push(megabase_index_incrementer::populate_metadata(single_map).unwrap());
+        }
         println!("Using set of files {:#?}", megabases_to_run);
         let mut least_seen_version = FactorioVersion::new(100,100,100);
         for save in &megabases_to_run {
@@ -178,7 +182,11 @@ pub fn run_regression_tests(clean: bool) {
                     }
                     println!("In version {}", factorio_install.0.to_string());
                     let param = SimpleBenchmarkParams {
-                        map_path: REGRESSION_TEST_SUBFOLDER.join(&save.name),
+                        map_path: if let Some(map_path) = single_map_path {
+                            map_path.clone()
+                        } else {
+                            REGRESSION_TEST_SUBFOLDER.join(&save.name)
+                        },
                         mod_directory: fbh_mod_use_dir(),
                         mods: vec![],
                         runs: 10,

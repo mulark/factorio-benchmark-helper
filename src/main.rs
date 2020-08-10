@@ -98,9 +98,25 @@ fn execute_from_args(mut args: &mut UserArgs) {
                     println!("Selected regression test. Enter scope of benchmarks");
                     println!("1. Differential test (only runs benchmarks of new maps or Factorio versions)");
                     println!("2. Clean test (runs all maps and Factorio version combinations)");
-                    match prompt_until_allowed_val(&[1, 2]) {
+                    println!("3. Single user provided map");
+                    match prompt_until_allowed_val(&[1, 2, 3]) {
                         1 => args.regression_test_clean = false,
                         2 => args.regression_test_clean = true,
+                        3 => {
+                            args.regression_test_clean = true;
+                            loop {
+                                println!("Enter path to user provded map");
+                                let p = prompt_until_empty_str(false);
+                                let p = PathBuf::from(p);
+                                if p.exists() {
+                                    args.regression_test_path = Some(p);
+                                    break;
+                                } else {
+                                    println!("Supplied path doesn't exist");
+                                }
+                            }
+
+                        }
                         _ => unreachable!(),
                     }
                 },
@@ -132,7 +148,7 @@ fn execute_from_args(mut args: &mut UserArgs) {
     } else if args.create_meta {
         create_meta_from_args(&args);
     } else if args.regression_test {
-        run_regression_tests(args.regression_test_clean);
+        run_regression_tests(args.regression_test_clean, args.regression_test_path.as_ref());
     }
 }
 
