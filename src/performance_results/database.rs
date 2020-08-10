@@ -103,7 +103,8 @@ pub fn setup_database(create_new_db: bool, db_path: &PathBuf) -> Connection {
 pub fn upload_to_db(collection_data: CollectionData) {
     let mut database = DB_CONNECTION.lock().unwrap();
     {
-        // Not a transaction, but perf should be ok since we're not inserting a LOT of mods
+        // Not a transaction, but perf should be ok since we're not inserting a
+        // LOT of mods
         for indiv_mod in &collection_data.mods {
             //let save_point1 = save_point.savepoint().unwrap();
             let mods_header = "name,version,sha1";

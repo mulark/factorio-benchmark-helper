@@ -3,6 +3,8 @@ extern crate lazy_static;
 extern crate bincode;
 extern crate clap;
 extern crate directories;
+#[macro_use]
+extern crate log;
 extern crate percent_encoding;
 extern crate regex;
 extern crate serde;
@@ -91,7 +93,17 @@ fn execute_from_args(mut args: &mut UserArgs) {
                 3 => args.run_meta = true,
                 4 => args.create_benchmark = true,
                 5 => args.create_meta = true,
-                6 => args.regression_test = true,
+                6 => {
+                    args.regression_test = true;
+                    println!("Selected regression test. Enter scope of benchmarks");
+                    println!("1. Differential test (only runs benchmarks of new maps or Factorio versions)");
+                    println!("2. Clean test (runs all maps and Factorio version combinations)");
+                    match prompt_until_allowed_val(&[1, 2]) {
+                        1 => args.regression_test_clean = false,
+                        2 => args.regression_test_clean = true,
+                        _ => unreachable!(),
+                    }
+                },
                 _ => {
                     unreachable!("How did you match to this after getting an allowed value?");
                 }
@@ -120,7 +132,7 @@ fn execute_from_args(mut args: &mut UserArgs) {
     } else if args.create_meta {
         create_meta_from_args(&args);
     } else if args.regression_test {
-        run_regression_tests();
+        run_regression_tests(args.regression_test_clean);
     }
 }
 

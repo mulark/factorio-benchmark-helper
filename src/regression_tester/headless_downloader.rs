@@ -7,9 +7,11 @@ use crate::util::fbh_unpacked_headless_storage;
 use crate::util::fbh_regression_headless_storage;
 use megabase_index_incrementer::FactorioVersion;
 use std::convert::TryFrom;
+use std::io;
 use std::io::Read;
 use std::time::Duration;
 use ureq::Agent;
+use std::convert::TryInto;
 
 const FACTORIO_BASE_URL: &str = "https://factorio.com";
 const FACTORIO_ARCHIVE_URL: &str = "https://factorio.com/download/archive";
@@ -37,7 +39,7 @@ fn get_downloadable_headless_versions(
 /// Gets the locally downloaded versions of the headless version of Factorio for
 /// regression testing. Returns a tuple of the FactorioVersion and the path of
 /// the tar file of the headless version
-fn get_local_headless_versions() -> Result<Vec<(FactorioVersion, PathBuf)>, std::io::Error> {
+pub fn get_local_headless_versions() -> Result<Vec<(FactorioVersion, PathBuf)>, std::io::Error> {
     let mut versions = vec![];
 
     let rd_dir = std::fs::read_dir(&fbh_regression_headless_storage())?;
@@ -104,7 +106,7 @@ fn download_single_version(client: &Agent, url_segment: &str) {
 /// Returns Ok(true) if the version was present and unpacked successfully.
 /// Returns Ok(false) if the version was not present.
 /// Returns Err(io::Error) if some io error occurred.
-pub fn unpack_headless_version(version: FactorioVersion) -> Result<bool, std::io::Error> {
+pub fn unpack_headless_version(version: FactorioVersion) -> Result<bool, io::Error> {
     let mut version_found = false;
     let vers = get_local_headless_versions()?;
     for entry in vers {
@@ -122,6 +124,23 @@ pub fn unpack_headless_version(version: FactorioVersion) -> Result<bool, std::io
     }
 
     Ok(version_found)
+}
+
+/// Gets a listing of the currently unpacked FactorioVersions with executables
+pub fn get_unpacked_executables() -> Result<Vec<(FactorioVersion, PathBuf)>, io::Error> {
+    let mut found_version_path_tuple = Vec::new();
+    for entry in std::fs::read_dir(fbh_unpacked_headless_storage())? {
+        let entry = entry?;
+        let fname = entry.file_name();
+        if let Ok(fv) = fname.to_str().unwrap().try_into() {
+            // Regression tests not supported on Windows.
+            let path = entry.path().join("factorio").join("bin").join("x64").join("factorio");
+            if path.is_file() {
+                found_version_path_tuple.push((fv, path));
+            }
+        }
+    }
+    Ok(found_version_path_tuple)
 }
 
 /// Download the Factorio versions that are available remotely but not present

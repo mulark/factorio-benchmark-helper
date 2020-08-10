@@ -23,6 +23,8 @@ ureq = {version = "1.2", features = ["json"]}
 megabase_index_incrementer = {version = "*", git="https://github.com/technicalfactorio/technicalfactorio.git", default-features=false}
 rust-lzma = "*"
 tar = "*"
+simplelog = "*"
+log = "*"
 
 [profile.release]
 debug = 1

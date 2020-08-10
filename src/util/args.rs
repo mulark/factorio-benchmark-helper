@@ -22,6 +22,7 @@ pub struct UserArgs {
     pub overwrite: ProcedureOverwrite,
 
     pub regression_test: bool,
+    pub regression_test_clean: bool,
 
     pub run_benchmark: bool,
     pub create_benchmark: bool,
@@ -53,7 +54,12 @@ pub fn add_options_and_parse() -> UserArgs {
         .arg(
             Arg::with_name("regression-test")
                 .long("regression-test")
-                .help("Performs a regression test")
+                .help("Performs a regression test of all new FactorioVersion \
+                    x Map combinations. Specify clean to run all regardless of \
+                    if they have been previous ran.")
+                .takes_value(true)
+                .value_name("clean")
+                .min_values(0)
         )
         .arg(
             Arg::with_name("list")
@@ -75,7 +81,8 @@ pub fn add_options_and_parse() -> UserArgs {
             Arg::with_name("recursive")
                 .long("recursive")
                 .short("r")
-                .help("When committing a meta set, also recursively commit every meta/benchmark set contained within that set.")
+                .help("When committing a meta set, also recursively commit \
+                    every meta/benchmark set contained within that set.")
         )
         .args(&[
             Arg::with_name("benchmark")
@@ -84,7 +91,8 @@ pub fn add_options_and_parse() -> UserArgs {
                 .value_name("NAME"),
             Arg::with_name("meta")
                 .long("meta")
-                .help("Runs benchmarks of all benchmark/meta sets found recusively within this meta set.")
+                .help("Runs benchmarks of all benchmark/meta sets found \
+                    recusively within this meta set.")
                 .value_name("NAME"),
             Arg::with_name("create-benchmark")
                 .long("create-benchmark")
@@ -93,7 +101,10 @@ pub fn add_options_and_parse() -> UserArgs {
                 .value_name("NAME"),
             Arg::with_name("folder")
                 .long("folder")
-                .help("Restrict maps to those matching contained within FOLDER. This folder can be an absolute path, a relative path from the Factorio saves directory, or a relative path from the current directory. Priority is given in that order.")
+                .help("Restrict maps to those matching contained within FOLDER. \
+                    This folder can be an absolute path, a relative path from \
+                    the Factorio saves directory, or a relative path from the \
+                    current directory. Priority is given in that order.")
                 .min_values(1)
                 .value_name("FOLDER"),
             Arg::with_name("ticks")
@@ -116,12 +127,14 @@ pub fn add_options_and_parse() -> UserArgs {
                         save files by removing the preview image from the save."),
             Arg::with_name("create-meta")
                 .long("create-meta")
-                .help("Creates a meta set with NAME, with provided MEMBERS. MEMBERS given as a comma separated list.")
+                .help("Creates a meta set with NAME, with provided MEMBERS. \
+                    MEMBERS given as a comma separated list.")
                 .value_names(&["NAME","MEMBERS..."])
                 .min_values(2),
             Arg::with_name("commit")
                 .long("commit")
-                .help("Writes the benchmark or meta set TYPE with NAME to the master.json file. Types are \"benchmark\", \"meta\"")
+                .help("Writes the benchmark or meta set TYPE with NAME to the \
+                    master.json file. Types are \"benchmark\", \"meta\"")
                 .conflicts_with_all(&[
                     "benchmark",
                     "run_meta",
@@ -130,7 +143,8 @@ pub fn add_options_and_parse() -> UserArgs {
                     "ticks",
                     "runs",
                     "google-drive-folder",
-                    "create-meta"
+                    "create-meta",
+                    "regression-test"
                 ])
                 .value_names(&["TYPE", "NAME"]),
             ])
@@ -150,6 +164,10 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
 
     if args.contains_key("regression-test") {
         arguments.regression_test = true;
+        if !args["regression-test"].vals.is_empty()
+                && args["regression-test"].vals[0].to_str().unwrap().trim() == "clean" {
+            arguments.regression_test_clean = true;
+        }
     }
 
     if args.contains_key("list") {

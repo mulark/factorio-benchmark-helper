@@ -43,8 +43,9 @@ lazy_static! {
     static ref MAP_VERSION_MATCH_PATTERN: Regex = Regex::new(r": Map version \d{1,2}\.\d{2,3}\.\d{2,3}").unwrap();
     static ref VERBOSE_COLUMN_HEADER_MATCH_PATTERN: Regex = Regex::new("tick,.*,*\n").unwrap();
     static ref VERBOSE_DATA_ROW_MATCH_PATTERN: Regex = Regex::new("^t[0-9]*[0-9],[0-9]").unwrap();
-    static ref VERBOSE_RUN_MARKER_REGEX: Regex = Regex::new("^run ([0-9])+:").unwrap();
+    static ref VERBOSE_RUN_MARKER_REGEX: Regex = Regex::new("^run ([0-9].*):").unwrap();
     static ref CURRENT_RESAVE_PORT: Mutex<u32> = Mutex::new(31498);
+    static ref FACTORIO_VERSION_MATCH_PATTERN: Regex = Regex::new(r"; Factorio ([0-9]*)\.([0-9]*)\.([0-9]*) ").unwrap();
 }
 
 #[derive(Debug, Clone)]
@@ -154,7 +155,7 @@ pub fn run_benchmarks_multiple(sets: HashMap<String, BenchmarkSet>) {
 fn parse_stdout_for_benchmark_time_breakdown(
     stdout: &str,
 ) -> Option<BenchmarkDurationOverhead> {
-    let parsed = parse_stdout_into_verbose(&stdout);
+    let parsed = parse_stdout_into_benchmark_data(&stdout);
     let mut benchmark_time: BenchmarkDurationOverhead =
         BenchmarkDurationOverhead::default();
     benchmark_time.initialization_time = parse_logline_time_to_f64(
@@ -304,7 +305,7 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     for param in set_params {
         let stdout = run_factorio_benchmark(&factorio_executable_path(), &param).unwrap();
         parse_stdout_for_errors(&stdout);
-        let bench_data = parse_stdout_into_verbose(&stdout);
+        let bench_data = parse_stdout_into_benchmark_data(&stdout);
         collection_data.benchmarks.push(bench_data);
         collection_data.mods.extend(param.mods.clone());
     }
@@ -317,42 +318,11 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
     upload_to_db(collection_data);
 }
 
-/// Parses stdout and structures it into a BenchmarkData
-fn parse_stdout_into_verbose(stdout: &str) -> BenchmarkData {
+pub fn parse_stdout_for_verbose_data(stdout: &str) -> Vec<String> {
     let mut verbose_data = vec![];
     let mut run_idx: u32 = 0;
-    let mut ticks = 0;
-    let mut map_path = PathBuf::new();
-    let mut map_hash_handle = vec![];
+
     for line in stdout.lines() {
-        if line.contains("Program arguments:") {
-            let mut take_map = false;
-            let mut take_ticks = false;
-            for word in line.split_whitespace() {
-                //alloc free quotes removal
-                let word = &word[1..word.len() - 1];
-                if word == "--benchmark" {
-                    take_map = true;
-                    continue;
-                }
-                if word == "--benchmark-ticks" {
-                    take_ticks = true;
-                    continue;
-                }
-                if take_map {
-                    map_path = map_path.join(word);
-                    let map_path = map_path.clone();
-                    map_hash_handle.push(std::thread::spawn(move || {
-                        sha256sum(&map_path)
-                    }));
-                    take_map = false;
-                }
-                if take_ticks {
-                    ticks = word.parse::<u32>().unwrap();
-                    break;
-                }
-            }
-        }
         if VERBOSE_RUN_MARKER_REGEX.is_match(line) {
             run_idx = VERBOSE_RUN_MARKER_REGEX.captures(line).unwrap()[1].parse().unwrap();
         }
@@ -360,46 +330,79 @@ fn parse_stdout_into_verbose(stdout: &str) -> BenchmarkData {
             let mut line = line.to_owned();
             line.push_str(&format!("{}", run_idx));
             verbose_data.push(line.replace('t', ""));
-            assert!(run_idx > 0);
+            assert!(run_idx > 0, "Failed to get a run idx?, stdout: {}\nline: {}", stdout, line);
         }
     }
+    verbose_data
+}
+
+/// Parses stdout and structures it into a BenchmarkData
+fn parse_stdout_into_benchmark_data(stdout: &str) -> BenchmarkData {
+    let verbose_data = parse_stdout_for_verbose_data(&stdout);
+    let mut ticks = 0;
+    let mut runs = 0;
+    let mut map_path = PathBuf::new();
+
+    for line in stdout.lines() {
+        if line.contains("Program arguments:") {
+            let mut splits = line.split_whitespace().peekable();
+            while let Some(word) = splits.next() {
+                if word == "--benchmark" {
+                    if let Some(peek_word) = splits.peek() {
+                        map_path = map_path.join(peek_word);
+                    }
+                }
+                if word == "--benchmark-ticks" {
+                    if let Some(peek_word) = splits.peek() {
+                        ticks = peek_word.parse::<u32>().unwrap();
+                    }
+                }
+                if word == "--benchmark-runs" {
+                    if let Some(peek_word) = splits.peek() {
+                        runs = peek_word.parse::<u32>().unwrap();
+                    }
+                }
+            }
+            break;
+        }
+    }
+
     let map_name = if let Some(file_name) = map_path.file_name() {
         file_name.to_string_lossy().to_string()
     } else {
         panic!("No filename specified for {:?}", map_path);
     };
 
-    let mut map_hash = String::new();
-    for handle in map_hash_handle {
-        map_hash = handle.join().unwrap();
-    }
-
-    assert_eq!(ticks * run_idx, verbose_data.len() as u32,
-        "Expected {} datapoints, got {}", ticks * run_idx, verbose_data.len());
+    let map_hash = sha256sum(map_path);
 
     BenchmarkData {
         map_name,
         map_hash,
-        runs: run_idx,
+        runs,
         ticks,
         verbose_data,
     }
 }
 
-fn setup_mod_directory(mod_list: &[Mod]) -> std::io::Result<()> {
+pub fn parse_stdout_for_execution_time(stdout: &str) -> Option<f64> {
+    let start = parse_logline_time_to_f64(&stdout, &INITIALIZATION_TIME_PATTERN)?;
+    let end = parse_logline_time_to_f64(&stdout, &TOTAL_TIME_PATTERN)?;
+    Some(end - start)
+}
+
+fn setup_mod_directory(mod_list: &[Mod], mod_dir: &Path) -> std::io::Result<()> {
     let _ignore_err = std::fs::remove_dir_all(fbh_mod_use_dir());
     for indiv_mod in mod_list {
-        let p = fbh_mod_dl_dir().join(&indiv_mod.file_name);
+        let p = mod_dir.join(&indiv_mod.file_name);
         if p.is_file() {
             let computed_sha1 = crate::util::sha1sum(&p);
             if computed_sha1 == indiv_mod.sha1 {
-                std::fs::copy(p, fbh_mod_use_dir().join(&indiv_mod.file_name))?;
+                std::fs::copy(p, mod_dir.join(&indiv_mod.file_name))?;
             } else {
                 panic!("Mod {:?} had a mismatched checksum!", indiv_mod);
             }
         }
     }
-
     Ok(())
 }
 
@@ -414,6 +417,24 @@ pub fn determine_saved_factorio_version(map_path: &Path) -> Option<FactorioVersi
     };
     let stdout = run_factorio_benchmark(&factorio_executable_path(), &param)?;
     parse_stdout_for_save_version(&stdout)
+}
+
+/// Parses the output of a Factorio run for the specific Factorio Version of
+/// the executable.
+pub fn parse_stdout_for_factorio_version(stdout: &str) -> Option<FactorioVersion> {
+    for line in stdout.lines() {
+        if let Some(caps) =  FACTORIO_VERSION_MATCH_PATTERN.captures(line) {
+            if caps.len() == 4 {
+                let fv = FactorioVersion {
+                    major: caps[1].parse().ok()?,
+                    minor: caps[2].parse().ok()?,
+                    patch: caps[3].parse().ok()?,
+                };
+                return Some(fv);
+            }
+        }
+    }
+    None
 }
 
 fn parse_stdout_for_save_version(stdout: &str) -> Option<FactorioVersion> {
@@ -432,8 +453,8 @@ fn parse_stdout_for_save_version(stdout: &str) -> Option<FactorioVersion> {
 
 /// Given a path to a Factorio excutable and a path to a map, runs a Factorio
 /// benchmark, optionally returning STDOUT.
-fn run_factorio_benchmark(factorio_exe: &Path, params: &SimpleBenchmarkParams) -> Option<String> {
-    if let Err(e) = setup_mod_directory(&params.mods) {
+pub fn run_factorio_benchmark<P: AsRef<std::ffi::OsStr>>(factorio_exe: P, params: &SimpleBenchmarkParams) -> Option<String> {
+    if let Err(e) = setup_mod_directory(&params.mods, &params.mod_directory) {
         eprintln!("Failed to setup mod directory {}", e);
         return None;
     };
