@@ -22,8 +22,6 @@ pub use fbh_paths::{
     fbh_results_database, fbh_save_dl_dir, initialize, fbh_unpacked_headless_storage
 };
 use sha2::Digest;
-use std::fs::File;
-use std::io::Read;
 
 pub mod config_file;
 pub use config_file::{
@@ -218,20 +216,18 @@ fn get_factorio_info() -> FactorioInfo {
     info_holder
 }
 
-pub fn sha1sum(file_path: &PathBuf) -> String {
+pub fn sha1sum<P: AsRef<Path>>(file_path: &P) -> String {
     sha1::Sha1::from(std::fs::read(file_path).unwrap())
         .digest()
         .to_string()
 }
 
 pub fn sha256sum<P: AsRef<Path>>(file_path: P) -> String {
-    let mut f = File::open(file_path).unwrap();
-    let mut buf = Vec::new();
-    f.read_to_end(&mut buf).unwrap();
+    let buf = std::fs::read(file_path).unwrap();
     format!("{:x}", sha2::Sha256::digest(&buf))
 }
 
-pub fn bulk_sha256(paths: &[PathBuf]) -> Vec<(PathBuf, String)> {
+pub(crate) fn bulk_sha256(paths: &[PathBuf]) -> Vec<(PathBuf, String)> {
     let paths = paths.to_vec();
     let mut handle_holder = Vec::new();
     let mut path_sha256_tuple_holder = Vec::new();
