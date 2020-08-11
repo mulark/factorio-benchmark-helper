@@ -106,17 +106,19 @@ fn download_single_version(client: &Agent, url_segment: &str) {
 /// Returns Ok(true) if the version was present and unpacked successfully.
 /// Returns Ok(false) if the version was not present.
 /// Returns Err(io::Error) if some io error occurred.
-pub fn unpack_headless_version(version: FactorioVersion) -> Result<bool, io::Error> {
+pub fn unpack_headless_version(unpack_version: FactorioVersion) -> Result<bool, io::Error> {
     let mut version_found = false;
     let vers = get_local_headless_versions()?;
-    for entry in vers {
-        let loc_version = entry.0;
-        let path = entry.1;
-        if loc_version == version {
+    let already_unpacked_vers = get_unpacked_executables()?.iter().map(|(fv, _path)| *fv).collect::<Vec<_>>();
+    if already_unpacked_vers.contains(&unpack_version) {
+        return Ok(true);
+    }
+    for (local_version, path) in vers {
+        if local_version == unpack_version {
             let bytes = std::fs::read(&path)?;
             if let Ok(decompressed_bytes) = lzma::decompress(&bytes) {
                 let mut ar = tar::Archive::new(&*decompressed_bytes);
-                ar.unpack(fbh_unpacked_headless_storage().join(loc_version.to_string()))?;
+                ar.unpack(fbh_unpacked_headless_storage().join(local_version.to_string()))?;
                 version_found = true;
                 break;
             }
