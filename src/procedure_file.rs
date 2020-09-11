@@ -44,6 +44,7 @@ impl TopLevel {
     }
 }
 
+/// A set of maps to benchmark, with the given runs, ticks, and mods.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct BenchmarkSet {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -84,6 +85,12 @@ pub enum ProcedureFileKind {
 pub enum ProcedureOverwrite {
     True,
     False,
+}
+
+impl Default for ProcedureOverwrite {
+    fn default() -> Self {
+        ProcedureOverwrite::False
+    }
 }
 
 impl From<bool> for ProcedureOverwrite {

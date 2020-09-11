@@ -1,3 +1,4 @@
+use megabase_index_incrementer::FactorioVersion;
 use crate::util::{factorio_save_directory, fbh_save_dl_dir, sha256sum};
 use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;
@@ -6,6 +7,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::exit;
 use std::thread::JoinHandle;
+use std::convert::TryInto;
 
 lazy_static! {
     static ref WHITELISTED_DOMAINS: Vec<String> = vec!(
@@ -20,6 +22,8 @@ pub struct Map {
     pub name: String,
     #[serde(skip)]
     pub path: PathBuf,
+    #[serde(default)]
+    pub min_compatible_version: FactorioVersion,
     pub sha256: String,
     pub download_link: String,
 }
@@ -30,6 +34,7 @@ impl Map {
             name: path.file_name().unwrap().to_string_lossy().to_string(),
             path: path.to_path_buf(),
             sha256: sha256.to_string(),
+            min_compatible_version: "0.0.0".try_into().unwrap(),
             download_link: download_link.to_string(),
         }
     }
@@ -68,7 +73,10 @@ pub fn fetch_map_deps_parallel(
                             match std::fs::create_dir_all(filepath.parent().unwrap()) {
                                 Ok(_) => (),
                                 Err(e) => {
-                                    eprintln!("Error: We found a map inside the Factorio save directory, but failed to create a folder to copy it.");
+                                    eprintln!("Error: We found a map inside the \
+                                        Factorio save directory, but failed to \
+                                        create a folder to copy it."
+                                    );
                                     eprintln!("Error details: {}", e);
                                     eprintln!("Source: {:?}, Dest: {:?}", alt_filepath, filepath);
                                     exit(1);
@@ -77,7 +85,10 @@ pub fn fetch_map_deps_parallel(
                             match std::fs::copy(&alt_filepath, &filepath) {
                                 Ok(_) => (),
                                 Err(e) => {
-                                    eprintln!("Error: We found a map inside the Factorio save directory, but failed to copy it to the cache folder.");
+                                    eprintln!("Error: We found a map inside the \
+                                        Factorio save directory, but failed to \
+                                        copy it to the cache folder."
+                                    );
                                     eprintln!("Error details: {}", e);
                                     eprintln!("Source: {:?}, Dest: {:?}", alt_filepath, filepath);
                                     exit(1);

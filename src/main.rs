@@ -3,6 +3,8 @@ extern crate lazy_static;
 extern crate bincode;
 extern crate clap;
 extern crate directories;
+#[macro_use]
+extern crate log;
 extern crate percent_encoding;
 extern crate regex;
 extern crate serde;
@@ -11,6 +13,8 @@ extern crate sha2;
 
 mod performance_results;
 
+use crate::benchmark_runner::determine_saved_factorio_version;
+use crate::regression_tester::run_regression_tests;
 use crate::backblaze::upload_files_to_backblaze;
 use crate::performance_results::collection_data::Mod;
 use crate::procedure_file::get_metas_from_meta;
@@ -25,6 +29,9 @@ use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::exit;
+
+#[cfg(target_os = "linux")]
+mod regression_tester;
 
 mod backblaze;
 
@@ -66,7 +73,8 @@ fn execute_from_args(mut args: &mut UserArgs) {
         || args.run_benchmark
         || args.run_meta
         || args.create_benchmark
-        || args.create_meta)
+        || args.create_meta
+        || args.regression_test)
     {
         if args.interactive {
             println!("Choose a suitable course of action.");
@@ -78,12 +86,40 @@ fn execute_from_args(mut args: &mut UserArgs) {
             println!("3: Run a metabenchmark.");
             println!("4: Create a new benchmark.");
             println!("5: Create a new metabenchmark.");
-            match prompt_until_allowed_val(&[1, 2, 3, 4, 5]) {
+            println!("6: Run a regression test.");
+            match prompt_until_allowed_val(&[1, 2, 3, 4, 5, 6]) {
                 1 => args.commit_flag = true,
                 2 => args.run_benchmark = true,
                 3 => args.run_meta = true,
                 4 => args.create_benchmark = true,
                 5 => args.create_meta = true,
+                6 => {
+                    args.regression_test = true;
+                    println!("Selected regression test. Enter scope of benchmarks");
+                    println!("1. Differential test (only runs benchmarks of new maps or Factorio versions)");
+                    println!("2. Clean test (runs all maps and Factorio version combinations)");
+                    println!("3. Single user provided map");
+                    match prompt_until_allowed_val(&[1, 2, 3]) {
+                        1 => args.regression_test_clean = false,
+                        2 => args.regression_test_clean = true,
+                        3 => {
+                            args.regression_test_clean = true;
+                            loop {
+                                println!("Enter path to user provded map");
+                                let p = prompt_until_empty_str(false);
+                                let p = PathBuf::from(p);
+                                if p.exists() {
+                                    args.regression_test_path = Some(p);
+                                    break;
+                                } else {
+                                    println!("Supplied path doesn't exist");
+                                }
+                            }
+
+                        }
+                        _ => unreachable!(),
+                    }
+                },
                 _ => {
                     unreachable!("How did you match to this after getting an allowed value?");
                 }
@@ -91,7 +127,7 @@ fn execute_from_args(mut args: &mut UserArgs) {
         } else {
             eprintln!(
                 "You provided args but didn't pick \
-                    commit/benchmark/meta/create-benchmark/create-meta or \
+                    commit/benchmark/meta/create-benchmark/create-meta/regression-test or \
 		            interactive!"
             );
             eprintln!("Without one of these options there's nothing to do.");
@@ -111,6 +147,8 @@ fn execute_from_args(mut args: &mut UserArgs) {
         create_benchmark_from_args(&args);
     } else if args.create_meta {
         create_meta_from_args(&args);
+    } else if args.regression_test {
+        run_regression_tests(args.regression_test_clean, args.regression_test_path.as_ref());
     }
 }
 
@@ -296,15 +334,17 @@ fn create_benchmark_from_args(args: &UserArgs) {
         );
         set_name = prompt_until_empty_str(false);
     } else {
-        unreachable!(
+        eprintln!(
             "Failed to create a benchmark set because no name was defined!"
         );
+        exit(1);
     }
 
     if args.folder.is_some() {
         folder = args.folder.as_ref().unwrap().clone();
     } else if args.interactive {
-        println!("No folder was defined, enter a relative folder in your saves directory, or absolute directory, or empty for the saves directory.");
+        println!("No folder was defined, enter a relative folder in your saves directory, \
+            or absolute directory, or empty for the saves directory.");
         folder = prompt_until_existing_folder_path(true);
     } else {
         unreachable!();
@@ -318,7 +358,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
         exit(1);
     } else {
         println!("Found the following maps:");
-        for map in &map_paths {
+        for map in map_paths.iter() {
             println!("{:?}", map);
         }
     }
@@ -347,21 +387,36 @@ fn create_benchmark_from_args(args: &UserArgs) {
     handle_map_dl_links(args, &mut benchmark);
 
     if args.mods_dirty.is_some() {
-        mod_list = process_mod_list(args.mods_dirty.as_ref().unwrap().clone());
+        mod_list = process_mod_list(&args.mods_dirty.as_ref().unwrap());
         benchmark.mods = mod_list;
     } else if args.interactive {
         println!("Enter a comma separated list of mods, empty for vanilla. Special response \"__CURRENT__\" will add currently enabled mods.");
         let raw_mod_list = prompt_until_empty_str(true);
-        benchmark.mods = process_mod_list(raw_mod_list);
+        benchmark.mods = process_mod_list(&raw_mod_list);
     }
-
-    println!("Attempting upload to Backblaze-b2...");
 
     let save_subdirectory =
         benchmark.save_subdirectory.clone().unwrap_or_default();
     let subdir = save_subdirectory.to_str().unwrap().to_owned();
+    let sv_jh = {
+        let map_paths = map_paths.clone();
+        std::thread::spawn(move || {
+            println!("Determining the saved versions of each map in another thread");
+            let mut vers = Vec::new();
+            for path in map_paths.into_iter() {
+                let single_vers = determine_saved_factorio_version(&path);
+                vers.push((path, single_vers));
+            }
+            println!("Finished determining the saved versions of each map.");
+            vers
+        })
+    };
+
+    println!("Attempting upload to Backblaze-b2...");
+
     match upload_files_to_backblaze(&subdir, &map_paths) {
         Ok(uploaded_files) => {
+            println!("Finished uploading files");
             for (filepath, dl_link) in uploaded_files {
                 let map = maps_hashmap.get_mut(&filepath).unwrap();
                 map.download_link = dl_link;
@@ -374,6 +429,12 @@ fn create_benchmark_from_args(args: &UserArgs) {
         }
     };
 
+    let ret_vers = sv_jh.join().unwrap();
+    for (path, vers) in ret_vers {
+        if let Some(map) = maps_hashmap.get_mut(&path) {
+            map.min_compatible_version = vers.unwrap_or_default();
+        }
+    }
     benchmark.maps = maps_hashmap.values().map(|x| x.to_owned()).collect();
 
     assert!(!set_name.is_empty());
@@ -391,7 +452,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
     );
 }
 
-fn process_mod_list(raw_mod_list: String) -> BTreeSet<Mod> {
+fn process_mod_list(raw_mod_list: &str) -> BTreeSet<Mod> {
     let mut found_mods = BTreeSet::new();
     let mod_tuples = slice_mods_from_csv(&raw_mod_list);
     for (name, vers) in mod_tuples {
@@ -440,6 +501,7 @@ fn slice_mods_from_csv(s: &str) -> Vec<(String, String)> {
     vals
 }
 
+/// Handle adding map download links individually to each map if running interactively.
 fn handle_map_dl_links(args: &UserArgs, benchmark: &mut BenchmarkSet) {
     if args.interactive {
         println!("Specify map downloads individually?");
@@ -503,6 +565,8 @@ fn slice_members_from_csv(s: &str) -> BTreeSet<String> {
     vals
 }
 
+/// Gets the paths of all maps within the specified directory. Returns a Vec of
+/// the paths of the found saves, and optionally a common subdirectory.
 fn get_map_paths(dir: &PathBuf) -> (Vec<PathBuf>, Option<PathBuf>) {
     let mut map_paths = Vec::new();
     assert!(dir.is_dir());
@@ -529,13 +593,15 @@ fn find_map_subdirectory(dir: &PathBuf) -> Option<PathBuf> {
     }
 }
 
-fn move_maps_to_cache(paths: &[PathBuf], subdir: &Option<PathBuf>) {
+/// Copy the given maps into the cache directory, nested within a new subdirectory
+/// if provided.
+fn move_maps_to_cache(map_paths: &[PathBuf], subdir: &Option<PathBuf>) {
     let save_to_dir = if let Some(subdir) = subdir {
         fbh_save_dl_dir().join(subdir)
     } else {
         fbh_save_dl_dir()
     };
-    for path in paths {
+    for path in map_paths {
         let dest_path = &save_to_dir.join(&path.file_name().unwrap());
         let parent = dest_path.parent().unwrap();
         if !parent.exists() {

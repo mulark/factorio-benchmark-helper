@@ -9,11 +9,21 @@ use clap::ArgMatches;
 use clap::{App, AppSettings, Arg};
 use std::path::PathBuf;
 use std::process::exit;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 
-#[derive(Debug)]
+lazy_static! {
+    pub static ref MINIFY_SAVES: AtomicBool = AtomicBool::new(false);
+}
+
+#[derive(Debug, Default)]
 pub struct UserArgs {
     pub interactive: bool,
     pub overwrite: ProcedureOverwrite,
+
+    pub regression_test: bool,
+    pub regression_test_clean: bool,
+    pub regression_test_path: Option<PathBuf>,
 
     pub run_benchmark: bool,
     pub create_benchmark: bool,
@@ -35,34 +45,6 @@ pub struct UserArgs {
     pub commit_recursive: bool,
 }
 
-impl Default for UserArgs {
-    fn default() -> UserArgs {
-        UserArgs {
-            interactive: false,
-            overwrite: false.into(),
-
-            run_benchmark: false,
-            create_benchmark: false,
-            benchmark_set_name: None,
-
-            ticks: None,
-            runs: None,
-            folder: None,
-            mods_dirty: None,
-
-            run_meta: false,
-            create_meta: false,
-            meta_set_name: None,
-            meta_set_members: None,
-
-            commit_flag: false,
-            commit_name: None,
-            commit_type: None,
-            commit_recursive: false,
-        }
-    }
-}
-
 pub fn add_options_and_parse() -> UserArgs {
     let matches = App::new(FACTORIO_BENCHMARK_HELPER_NAME)
         .version(FACTORIO_BENCHMARK_HELPER_VERSION)
@@ -70,6 +52,16 @@ pub fn add_options_and_parse() -> UserArgs {
         .setting(AppSettings::DeriveDisplayOrder)
         .setting(AppSettings::StrictUtf8)
         .version_short("v")
+        .arg(
+            Arg::with_name("regression-test")
+                .long("regression-test")
+                .help("Performs a regression test of all new FactorioVersion \
+                    x Map combinations. Specify clean to run all regardless of \
+                    if they have been previous ran.")
+                .takes_value(true)
+                .value_name("clean|$PATH_TO_FILE_TO_REGRESSION_TEST")
+                .min_values(0)
+        )
         .arg(
             Arg::with_name("list")
                 .long("list")
@@ -90,7 +82,8 @@ pub fn add_options_and_parse() -> UserArgs {
             Arg::with_name("recursive")
                 .long("recursive")
                 .short("r")
-                .help("When committing a meta set, also recursively commit every meta/benchmark set contained within that set.")
+                .help("When committing a meta set, also recursively commit \
+                    every meta/benchmark set contained within that set.")
         )
         .args(&[
             Arg::with_name("benchmark")
@@ -99,7 +92,8 @@ pub fn add_options_and_parse() -> UserArgs {
                 .value_name("NAME"),
             Arg::with_name("meta")
                 .long("meta")
-                .help("Runs benchmarks of all benchmark/meta sets found recusively within this meta set.")
+                .help("Runs benchmarks of all benchmark/meta sets found \
+                    recusively within this meta set.")
                 .value_name("NAME"),
             Arg::with_name("create-benchmark")
                 .long("create-benchmark")
@@ -108,7 +102,10 @@ pub fn add_options_and_parse() -> UserArgs {
                 .value_name("NAME"),
             Arg::with_name("folder")
                 .long("folder")
-                .help("Restrict maps to those matching contained within FOLDER. This folder can be an absolute path, a relative path from the Factorio saves directory, or a relative path from the current directory. Priority is given in that order.")
+                .help("Restrict maps to those matching contained within FOLDER. \
+                    This folder can be an absolute path, a relative path from \
+                    the Factorio saves directory, or a relative path from the \
+                    current directory. Priority is given in that order.")
                 .min_values(1)
                 .value_name("FOLDER"),
             Arg::with_name("ticks")
@@ -125,14 +122,20 @@ pub fn add_options_and_parse() -> UserArgs {
                     'region-cloner' specifies the latest version of region cloner, whereas\
                     'region-cloner_1.1.2' specifies that specific version.")
                 .value_name("MODS..."),
+            Arg::with_name("minify")
+                .long("minify")
+                .help("If present, will attempt to slightly reduce the size of \
+                        save files by removing the preview image from the save."),
             Arg::with_name("create-meta")
                 .long("create-meta")
-                .help("Creates a meta set with NAME, with provided MEMBERS. MEMBERS given as a comma separated list.")
+                .help("Creates a meta set with NAME, with provided MEMBERS. \
+                    MEMBERS given as a comma separated list.")
                 .value_names(&["NAME","MEMBERS..."])
                 .min_values(2),
             Arg::with_name("commit")
                 .long("commit")
-                .help("Writes the benchmark or meta set TYPE with NAME to the master.json file. Types are \"benchmark\", \"meta\"")
+                .help("Writes the benchmark or meta set TYPE with NAME to the \
+                    master.json file. Types are \"benchmark\", \"meta\"")
                 .conflicts_with_all(&[
                     "benchmark",
                     "run_meta",
@@ -141,7 +144,8 @@ pub fn add_options_and_parse() -> UserArgs {
                     "ticks",
                     "runs",
                     "google-drive-folder",
-                    "create-meta"
+                    "create-meta",
+                    "regression-test"
                 ])
                 .value_names(&["TYPE", "NAME"]),
             ])
@@ -158,6 +162,24 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
     if args.contains_key("overwrite") {
         arguments.overwrite = true.into();
     }
+
+    if args.contains_key("regression-test") {
+        arguments.regression_test = true;
+        if !args["regression-test"].vals.is_empty() {
+            if args["regression-test"].vals[0].to_str().unwrap().trim() == "clean" {
+                arguments.regression_test_clean = true;
+            } else {
+                let p: PathBuf = args["regression-test"].vals[..].iter().collect();
+                if !p.exists() {
+                    eprintln!("Could not find file {:?}", p);
+                    exit(1);
+                }
+                arguments.regression_test_path = Some(p);
+                arguments.regression_test_clean = true;
+            }
+        }
+    }
+
     if args.contains_key("list") {
         print_all_procedures();
         exit(0);
@@ -189,6 +211,9 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
                 .trim()
                 .to_string(),
         );
+        if args.contains_key("minify") {
+            MINIFY_SAVES.store(true, Ordering::SeqCst);
+        }
     }
 
     if args.contains_key("folder") {

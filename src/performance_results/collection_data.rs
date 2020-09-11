@@ -47,6 +47,7 @@ pub struct BenchmarkData {
     pub map_name: String,
     pub runs: u32,
     pub ticks: u32,
+    /// The sha256 hash of the map
     pub map_hash: String,
     /// A vec of CSV rows
     ///     tick,wholeUpdate,gameUpdate,circuitNetworkUpdate,transportLinesUpdate,

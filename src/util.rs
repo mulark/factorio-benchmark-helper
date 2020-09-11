@@ -5,6 +5,8 @@ extern crate regex;
 extern crate sha1;
 extern crate sha2;
 
+use std::path::Path;
+use crate::util::args::MINIFY_SAVES;
 use crate::util::config_file::CONFIG_FILE_SETTINGS;
 use core::fmt::Debug;
 use core::str::FromStr;
@@ -16,12 +18,10 @@ mod fbh_paths;
 pub use fbh_paths::{
     fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir,
     fbh_mod_use_dir, fbh_procedure_json_local_file,
-    fbh_procedure_json_master_file, fbh_results_database, fbh_save_dl_dir,
-    initialize,
+    fbh_procedure_json_master_file, fbh_regression_headless_storage, fbh_regression_testing_dir,
+    fbh_results_database, fbh_save_dl_dir, initialize, fbh_unpacked_headless_storage
 };
 use sha2::Digest;
-use std::fs::File;
-use std::io::Read;
 
 pub mod config_file;
 pub use config_file::{
@@ -94,7 +94,7 @@ fn generic_read_configuration_setting(
     }
 }
 
-fn get_factorio_path() -> PathBuf {
+fn factorio_path() -> PathBuf {
     if CONFIG_FILE_SETTINGS.use_steam_version {
         let base_dir = BaseDirs::new().unwrap();
         if cfg!(target_os = "linux") {
@@ -135,19 +135,16 @@ fn get_factorio_path() -> PathBuf {
     }
 }
 
-pub fn get_executable_path() -> PathBuf {
+pub fn factorio_executable_path() -> PathBuf {
     if cfg!(target_os = "linux") {
-        get_factorio_path().join("bin").join("x64").join("factorio")
+        factorio_path().join("bin").join("x64").join("factorio")
     } else {
-        get_factorio_path()
-            .join("bin")
-            .join("x64")
-            .join("factorio.exe")
+        factorio_path().join("bin").join("x64").join("factorio.exe")
     }
 }
 
-fn get_factorio_rw_directory() -> PathBuf {
-    let ini_path = get_factorio_path().join("config-path.cfg");
+fn factorio_rw_directory() -> PathBuf {
+    let ini_path = factorio_path().join("config-path.cfg");
     let use_system_rw_directories: bool = generic_read_configuration_setting(
         ini_path,
         "use-system-read-write-directories",
@@ -172,12 +169,12 @@ fn get_factorio_rw_directory() -> PathBuf {
                 .join("")
         }
     } else {
-        get_factorio_path()
+        factorio_path()
     }
 }
 
 pub fn factorio_save_directory() -> PathBuf {
-    get_factorio_rw_directory().join("saves").join("")
+    factorio_rw_directory().join("saves").join("")
 }
 
 #[derive(Default, Clone)]
@@ -191,7 +188,7 @@ fn get_factorio_info() -> FactorioInfo {
     //Don't call this, use FACTORIO_VERSION instead
     let line = FACTORIO_EXECUTABLE_VERSION_LINE
         .captures(&String::from_utf8_lossy(
-            &std::process::Command::new(get_executable_path())
+            &std::process::Command::new(factorio_executable_path())
                 .arg("--version")
                 .output()
                 .expect("")
@@ -219,20 +216,18 @@ fn get_factorio_info() -> FactorioInfo {
     info_holder
 }
 
-pub fn sha1sum(file_path: &PathBuf) -> String {
+pub fn sha1sum<P: AsRef<Path>>(file_path: &P) -> String {
     sha1::Sha1::from(std::fs::read(file_path).unwrap())
         .digest()
         .to_string()
 }
 
-pub fn sha256sum(file_path: &PathBuf) -> String {
-    let mut f = File::open(file_path).unwrap();
-    let mut buf = Vec::new();
-    f.read_to_end(&mut buf).unwrap();
+pub fn sha256sum<P: AsRef<Path>>(file_path: P) -> String {
+    let buf = std::fs::read(file_path).unwrap();
     format!("{:x}", sha2::Sha256::digest(&buf))
 }
 
-pub fn bulk_sha256(paths: &[PathBuf]) -> Vec<(PathBuf, String)> {
+pub(crate) fn bulk_sha256(paths: &[PathBuf]) -> Vec<(PathBuf, String)> {
     let paths = paths.to_vec();
     let mut handle_holder = Vec::new();
     let mut path_sha256_tuple_holder = Vec::new();
@@ -398,8 +393,11 @@ fn path_of_7z_install() -> Option<PathBuf> {
     found_path
 }
 
-/// Now a misnomer that means: remove the preview image from the zip file
 pub fn delete_preview_image_from_save(save: &PathBuf) {
+    if !MINIFY_SAVES.load(std::sync::atomic::Ordering::SeqCst) {
+        println!("Skipping preview image deletion, it --minify not found.");
+        return;
+    }
     if save.exists() {
         if let Some(ext) = save.extension() {
             if ext == "zip" {
