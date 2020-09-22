@@ -12,11 +12,11 @@ pub fn initialize() -> Result<(), std::io::Error> {
     }
     let config = simplelog::ConfigBuilder::new()
         .build();
-    simplelog::WriteLogger::new(
+    simplelog::WriteLogger::init(
         LevelFilter::Trace,
         config,
         File::create(fbh_data_path().join("fbh.log"))?
-    );
+    ).expect("Another global logger already init?");
 
     info!("Logging initialized");
     if !fbh_cache_path().exists() {

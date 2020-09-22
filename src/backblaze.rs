@@ -639,7 +639,7 @@ mod test {
         let uploaded =
             upload_files_to_backblaze("", &[to_save_to_path.clone()]).unwrap();
         assert!(uploaded.len() == 1);
-        let (k, v) = uploaded.iter().next().unwrap();
+        let (k, v) = uploaded.get(0).unwrap();
         assert_eq!(k, &to_save_to_path);
         assert_eq!(v, "https://f000.backblazeb2.com/file/cargo-test/this-is-a-test-generated-name-ignore-it.zip");
         std::fs::remove_file(&to_save_to_path).unwrap();
@@ -664,7 +664,7 @@ mod test {
             upload_files_to_backblaze("Spa ce", &[newfilepath.clone()])
                 .unwrap();
         assert!(uploaded.len() == 1);
-        let (k, v) = uploaded.iter().next().unwrap();
+        let (k, v) = uploaded.get(0).unwrap();
         assert_eq!(k, &newfilepath);
         assert_eq!(
             v,

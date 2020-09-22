@@ -23,7 +23,7 @@ use std::time::Instant;
 use std::path::Path;
 use std::convert::TryInto;
 
-static NUMBER_ERROR_CHECKING_TICKS: u32 = 300;
+static NUMBER_ERROR_CHECKING_TICKS: u32 = 250;
 static NUMBER_ERROR_CHECKING_RUNS: u32 = 3;
 
 
@@ -239,9 +239,6 @@ fn run_factorio_benchmarks_from_set(set_name: &str, set: BenchmarkSet) {
         ));
     }
     for param in initial_error_check_params {
-        let stdout = run_factorio_benchmark(&factorio_executable_path(), &param).unwrap();
-        parse_stdout_for_errors(&stdout);
-        parse_stdout_for_benchmark_time_breakdown(&stdout);
         let stdout = run_factorio_benchmark(&factorio_executable_path(), &param);
         if let Some(stdout) = stdout {
             parse_stdout_for_errors(&stdout);
@@ -338,6 +335,7 @@ pub fn parse_stdout_for_verbose_data(stdout: &str) -> Vec<String> {
 
 /// Parses stdout and structures it into a BenchmarkData
 fn parse_stdout_into_benchmark_data(stdout: &str) -> BenchmarkData {
+    trace!("stdout: {}", stdout);
     let verbose_data = parse_stdout_for_verbose_data(&stdout);
     let mut ticks = 0;
     let mut runs = 0;
@@ -345,27 +343,32 @@ fn parse_stdout_into_benchmark_data(stdout: &str) -> BenchmarkData {
 
     for line in stdout.lines() {
         if line.contains("Program arguments:") {
+            trace!("Processing line: {}", line);
+            //TODO broken on maps with spaces in name, probably
             let mut splits = line.split_whitespace().peekable();
             while let Some(word) = splits.next() {
-                if word == "--benchmark" {
+                trace!("Processing word: {}", word);
+                if word == "\"--benchmark\"" {
+                    trace!("peeking {} from {}", splits.peek().unwrap(), word);
                     if let Some(peek_word) = splits.peek() {
-                        map_path = map_path.join(peek_word);
+                        map_path = map_path.join(peek_word.replace("\"", ""));
                     }
                 }
-                if word == "--benchmark-ticks" {
+                if word.contains("--benchmark-ticks") {
                     if let Some(peek_word) = splits.peek() {
-                        ticks = peek_word.parse::<u32>().unwrap();
+                        ticks = peek_word.replace("\"", "").parse::<u32>().unwrap();
                     }
                 }
-                if word == "--benchmark-runs" {
+                if word.contains("--benchmark-runs") {
                     if let Some(peek_word) = splits.peek() {
-                        runs = peek_word.parse::<u32>().unwrap();
+                        runs = peek_word.replace("\"", "").parse::<u32>().unwrap();
                     }
                 }
             }
             break;
         }
     }
+    info!("Found map {:?}", map_path);
 
     let map_name = if let Some(file_name) = map_path.file_name() {
         file_name.to_string_lossy().to_string()
@@ -374,6 +377,8 @@ fn parse_stdout_into_benchmark_data(stdout: &str) -> BenchmarkData {
     };
 
     let map_hash = sha256sum(map_path);
+
+    info!("Found map hash {:?}", map_hash);
 
     BenchmarkData {
         map_name,

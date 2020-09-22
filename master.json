@@ -241,6 +241,50 @@
       "ticks": 5000,
       "runs": 10
     },
+    "test-000013": {
+      "save_subdirectory": "test-000013",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000013.16_network.zip",
+          "min_compatible_version": "1.0.0",
+          "sha256": "1bbc7ccc7f32b4b16919435cde292c71cdcc837e997a01b52e7a245e919a9282",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000013/test-000013.16_network.zip"
+        },
+        {
+          "name": "test-000013.1_network.zip",
+          "min_compatible_version": "1.0.0",
+          "sha256": "0f1732ea34a4060ae4fc433af6608839469e78c36651b3d502a523fb27ede502",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000013/test-000013.1_network.zip"
+        },
+        {
+          "name": "test-000013.2_network.zip",
+          "min_compatible_version": "1.0.0",
+          "sha256": "94c2a56dc3dea3cc23a2f207c40238651c3792c012218bc7349ae713cba1b9fb",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000013/test-000013.2_network.zip"
+        },
+        {
+          "name": "test-000013.32_network.zip",
+          "min_compatible_version": "1.0.0",
+          "sha256": "18231769ad3d7885a54d0ba73434651165768c2c512ad65658b08f0fed0b3ade",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000013/test-000013.32_network.zip"
+        },
+        {
+          "name": "test-000013.4_network.zip",
+          "min_compatible_version": "1.0.0",
+          "sha256": "316e0d212483b7ce2d295daf827bcffff2a79ecc816379b5d3f77d77e7ee923d",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000013/test-000013.4_network.zip"
+        },
+        {
+          "name": "test-000013.8_network.zip",
+          "min_compatible_version": "1.0.0",
+          "sha256": "560b3f84479ed0aa3717521d843a851111a53d447ea585afec0921768d2aec1b",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000013/test-000013.8_network.zip"
+        }
+      ],
+      "ticks": 300,
+      "runs": 10
+    },
     "test-000026.1": {
       "save_subdirectory": "test-000026/5872",
       "mods": [],
