@@ -983,6 +983,38 @@
       ],
       "ticks": 4150,
       "runs": 10
+    },
+    "test-000059": {
+      "save_subdirectory": "test-000059",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000059.full_beacon.cloned.zip",
+          "min_compatible_version": "1.1.42",
+          "sha256": "e06b4e99368a4d29c60a7044f5fadd62ca19cb65941177711ae55b46caa5d78c",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000059/test-000059.full_beacon.cloned.zip"
+        },
+        {
+          "name": "test-000059.nonshared_beacon.cloned.zip",
+          "min_compatible_version": "1.1.42",
+          "sha256": "4feaf912bdd4332786aa61baac0ae98b26205a9d2391125ec6417dcc7f81cc43",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000059/test-000059.nonshared_beacon.cloned.zip"
+        },
+        {
+          "name": "test-000059.reduced_beacon.cloned.zip",
+          "min_compatible_version": "1.1.42",
+          "sha256": "bdea72747e8297c3575717a02ee25d58901a5e27b77859bc0d74b8f0308da7ea",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000059/test-000059.reduced_beacon.cloned.zip"
+        },
+        {
+          "name": "test-000059.shared_beacon.cloned.zip",
+          "min_compatible_version": "1.1.42",
+          "sha256": "7bf1917d5387362972d8b68690f515c9586c5b9520d760630e879aa1b1e400a7",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000059/test-000059.shared_beacon.cloned.zip"
+        }
+      ],
+      "ticks": 9200,
+      "runs": 5
     }
   },
   "meta_sets": {
