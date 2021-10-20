@@ -6,166 +6,199 @@
       "maps": [
         {
           "name": "UPS Wars 3 - AssemblyStorm v1.13 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "bf0ec334d5634b6c438d93819185c9ba56027a2470304d5ef6dd64bbbb9f91d3",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - AssemblyStorm v1.13 - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - AssemblyStorm v1.19 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "d9795f08e5ca1d80bd25c355fc9cfa2afeecf9fcae4aa30673abb4511541efd6",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - AssemblyStorm v1.19 - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - DaveMcW belts only - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "211aee085ec6a07235f9b7d170a5d9308eb338f564c074f9b869473cf699992b",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - DaveMcW belts only - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - DaveMcW trains only - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "8cb160c3465e649771e095a0faf1677f0d00a27e06f80978c4206f4b8ead6518",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - DaveMcW trains only - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - DaveMcW trains only less bacon - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "4baeed2518dc76d5b1f1dcba723cb32ac9c3287ba618f32bbfe0b3fed799cf49",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - DaveMcW trains only less bacon - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - Medium9 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "2eb7636d5fbe26d25bedb8c1cb59af17db9750c8c5660c52ec516e8be79d1139",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - Medium9 - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - Steve - belts 1.1b - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "82aa86303e40bdb72d717706a0fedb39f4d7761c415f6459d87e0c748d368ccf",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - Steve - belts 1.1b - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - build1 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "fb0d2e162dc3688134182e7bfc56c7524f0812eb91055f5c20b769af83d50058",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - build1 - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - flame_Sla v10 - train-regular cars - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b323f06f3e4d9c046b89120845e9d51b112c5796282922b6ce7a1db9ff1fc9c9",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - flame_Sla v10 - train-regular cars - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - flame_Sla v5 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "767c876c78a2a349c804ae2010827ec2b784bfc33a59806c283b20d0c20ba7f2",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - flame_Sla v5 - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - flame_Sla v5.5 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "d753e5b563f9bb4c4d9d41e72863ba8a80d95d3e40c7d215238ecd6eb2338b16",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - flame_Sla v5.5 - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - flame_Sla v6.2 belt-b10-clock-off-patch - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "42afdb944aeec31816670db832ce59eb99f136b3a900c6a23afc1dc469b07c38",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - flame_Sla v6.2 belt-b10-clock-off-patch - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - flame_Sla v8.1 belt-b10-clock - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e327b17382f7a80e3227835bb8b3693cfa630e67ba54a10edd1294ba3b534203",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - flame_Sla v8.1 belt-b10-clock - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - flame_Sla v9.1 - train - Stev_GC - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "9479f3471b3b109c59302212a110bb28fb7f36b784345ab56796b4d756b554b3",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - flame_Sla v9.1 - train - Stev_GC - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - knightelite - build2 - trains - legalized -1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "83e897e0ff785f7d61bfb4d443456a09ba6b3d1ab938f09dadcd7b4fef4b0596",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - knightelite - build2 - trains - legalized -1M.zip"
         },
         {
           "name": "UPS Wars 3 - mulark.10x -1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "31f5d7e0119e2535a55438bd3c3929fb1a1f383b182c189a465a8713f88a35a3",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - mulark.10x -1M.zip"
         },
         {
           "name": "UPS Wars 3 - steve submission 4 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "92bed01fb0456fb4dde4a5246d7ba30ee766ef9f2fe32147a7cf58c23475bcd0",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - steve submission 4 - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - steve submission 5 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "5206542f3205f4edc4903abf3326e493bf6855e8c836a3a13654b7da498927c1",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - steve submission 5 - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - steve submission 6 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "94ae2b765f45a72fc9d7e7981f88aa554e87ebd3d240db0e4d0b60df1ad63225",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - steve submission 6 - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - steve trains 1.2_proof - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "d0d8e96a5957b293c092d3514827e3e8b14de556f7917de2dc54dfe2d09f50c4",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - steve trains 1.2_proof - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - steve trains 2 primed - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "8cc49703f5f7ef105a8c9208c7ff06d66b00b7722d0303af285cef9e37180bc1",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - steve trains 2 primed - 1M.zip"
         },
         {
           "name": "UPS Wars 3 - steve trains 3 balancered smelters 3 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "97eebe7fdcffa7de5fb821f5a4046e4e83bd31d999544dc1d845b70df45b47ca",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3 - steve trains 3 balancered smelters 3 - 1M.zip"
         },
         {
           "name": "UPS Wars 3_schmetter_train - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "90cfed649613bfa68cfe4a181784808459279fd781f9f5b95558a32d5111250c",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS Wars 3_schmetter_train - 1M.zip"
         },
         {
           "name": "UPS.Wars.3.allaizn.circuit.everything - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "bac78863c7532feb685514464bd4b1adb57df1514461f06f2064389eeaa20605",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS.Wars.3.allaizn.circuit.everything - 1M.zip"
         },
         {
           "name": "UPS.Wars.3.allaizn.circuit.everything.2 -1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b8eedae2dcc65070e372788a10da7fdc7cc010c7eef12e3a8a15055c37ed202a",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS.Wars.3.allaizn.circuit.everything.2 -1M.zip"
         },
         {
           "name": "UPS.Wars.3.allaizn.circuit.everything.3.sleepycars - legalized - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "9fdf37e365aab9244db89903d91a35df832d015eaa00f7700f457289122d8ea3",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS.Wars.3.allaizn.circuit.everything.3.sleepycars - legalized - 1M.zip"
         },
         {
           "name": "UPS.Wars.3.allaizn.circuit.everything.4 - legalized - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "6d8541152111313eeacd29a326cfb35dbfd32e7140a3fd3002016e559a0b10b4",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS.Wars.3.allaizn.circuit.everything.4 - legalized - 1M.zip"
         },
         {
           "name": "UPS.Wars.3.quyxkh.clocked.dispatch.all.trains -1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b16c47e5d420c14e5ec30339b4d30b169fcdeec6eb69a3d69e195c5fc441b7c8",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS.Wars.3.quyxkh.clocked.dispatch.all.trains -1M.zip"
         },
         {
           "name": "UPS.Wars.3.quyxkh.clocked.dispatch.pickup.trains - 1M salt.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "d5703d9939f334d794413f97216c35bd72880ad0ce9cb1f94d781f74195ae630",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS.Wars.3.quyxkh.clocked.dispatch.pickup.trains - 1M salt.zip"
         },
         {
           "name": "UPS.Wars.3.quyxkh.mostly.belts - legalized - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "418601e45fa1c9a39afd35ef831c47cda74c9b94166ad1ac4430a65cbdc04ba1",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS.Wars.3.quyxkh.mostly.belts - legalized - 1M.zip"
         },
         {
           "name": "UPS.Wars.3.quyxkh.mostly.belts.tuned.1 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e689356160eea3b50fd87cc589b6f2fe9149a4b7d1cb93636367cac1c79c4d03",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS.Wars.3.quyxkh.mostly.belts.tuned.1 - 1M.zip"
         },
         {
           "name": "UPS.Wars.3.quyxkh.mostly.belts.tuned.2 - 1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "41bdced1534a71211e8e14183e6d895545939118f6761e2609d38680a740e0d5",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS.Wars.3.quyxkh.mostly.belts.tuned.2 - 1M.zip"
         },
         {
           "name": "UPS.Wars.3.quyxkh.mostly.belts.tuned.3 -1M.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "d34a298729b462217f6e3e805ebc5dc7e01cb275e4340a07ae0390431a9c87e7",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/UPS Wars 3 - 1M/UPS.Wars.3.quyxkh.mostly.belts.tuned.3 -1M.zip"
         }
@@ -179,61 +212,73 @@
       "maps": [
         {
           "name": "test.iron.belt.splitter_priority.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "16517be72b8a585c3b1b035b34618c313c35e4f6c997fb07b2fce70339a98d6f",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.iron.belt.splitter_priority.zip"
         },
         {
           "name": "test.iron.belt.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "37c75912a1150309c68bd15b16e211a1322c90abbde95fd533faf48b68a74b15",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.iron.belt.zip"
         },
         {
           "name": "test.iron.chest.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "14fca30ffe34cc9c3e637ef5b85acbe758f23fe87d1e22e281e5f1d2372a5ca8",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.iron.chest.zip"
         },
         {
           "name": "test.iron.direct.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "9d977a5eeb1b56ca1315f81855b64037c4ca14aa5830e854573cb86d06d9b9d6",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.iron.direct.zip"
         },
         {
           "name": "test.lds.copper.belt.splitter_priority.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "c66dfe8526002b4cd8857ad6455db1cc76b1f0be68519098106eee23fd3ddc5d",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.copper.belt.splitter_priority.zip"
         },
         {
           "name": "test.lds.copper.belt.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "bf29a18115d525c98a01bd711401d5c4cd4eecea1b33b3692fcd0023ef010107",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.copper.belt.zip"
         },
         {
           "name": "test.lds.copper.chest.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "4f1661bfe04585931a2dcaaf5abf7944dcbb00fc10c8b6229b8c094524119c9d",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.copper.chest.zip"
         },
         {
           "name": "test.lds.copper.direct.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "47c17cd69cb6301e86b9ca1ed8a3ced4b01ad6c85ef064a0af6ed0d557e7e824",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.copper.direct.zip"
         },
         {
           "name": "test.lds.plasticsteel.belt.splitter_priority.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "0790d4dce015078e2779cfc996bbc92c47039a13aa47f82d0bc69ae9d93715b5",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.plasticsteel.belt.splitter_priority.zip"
         },
         {
           "name": "test.lds.plasticsteel.belt.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "200f2f792e80627ecd0af934d35cbfec9474fc0ac9325d2774d33378ec5b27e7",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.plasticsteel.belt.zip"
         },
         {
           "name": "test.lds.plasticsteel.chest.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "4d6ad329d381c930232493f6127033ff61eabb59c0bb49f79d062daca3a451a4",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.plasticsteel.chest.zip"
         },
         {
           "name": "test.lds.plasticsteel.direct.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "563de3f6d7d47e3c901886ad57db9e3eb6258b702af74dead570d0f793544103",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/reddit-direct-vs-belt-vs-chest/test.lds.plasticsteel.direct.zip"
         }
@@ -291,11 +336,13 @@
       "maps": [
         {
           "name": "test-000026.diagonal.northeast.moving.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "2d022311dbf8570ad7b336cc4b1872f5a8b38063e906a9d41ae40685cc6f439b",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000026/5872/test-000026.diagonal.northeast.moving.zip"
         },
         {
           "name": "test-000026.diagonal.southwest.moving.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "d86c81344847cc126cb5b98b838f33c80897402d53acbc482cf1773e22b90581",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000026/5872/test-000026.diagonal.southwest.moving.zip"
         }
@@ -309,11 +356,13 @@
       "maps": [
         {
           "name": "test-000026.straight.northeast.moving.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "8af04b449363069ecb498a43c75367fee1749789540ada46df9b8b320917c3e1",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000026/8182/test-000026.straight.northeast.moving.zip"
         },
         {
           "name": "test-000026.straight.southwest.moving.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "eff66cd5fed5d514cb771ae2b45b78a25398f675d826cfe67db51556211cee34",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000026/8182/test-000026.straight.southwest.moving.zip"
         }
@@ -327,16 +376,19 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
@@ -350,16 +402,19 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
@@ -379,16 +434,19 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
@@ -408,16 +466,19 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
@@ -437,16 +498,19 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
@@ -466,16 +530,19 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
@@ -500,16 +567,19 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
@@ -534,16 +604,19 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
@@ -563,16 +636,19 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
@@ -592,16 +668,19 @@
       "maps": [
         {
           "name": "test-000042.diff_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "36f0fa3eb8e1b525a96e78b0f682fd3a65fbb717200ef8ad66905e89791a9353",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.diff_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e1816e7a7b144ccbddab6dca9541a9b669eaf65688efd1fdf0bf140b1a003b68",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile.zip"
         },
         {
           "name": "test-000042.same_adv_tile_colliding.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "b30655378082fa6fdf72cf40279e019bf6024c26b9077effd63bb621dcac3329",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000042/test-000042.same_adv_tile_colliding.zip"
         }
@@ -615,11 +694,13 @@
       "maps": [
         {
           "name": "test-000046.dummy_load.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "8675deb562ce7b757ac788502577e7d14d7d8fcf30784eea50cf0d0c666c3de1",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000046/test-000046.dummy_load.zip"
         },
         {
           "name": "test-000046.dummy_load_recompressed.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "fcc1a464a8ee700ace694b5fcdcd05427cd71777c38c272e6f6c809152be1e78",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000046/test-000046.dummy_load_recompressed.zip"
         }
@@ -633,151 +714,181 @@
       "maps": [
         {
           "name": "test-000047.circuit_network_fixed.2x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "6543bf3aec518d6cc3860a88504bfce30f4a193f68832dbabb5dd8dee1a6cddf",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.circuit_network_fixed.2x.zip"
         },
         {
           "name": "test-000047.circuit_network_fixed.3x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "98481f5f91970f575904db9d015be6dc3d9d8a90c171834bbcaf65a5c07e4a8f",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.circuit_network_fixed.3x.zip"
         },
         {
           "name": "test-000047.circuit_network_fixed.4x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "73cdad3b6a219551bff2560ea9fb83f5769e706df139bff1d27b54f0f1256712",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.circuit_network_fixed.4x.zip"
         },
         {
           "name": "test-000047.circuit_network_fixed.5x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "41ea440fb6bfc7521d7f48a7e2808706854270dc5f57dd45d067ad43e7c6ea8d",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.circuit_network_fixed.5x.zip"
         },
         {
           "name": "test-000047.circuit_network_fixed.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "54efa8e23377766e0d7837d658bd18a996fbd4d935b13898bab8244cf54ea25b",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.circuit_network_fixed.zip"
         },
         {
           "name": "test-000047.circuit_network_timer_based.2x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "3d0351c03e5c3541aa96b344bbd7743da91db26887232453425dde765dba17ad",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.circuit_network_timer_based.2x.zip"
         },
         {
           "name": "test-000047.circuit_network_timer_based.3x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "2aec66cac0b562d06c35e40b73428cea5146d7a71b29a28353460b5153c1897f",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.circuit_network_timer_based.3x.zip"
         },
         {
           "name": "test-000047.circuit_network_timer_based.4x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "db820e522dd881c1715c6c9caaf00c1128435dcb3dc0235b452fec8150f8e16f",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.circuit_network_timer_based.4x.zip"
         },
         {
           "name": "test-000047.circuit_network_timer_based.5x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "d8096879a08b74938b30d9bb87828d1de15c66731dc94c7f280a466f8f62f90d",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.circuit_network_timer_based.5x.zip"
         },
         {
           "name": "test-000047.circuit_network_timer_based.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "3af5300ba220f924478f2153b9af3e4c8a92eae12c79654867d8503d1b4503bd",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.circuit_network_timer_based.zip"
         },
         {
           "name": "test-000047.inactivity.2x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "8ba12cdf7d193ab5c70446b3c3040599407c39c5abd450c65229d74a75b7b6a3",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.inactivity.2x.zip"
         },
         {
           "name": "test-000047.inactivity.3x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e1dbad165f824bd6a50999f1d24300bcb30d8e9a2906e06fdd8ce34c4a908d06",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.inactivity.3x.zip"
         },
         {
           "name": "test-000047.inactivity.4x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "8776cb263832d4e6ecd26cc140931f6664dba725d7f3bd2bb358a948f1c8de05",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.inactivity.4x.zip"
         },
         {
           "name": "test-000047.inactivity.5x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "2789699adcc1a027d4eb7f331d29ca2fd0e5441e370c7404f9dc57695e918569",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.inactivity.5x.zip"
         },
         {
           "name": "test-000047.inactivity.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "0e15543162ad8f1808fd57fbea77e2ac206b04a50c27c7f249a9b927ca13ef9f",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.inactivity.zip"
         },
         {
           "name": "test-000047.inventory_full_empty.2x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "80e026a6c9c6850972948d8cde8a8383a4ae862562981471fcbc9a1b8c5199e8",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.inventory_full_empty.2x.zip"
         },
         {
           "name": "test-000047.inventory_full_empty.3x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "19916763d0a6469a1319000d51e74135446988a2f7ea0267ba91c537fd0396a5",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.inventory_full_empty.3x.zip"
         },
         {
           "name": "test-000047.inventory_full_empty.4x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "cf7f96d8b1efa50296370085a1814d093849ba69588b4a6f77d294de1ec8bd44",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.inventory_full_empty.4x.zip"
         },
         {
           "name": "test-000047.inventory_full_empty.5x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "569d530cbc75c49037c8e8516dcf23167488afece59f7cf091276a7ae6a4abee",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.inventory_full_empty.5x.zip"
         },
         {
           "name": "test-000047.inventory_full_empty.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "17aa199fb30d359e9f4eb8598daa9f3cdc8c6624e377ced428ef847320a3cb5c",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.inventory_full_empty.zip"
         },
         {
           "name": "test-000047.item_count.2x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "d6f839970862af0efb28b193a4234ff812a01487384bd8391b548daac9cdf253",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.item_count.2x.zip"
         },
         {
           "name": "test-000047.item_count.3x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "526cddfaeff91ed898429ac3be1faf46c86b6b5da0421375ad97c8fa62ae49ce",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.item_count.3x.zip"
         },
         {
           "name": "test-000047.item_count.4x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "cba0588c8883368d23cb67380e568d1ac8279f7645ea7c32267f8ee1a25a22c3",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.item_count.4x.zip"
         },
         {
           "name": "test-000047.item_count.5x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "bd8311b3a789b8a50206b3f2e83048ab95e198e05002eda3b8db64115ab18834",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.item_count.5x.zip"
         },
         {
           "name": "test-000047.item_count.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "57b8dc4284bc7fd0baa23c6addf0f38183fc3c108250c999cdd35cbe8862a963",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.item_count.zip"
         },
         {
           "name": "test-000047.time_passed.2x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "0271a805178c1897d7108ace4bec8147ac6a2399f2d28efa157f8523d6492df6",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.time_passed.2x.zip"
         },
         {
           "name": "test-000047.time_passed.3x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "f9da9507ff404055fc43e28244debb87f6f6354e9bae898bf7f0b032841dc410",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.time_passed.3x.zip"
         },
         {
           "name": "test-000047.time_passed.4x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "5c661b8b8b1b164837c50bd7683bdcd2c6e6dfc25a9f4efa0d8bd8c0b8465c5b",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.time_passed.4x.zip"
         },
         {
           "name": "test-000047.time_passed.5x.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "471d94c400020f0398234a8eeb7ee3e266a18ef98483dcd54d12d4d3f49c6e65",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.time_passed.5x.zip"
         },
         {
           "name": "test-000047.time_passed.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "540a3d40d1eac9ce2e7b2215e7255b138b71e64c92dcf5320e1a001e1e826818",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000047/test-000047.time_passed.zip"
         }
@@ -791,21 +902,25 @@
       "maps": [
         {
           "name": "test-000050.empty_filter.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "94498095e5696c3279f5d5a7ad18f2a44401a94ac9c4d52191a71ef74a08adc8",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000050/test-000050.empty_filter.zip"
         },
         {
           "name": "test-000050.empty_nofilter.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "73083a980654734dc96e6a12fbb297fb35ca91467cd36c08f299a30e0a1a43d0",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000050/test-000050.empty_nofilter.zip"
         },
         {
           "name": "test-000050.full_filter.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "42d4516d5c35d76a8f1d50bf293237fbd07d02bf7c664b6c30cf3079582e0f0f",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000050/test-000050.full_filter.zip"
         },
         {
           "name": "test-000050.half_full_filter.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "45c4b592b51cc96eb5247b1b6af991869163d6543e0b010e333906cfda6f0059",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000050/test-000050.half_full_filter.zip"
         }
@@ -819,6 +934,7 @@
       "maps": [
         {
           "name": "test-000051.1.straight.naive.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "51944ac6eeb7ec62bd97b2c5869808bddb83651a9a7f5861a24982247d3538bc",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000051/4930/test-000051.1.straight.naive.zip"
         }
@@ -832,6 +948,7 @@
       "maps": [
         {
           "name": "test-000051.2.straight.avoid.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "f28c9e5a1831abfba61b37ac57059d0afa58343ffdffd9876c2eac11227d0445",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000051/4910/test-000051.2.straight.avoid.zip"
         }
@@ -845,6 +962,7 @@
       "maps": [
         {
           "name": "test-000051.3.diagonal.direct.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "22b5a587b009d7178b2510f5b80ed7aef3580e4f30f6657be2b5c09616eb1398",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000051/4063/test-000051.3.diagonal.direct.zip"
         }
@@ -858,6 +976,7 @@
       "maps": [
         {
           "name": "test-000051.4.diagonal.avoid.zip",
+          "min_compatible_version": "0.0.0",
           "sha256": "e71371172da09f6917851f7192762f24da8dab596742e0709853633666ee8a56",
           "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000051/4150/test-000051.4.diagonal.avoid.zip"
         }

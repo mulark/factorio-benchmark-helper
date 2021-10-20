@@ -185,9 +185,10 @@ mod tests {
 
     #[test]
     fn test_read_avail_headless_versions() {
-        let local_vers = get_local_headless_versions().unwrap();
-        assert!(!local_vers.iter().map(|x| x.0)
-            .any(|x| x == FactorioVersion::new(0, 0, 0)));
+        if let Ok(versions) = get_local_headless_versions() {
+            assert!(!versions.iter().map(|x| x.0)
+                .any(|x| x == FactorioVersion::new(0, 0, 0)));
+        }        
     }
 
     #[ignore]

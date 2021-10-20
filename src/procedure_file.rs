@@ -247,12 +247,20 @@ pub fn print_procedures(
     }
 }
 
-pub fn print_all_procedures() {
-    println!("Local: ");
-    print_procedures(ProcedureKind::Both, ProcedureFileKind::Local);
-    println!("Master:");
-    print_procedures(ProcedureKind::Both, ProcedureFileKind::Master);
+macro_rules! procedure_print {
+    ($fn_name:ident, $proc_kind:ident) => {
+        pub fn $fn_name() {
+            println!("Local: ");
+            print_procedures(ProcedureKind::$proc_kind, ProcedureFileKind::Local);
+            println!("Master:");
+            print_procedures(ProcedureKind::$proc_kind, ProcedureFileKind::Master);
+        }
+    }
 }
+
+procedure_print!(print_all_procedures, Both);
+procedure_print!(print_all_benchmarks, Benchmark);
+procedure_print!(print_all_meta, Meta);
 
 pub fn read_benchmark_set_from_file(
     name: &str,

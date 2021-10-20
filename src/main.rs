@@ -13,6 +13,8 @@ extern crate sha2;
 
 mod performance_results;
 
+use crate::procedure_file::print_all_benchmarks;
+use crate::util::print_all_procedures;
 use crate::benchmark_runner::determine_saved_factorio_version;
 use crate::regression_tester::run_regression_tests;
 use crate::backblaze::upload_files_to_backblaze;
@@ -185,97 +187,101 @@ fn perform_commit(args: &mut UserArgs) {
     }
     let commit_name = args.commit_name.as_ref().unwrap();
     let commit_type = args.commit_type.as_ref().unwrap();
-    if commit_type == &ProcedureKind::Benchmark {
-        if let Some(benchmark_set) =
-            read_benchmark_set_from_file(commit_name, ProcedureFileKind::Local)
-        {
-            write_benchmark_set_to_file(
-                commit_name,
-                benchmark_set,
-                args.overwrite,
-                ProcedureFileKind::Master,
-                false.into(),
-            );
-            println!(
-                "Successfully committed {:?} to the master json file... Now submit a PR :)",
-                commit_name
-            );
-            exit(0);
-        } else {
-            eprintln!("Failed to commit benchmark set {:?} to master, because that benchmark set doesn't exist in local!", commit_name);
-            exit(1);
-        }
-    } else if commit_type == &ProcedureKind::Meta {
-        if let Some(meta_set) =
-            read_meta_from_file(commit_name, ProcedureFileKind::Local)
-        {
-            if args.commit_recursive {
+    match commit_type {
+        ProcedureKind::Benchmark => {
+            if let Some(benchmark_set) =
+                read_benchmark_set_from_file(commit_name, ProcedureFileKind::Local)
+            {
+                write_benchmark_set_to_file(
+                    commit_name,
+                    benchmark_set,
+                    args.overwrite,
+                    ProcedureFileKind::Master,
+                    false.into(),
+                );
                 println!(
-                    "Selected recursive, committing all members of this meta"
+                    "Successfully committed {:?} to the master json file... Now submit a PR :)",
+                    commit_name
                 );
-                let meta_sets = get_metas_from_meta(
-                    commit_name.to_string(),
-                    ProcedureFileKind::Local,
-                );
-                let benchmark_sets = get_sets_from_meta(
-                    commit_name.to_string(),
-                    ProcedureFileKind::Local,
-                );
-                for (name, set) in benchmark_sets {
-                    write_benchmark_set_to_file(
-                        &name,
-                        set,
-                        args.overwrite,
-                        ProcedureFileKind::Master,
-                        args.interactive.into(),
-                    )
-                }
-                for meta in meta_sets {
-                    if let Some(members) =
-                        read_meta_from_file(&meta, ProcedureFileKind::Local)
-                    {
-                        write_meta_to_file(
-                            &meta,
-                            members,
+                exit(0);
+            } else {
+                eprintln!("Failed to commit benchmark set {:?} to master, because that benchmark set doesn't exist in local!", commit_name);
+                exit(1);
+            }
+        }
+        ProcedureKind::Meta => {
+            if let Some(meta_set) =
+                read_meta_from_file(commit_name, ProcedureFileKind::Local)
+            {
+                if args.commit_recursive {
+                    println!(
+                        "Selected recursive, committing all members of this meta"
+                    );
+                    let meta_sets = get_metas_from_meta(
+                        commit_name.to_string(),
+                        ProcedureFileKind::Local,
+                    );
+                    let benchmark_sets = get_sets_from_meta(
+                        commit_name.to_string(),
+                        ProcedureFileKind::Local,
+                    );
+                    for (name, set) in benchmark_sets {
+                        write_benchmark_set_to_file(
+                            &name,
+                            set,
                             args.overwrite,
                             ProcedureFileKind::Master,
+                            args.interactive.into(),
                         )
                     }
+                    for meta in meta_sets {
+                        if let Some(members) =
+                            read_meta_from_file(&meta, ProcedureFileKind::Local)
+                        {
+                            write_meta_to_file(
+                                &meta,
+                                members,
+                                args.overwrite,
+                                ProcedureFileKind::Master,
+                            )
+                        }
+                    }
                 }
+                write_meta_to_file(
+                    commit_name,
+                    meta_set,
+                    args.overwrite,
+                    ProcedureFileKind::Master,
+                );
+            } else {
+                eprintln!("Failed to commit meta set {:?} to master, because that meta set doesn't exist in local!", commit_name);
+                exit(1);
             }
-            write_meta_to_file(
-                commit_name,
-                meta_set,
-                args.overwrite,
-                ProcedureFileKind::Master,
-            );
-        } else {
-            eprintln!("Failed to commit meta set {:?} to master, because that meta set doesn't exist in local!", commit_name);
-            exit(1);
         }
-    } else {
-        unreachable!(
-            "Commit type is neither meta or benchmark! We should have caught this eariler."
-        );
+        ProcedureKind::Both => unreachable!(),
     }
 }
 
 fn convert_args_to_benchmark_run(
     args: &mut UserArgs,
 ) -> HashMap<String, BenchmarkSet> {
-    if args.benchmark_set_name.is_none() {
-        if args.interactive {
-            println!("Available benchmarks to run: ");
-
-            println!("Enter name of a benchmark you wish to run.");
-            prompt_until_empty_str(false);
-        } else {
-            unreachable!(
-                "Cannot have gotten here without interactive or --benchmark"
-            );
+    if args.benchmark_set_name.is_none() && args.interactive {
+        println!("Available benchmarks to run: ");
+        print_all_benchmarks();
+        println!("Enter name of a benchmark you wish to run.");
+        let mut s = String::new();
+        loop {
+            std::io::stdin().read_line(&mut s).expect("Failed to read line from stdin");
+            if read_benchmark_set_from_file(&s, ProcedureFileKind::Master).is_some()
+                    || read_benchmark_set_from_file(&s, ProcedureFileKind::Local).is_some() {
+                args.benchmark_set_name = Some(s);
+                break;
+            }
+            eprintln!("Failed to find benchmark set with provided name");
+            s.clear();
         }
     }
-    let name = args.benchmark_set_name.as_ref().unwrap().to_owned();
+    let name = args.benchmark_set_name.take().unwrap();
     let mut hash_map = HashMap::default();
     let local = read_benchmark_set_from_file(&name, ProcedureFileKind::Local);
     let master = read_benchmark_set_from_file(&name, ProcedureFileKind::Master);

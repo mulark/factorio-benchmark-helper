@@ -119,18 +119,18 @@ struct BackblazeErrorResponse {
 
 #[derive(Deserialize, Debug, Clone)]
 enum BackblazeErrorKind {
-    SendError,           // 0 - Failed for some reason attempting to send data
-    KeysNotPresent,      // 0 - Failed to read needed keys from config file
-    bad_request,         // 400 or 503
-    invalid_bucket_id,   // 400
-    out_of_range,        // 400
-    unauthorized,        // 401
-    unsupported,         // 401
-    bad_auth_token,      // 401
-    expired_auth_token,  // 401
-    cap_exceeded,        // 403
-    method_not_allowed,  // 405
-    request_timeout,     // 408
+    SendError,         // 0 - Failed for some reason attempting to send data
+    KeysNotPresent,    // 0 - Failed to read needed keys from config file
+    bad_request,       // 400 or 503
+    invalid_bucket_id, // 400
+    out_of_range,      // 400
+    unauthorized,      // 401
+    unsupported,       // 401
+    bad_auth_token,    // 401
+    expired_auth_token, // 401
+    cap_exceeded,      // 403
+    method_not_allowed, // 405
+    request_timeout,   // 408
     service_unavailable, // 503
 }
 
@@ -337,7 +337,7 @@ fn b2_upload_file(
 
     match resp.status() {
         200 => Ok(resp.into_json_deserialize().unwrap()),
-        _ => Err(resp.into_json_deserialize().unwrap()),
+        _ => panic!("{:?}", resp),
     }
 }
 

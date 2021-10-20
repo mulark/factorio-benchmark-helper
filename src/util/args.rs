@@ -283,13 +283,15 @@ fn parse_matches(matches: &ArgMatches) -> UserArgs {
         {
             arguments.commit_type = Some(commit_type);
         } else if arguments.interactive {
-            println!("You failed to set a valid type from args, and are running interactively, enter a commit type. types: benchmark, meta");
+            println!("You failed to set a valid type from args, and are running\
+             interactively, enter a commit type. types: benchmark, meta");
             arguments.commit_type = Some(prompt_until_allowed_val(&[
                 ProcedureKind::Benchmark,
                 ProcedureKind::Meta,
             ]));
         } else {
-            unreachable!("Illegal commit type found!");
+            eprintln!("Unexpected commit type provided! Expected \"benchmark\" or \"meta\"");
+            exit(1);
         }
     }
 
