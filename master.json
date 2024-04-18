@@ -1015,6 +1015,26 @@
       ],
       "ticks": 9200,
       "runs": 5
+    },
+    "test-000060": {
+      "save_subdirectory": "test-000060",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000060.no_primed.400x.zip",
+          "min_compatible_version": "1.1.107",
+          "sha256": "9a5362506756f1ba8e55517df87584f31dcc058cc73354d76dcc21ce800e4018",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000060/test-000060.no_primed.400x.zip"
+        },
+        {
+          "name": "test-000060.primed.400x.zip",
+          "min_compatible_version": "1.1.107",
+          "sha256": "a0dfaf39f42d1a2707a32931991b431855439055fc6154a127a78078fbced442",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000060/test-000060.primed.400x.zip"
+        }
+      ],
+      "ticks": 10000,
+      "runs": 3
     }
   },
   "meta_sets": {
