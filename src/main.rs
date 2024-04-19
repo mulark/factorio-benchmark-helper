@@ -414,22 +414,14 @@ fn create_benchmark_from_args(args: &UserArgs) {
     let save_subdirectory =
         benchmark.save_subdirectory.clone().unwrap_or_default();
     let subdir = save_subdirectory.to_str().unwrap().to_owned();
-    let sv_jh = {
-        let map_paths = map_paths.clone();
-        std::thread::spawn(move || {
-            println!(
-                "Determining the saved versions of each map in another thread"
-            );
-            let mut vers = Vec::new();
-            for path in map_paths.into_iter() {
-                let single_vers = determine_saved_factorio_version(&path);
-                vers.push((path, single_vers));
-            }
-            println!("Finished determining the saved versions of each map.");
-            vers
-        })
-    };
 
+    println!("Finding save versions");
+    let mut vers = Vec::new();
+    for path in map_paths.into_iter() {
+        let single_vers = determine_saved_factorio_version(&path);
+        vers.push((path, single_vers));
+    }
+    println!("Finished determining the saved versions of each map.");
     println!("Attempting upload to Backblaze-b2...");
 
     match upload_files_to_backblaze(&subdir, &map_paths) {
@@ -447,8 +439,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
         }
     };
 
-    let ret_vers = sv_jh.join().unwrap();
-    for (path, vers) in ret_vers {
+    for (path, vers) in vers {
         if let Some(map) = maps_hashmap.get_mut(&path) {
             map.min_compatible_version = vers.unwrap_or_default();
         }

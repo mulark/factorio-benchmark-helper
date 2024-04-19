@@ -428,16 +428,25 @@ fn setup_mod_directory(
 }
 
 // Gets the Factorio Version a save was created in by running the save.
-pub fn determine_saved_factorio_version(map_path: &Path) -> Option<FactorioVersion> {
-    let param = SimpleBenchmarkParams {
-        map_path: map_path.to_path_buf(),
-        mod_directory: fbh_mod_use_dir(),
-        mods: vec![],
-        ticks: 1,
-        runs: 1,
-    };
-    let stdout = run_factorio_benchmark(&factorio_executable_path(), &param)?;
-    parse_stdout_for_save_version(&stdout)
+pub fn determine_saved_factorio_version(
+    map_path: &Path,
+) -> Option<FactorioVersion> {
+    let file = std::fs::File::open(map_path).unwrap();
+    let stem = map_path.file_stem()?;
+
+    let mut bytes = [0u8; 6];
+    let mut archive = zip::ZipArchive::new(file).unwrap();
+    archive
+        .by_name(&format!("{}/script.dat", stem.to_str()?))
+        .ok()?
+        .read_exact(&mut bytes)
+        .ok()?;
+
+    Some(FactorioVersion {
+        major: (bytes[1] as u16) << 8 | bytes[0] as u16,
+        minor: (bytes[3] as u16) << 8 | bytes[2] as u16,
+        patch: (bytes[5] as u16) << 8 | bytes[4] as u16,
+    })
 }
 
 /// Parses the output of a Factorio run for the specific Factorio Version of
@@ -514,8 +523,14 @@ mod tests {
     use crate::util::factorio_save_directory;
     #[test]
     fn test_determined_save_version() {
-        let testpath = factorio_save_directory().join("copypasta tester.zip");
+        let testpath = factorio_save_directory().join("base.v13.zip");
+        println!("Testing {:?}", testpath);
         let sv = determine_saved_factorio_version(&testpath).unwrap();
-        assert_ne!(sv, FactorioVersion::new(0, 0, 0), "Failed to determine saved version.");
+        assert_ne!(
+            sv,
+            FactorioVersion::new(0, 0, 0),
+            "Failed to determine saved version."
+        );
+        assert_eq!(sv, FactorioVersion::new(1, 1, 107));
     }
 }
