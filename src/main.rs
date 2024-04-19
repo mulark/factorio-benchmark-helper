@@ -417,7 +417,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
 
     println!("Finding save versions");
     let mut vers = Vec::new();
-    for path in map_paths.into_iter() {
+    for path in map_paths.iter() {
         let single_vers = determine_saved_factorio_version(&path);
         vers.push((path, single_vers));
     }
@@ -440,7 +440,7 @@ fn create_benchmark_from_args(args: &UserArgs) {
     };
 
     for (path, vers) in vers {
-        if let Some(map) = maps_hashmap.get_mut(&path) {
+        if let Some(map) = maps_hashmap.get_mut(path) {
             map.min_compatible_version = vers.unwrap_or_default();
         }
     }
