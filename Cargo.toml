@@ -25,6 +25,7 @@ rust-lzma = "*"
 tar = "*"
 simplelog = "*"
 log = "*"
+zip = { version = "0.6.6", default-features = false, features = ["deflate-miniz"] }
 
 [profile.release]
 debug = 1
