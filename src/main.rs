@@ -14,15 +14,15 @@ extern crate sha2;
 mod performance_results;
 
 use crate::procedure_file::print_all_benchmarks;
-use crate::util::print_all_procedures;
-use crate::benchmark_runner::determine_saved_factorio_version;
-use crate::regression_tester::run_regression_tests;
+
 use crate::backblaze::upload_files_to_backblaze;
+use crate::benchmark_runner::determine_saved_factorio_version;
 use crate::performance_results::collection_data::Mod;
 use crate::procedure_file::get_metas_from_meta;
 use crate::procedure_file::get_sets_from_meta;
 use crate::procedure_file::read_meta_from_file;
 use crate::procedure_file::write_meta_to_file;
+use crate::regression_tester::run_regression_tests;
 use crate::util::fbh_save_dl_dir;
 use crate::util::hash_saves;
 use crate::util::prompt_until_existing_folder_path;
@@ -61,7 +61,7 @@ fn main() {
         Ok(_) => (),
         Err(e) => {
             println!("Failed to initialize Factorio Benchmark Helper");
-            panic!(e);
+            panic!("{}", e);
         }
     }
     execute_from_args(&mut parsed_args);
@@ -97,7 +97,9 @@ fn execute_from_args(mut args: &mut UserArgs) {
                 5 => args.create_meta = true,
                 6 => {
                     args.regression_test = true;
-                    println!("Selected regression test. Enter scope of benchmarks");
+                    println!(
+                        "Selected regression test. Enter scope of benchmarks"
+                    );
                     println!("1. Differential test (only runs benchmarks of new maps or Factorio versions)");
                     println!("2. Clean test (runs all maps and Factorio version combinations)");
                     println!("3. Single user provided map");
@@ -117,11 +119,10 @@ fn execute_from_args(mut args: &mut UserArgs) {
                                     println!("Supplied path doesn't exist");
                                 }
                             }
-
                         }
                         _ => unreachable!(),
                     }
-                },
+                }
                 _ => {
                     unreachable!("How did you match to this after getting an allowed value?");
                 }
@@ -150,7 +151,10 @@ fn execute_from_args(mut args: &mut UserArgs) {
     } else if args.create_meta {
         create_meta_from_args(&args);
     } else if args.regression_test {
-        run_regression_tests(args.regression_test_clean, args.regression_test_path.as_ref());
+        run_regression_tests(
+            args.regression_test_clean,
+            args.regression_test_path.as_ref(),
+        );
     }
 }
 
@@ -189,9 +193,10 @@ fn perform_commit(args: &mut UserArgs) {
     let commit_type = args.commit_type.as_ref().unwrap();
     match commit_type {
         ProcedureKind::Benchmark => {
-            if let Some(benchmark_set) =
-                read_benchmark_set_from_file(commit_name, ProcedureFileKind::Local)
-            {
+            if let Some(benchmark_set) = read_benchmark_set_from_file(
+                commit_name,
+                ProcedureFileKind::Local,
+            ) {
                 write_benchmark_set_to_file(
                     commit_name,
                     benchmark_set,
@@ -271,9 +276,14 @@ fn convert_args_to_benchmark_run(
         println!("Enter name of a benchmark you wish to run.");
         let mut s = String::new();
         loop {
-            std::io::stdin().read_line(&mut s).expect("Failed to read line from stdin");
-            if read_benchmark_set_from_file(&s, ProcedureFileKind::Master).is_some()
-                    || read_benchmark_set_from_file(&s, ProcedureFileKind::Local).is_some() {
+            std::io::stdin()
+                .read_line(&mut s)
+                .expect("Failed to read line from stdin");
+            if read_benchmark_set_from_file(&s, ProcedureFileKind::Master)
+                .is_some()
+                || read_benchmark_set_from_file(&s, ProcedureFileKind::Local)
+                    .is_some()
+            {
                 args.benchmark_set_name = Some(s);
                 break;
             }
@@ -407,7 +417,9 @@ fn create_benchmark_from_args(args: &UserArgs) {
     let sv_jh = {
         let map_paths = map_paths.clone();
         std::thread::spawn(move || {
-            println!("Determining the saved versions of each map in another thread");
+            println!(
+                "Determining the saved versions of each map in another thread"
+            );
             let mut vers = Vec::new();
             for path in map_paths.into_iter() {
                 let single_vers = determine_saved_factorio_version(&path);

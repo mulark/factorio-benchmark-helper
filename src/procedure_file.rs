@@ -251,11 +251,17 @@ macro_rules! procedure_print {
     ($fn_name:ident, $proc_kind:ident) => {
         pub fn $fn_name() {
             println!("Local: ");
-            print_procedures(ProcedureKind::$proc_kind, ProcedureFileKind::Local);
+            print_procedures(
+                ProcedureKind::$proc_kind,
+                ProcedureFileKind::Local,
+            );
             println!("Master:");
-            print_procedures(ProcedureKind::$proc_kind, ProcedureFileKind::Master);
+            print_procedures(
+                ProcedureKind::$proc_kind,
+                ProcedureFileKind::Master,
+            );
         }
-    }
+    };
 }
 
 procedure_print!(print_all_procedures, Both);

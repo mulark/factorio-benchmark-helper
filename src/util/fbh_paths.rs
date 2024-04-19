@@ -2,21 +2,21 @@ use crate::performance_results::database::setup_database;
 use crate::procedure_file::update_master_json;
 use crate::util::config_file::fbh_write_config_file;
 use directories::ProjectDirs;
-use std::path::PathBuf;
-use std::fs::File;
 use simplelog::LevelFilter;
+use std::fs::File;
+use std::path::PathBuf;
 
 pub fn initialize() -> Result<(), std::io::Error> {
     if !fbh_data_path().exists() {
         std::fs::create_dir_all(fbh_data_path())?;
     }
-    let config = simplelog::ConfigBuilder::new()
-        .build();
+    let config = simplelog::ConfigBuilder::new().build();
     simplelog::WriteLogger::init(
         LevelFilter::Trace,
         config,
-        File::create(fbh_data_path().join("fbh.log"))?
-    ).expect("Another global logger already init?");
+        File::create(fbh_data_path().join("fbh.log"))?,
+    )
+    .expect("Another global logger already init?");
 
     info!("Logging initialized");
     if !fbh_cache_path().exists() {
@@ -72,7 +72,7 @@ pub fn fbh_data_path() -> PathBuf {
     } else {
         match std::env::current_dir() {
             Ok(m) => m.join("factorio-benchmark-helper"),
-            Err(e) => panic!(e.to_string()),
+            Err(e) => panic!("{}", e),
         }
     }
 }

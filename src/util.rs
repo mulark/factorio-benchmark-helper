@@ -5,7 +5,6 @@ extern crate regex;
 extern crate sha1;
 extern crate sha2;
 
-use std::path::Path;
 use crate::util::args::MINIFY_SAVES;
 use crate::util::config_file::CONFIG_FILE_SETTINGS;
 use core::fmt::Debug;
@@ -13,24 +12,24 @@ use core::str::FromStr;
 use std::collections::HashMap;
 use std::io::stdin;
 use std::ops::Range;
+use std::path::Path;
 use std::process::exit;
 mod fbh_paths;
 pub use fbh_paths::{
-    fbh_cache_path, fbh_config_file, fbh_data_path, fbh_mod_dl_dir,
+    fbh_cache_path, fbh_mod_dl_dir,
     fbh_mod_use_dir, fbh_procedure_json_local_file,
-    fbh_procedure_json_master_file, fbh_regression_headless_storage, fbh_regression_testing_dir,
-    fbh_results_database, fbh_save_dl_dir, initialize, fbh_unpacked_headless_storage
+    fbh_procedure_json_master_file, fbh_regression_headless_storage,
+    fbh_regression_testing_dir, fbh_results_database, fbh_save_dl_dir,
+    fbh_unpacked_headless_storage, initialize,
 };
 use sha2::Digest;
 
 pub mod config_file;
-pub use config_file::{
-    fbh_write_config_file, load_forward_compatiblity_config_settings,
-};
+
 
 pub use crate::procedure_file::{
-    print_all_procedures, read_benchmark_set_from_file, read_meta_from_file,
-    write_benchmark_set_to_file, write_meta_to_file, BenchmarkSet,
+    read_benchmark_set_from_file,
+    write_benchmark_set_to_file, BenchmarkSet,
     ProcedureFileKind, ProcedureKind,
 };
 use directories::BaseDirs;
@@ -45,7 +44,7 @@ mod map_dl;
 pub use map_dl::{fetch_map_deps_parallel, Map};
 
 pub mod common;
-pub use common::*;
+
 
 lazy_static! {
     #[derive(Debug)]
@@ -201,7 +200,7 @@ fn get_factorio_info() -> FactorioInfo {
     let mut info_holder = FactorioInfo::default();
     for (i, s) in split.enumerate() {
         match i {
-            1 => (info_holder.version = s.to_string()),
+            1 => info_holder.version = s.to_string(),
             4 => {
                 info_holder.operating_system = s.to_string();
                 info_holder.operating_system.pop();
@@ -326,7 +325,7 @@ pub fn prompt_until_allowed_val<T: FromStr + PartialEq + Debug>(
         stdin().read_line(&mut input).expect("");
         input = input.trim().to_owned();
         trim_newline(&mut input);
-        input.to_lowercase();
+        input = input.to_lowercase();
         if let Ok(m) = input.parse::<T>() {
             if allowed_vals.contains(&m) {
                 return m;
@@ -350,7 +349,7 @@ pub fn prompt_until_allowed_val_in_range<
         stdin().read_line(&mut input).expect("");
         input = input.trim().to_owned();
         trim_newline(&mut input);
-        input.to_lowercase();
+        input = input.to_lowercase();
         if let Ok(m) = input.parse::<T>() {
             if range.contains(&m) {
                 return m;

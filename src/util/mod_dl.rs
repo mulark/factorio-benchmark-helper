@@ -8,7 +8,7 @@ use std::process::exit;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
-use crate::util::{fbh_mod_dl_dir, factorio_rw_directory};
+use crate::util::{factorio_rw_directory, fbh_mod_dl_dir};
 
 const MOD_PORTAL_URL: &str = "https://mods.factorio.com";
 const MOD_PORTAL_API_URL: &str = "https://mods.factorio.com/api/mods/";
@@ -89,9 +89,11 @@ pub fn fetch_mod_deps_parallel(mods: &[Mod]) -> Vec<JoinHandle<()>> {
                 // if the mod isn't found or its hash doesn't match the one we have on file, download it.
                 handles.push(fetch_single_mod(user_data.clone(), filename, m));
             } else {
-                eprintln!("Couldn't read playerdata.json for service-username \
+                eprintln!(
+                    "Couldn't read playerdata.json for service-username \
                     or service-token, downloading mods from the mod portal is\
-                     not possible.");
+                     not possible."
+                );
                 eprintln!(
                     "If using the steam version try launching the game, and exiting normally once."
                 );
@@ -163,7 +165,7 @@ fn fetch_single_mod(
                         Ok(_) => file.write_all(&buf).unwrap(),
                         Err(e) => {
                             println!("Failed to write file to {:?}!", file);
-                            panic!(e);
+                            panic!("{}", e);
                         }
                     }
                 } else {

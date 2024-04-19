@@ -42,12 +42,14 @@ struct FileUploadInstance {
     get_upload_url_response: BackblazeGetUploadUrlResponse,
 
     /// The upload's parsed JSON response if available.
+    #[allow(dead_code)]
     upload_response: Option<BackblazeUploadFileResponse>,
 }
 
 #[derive(Clone, Debug, Default)]
 struct BackbazeDataContainer {
     auth: Option<BackblazeAuth>,
+    #[allow(dead_code)]
     get_url_response: Option<BackblazeGetUploadUrlResponse>,
     already_uploaded_files: Option<BackblazeListFileNamesResponse>,
     files: Vec<FileUploadInstance>,
@@ -61,6 +63,7 @@ struct BackblazeAuth {
     apiUrl: String,
     allowed: BackblazeAuthAllowed,
     #[serde(skip)]
+    #[allow(dead_code)]
     dirty: bool,
 }
 
@@ -114,6 +117,7 @@ struct BackblazeUploadFileResponse {
 struct BackblazeErrorResponse {
     status: u16,
     code: BackblazeErrorKind,
+    #[allow(dead_code)]
     message: String,
 }
 
@@ -246,7 +250,7 @@ fn b2_test_files_already_uploaded(
             already_uploaded_file.contentSha1.clone(),
         );
     }
-    for mut file in files {
+    for file in files {
         let resp = client.get(&file.final_url).call();
         if resp.status() == 200 {
             if let Some(s) = known_hashmap.get(&file.relative_filename) {
@@ -263,7 +267,7 @@ fn get_b2_upload_urls_per_file(
     client: &Agent,
     container: &mut BackbazeDataContainer,
 ) -> Result<(), BackblazeErrorResponse> {
-    for mut file in &mut container.files {
+    for file in &mut container.files {
         file.get_upload_url_response =
             b2_get_upload_url(&client, &container.auth.as_ref().unwrap())?;
     }
@@ -345,7 +349,7 @@ fn populate_final_urls(
     auth: &BackblazeAuth,
     files: &mut Vec<FileUploadInstance>,
 ) {
-    for mut file in files {
+    for file in files {
         file.final_url = b2_download_url(auth, &file.relative_filename);
     }
 }
