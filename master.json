@@ -1035,6 +1035,52 @@
       ],
       "ticks": 10000,
       "runs": 3
+    },
+    "test-000061.chasing": {
+      "save_subdirectory": "test-000061",
+      "mods": [],
+      "maps": [
+        {
+          "name": "test-000061.naive.zip",
+          "min_compatible_version": "1.1.107",
+          "sha256": "98495741e8f22d3a4d05df0f6d9683a5e01a1763482d00a749514261e21c6d8f",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000061/test-000061.naive.zip"
+        },
+        {
+          "name": "test-000061.split.zip",
+          "min_compatible_version": "1.1.107",
+          "sha256": "9415a5444c5737a5b11fead009c60d74bf1599b677c9a2cf4f74bd7f9095af61",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000061/test-000061.split.zip"
+        }
+      ],
+      "ticks": 1000,
+      "runs": 3
+    },
+    "test-000061.no_chasing": {
+      "save_subdirectory": "test-000061",
+      "mods": [
+        {
+          "name": "zzzzStopChasingBeltItems",
+          "version": "1.1.0",
+          "sha1": "2e83fe88a29f5ead83ef6a2f385f47c9e11de283"
+        }
+      ],
+      "maps": [
+        {
+          "name": "test-000061.naive.zip",
+          "min_compatible_version": "1.1.107",
+          "sha256": "98495741e8f22d3a4d05df0f6d9683a5e01a1763482d00a749514261e21c6d8f",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000061/test-000061.naive.zip"
+        },
+        {
+          "name": "test-000061.split.zip",
+          "min_compatible_version": "1.1.107",
+          "sha256": "9415a5444c5737a5b11fead009c60d74bf1599b677c9a2cf4f74bd7f9095af61",
+          "download_link": "https://f000.backblazeb2.com/file/mulark-maps/test-000061/test-000061.split.zip"
+        }
+      ],
+      "ticks": 1000,
+      "runs": 3
     }
   },
   "meta_sets": {
